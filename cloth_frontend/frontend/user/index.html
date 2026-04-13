@@ -1,0 +1,1070 @@
+<!DOCTYPE html>
+<html class="scroll-smooth" lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <title>Yeshi Heritage | The Modern Heirloom</title>
+    <link rel="icon" type="image/png" href="/images/logo.png">
+    <script>window.__yeshiWarnPatch=window.__yeshiWarnPatch||(()=>{const w=console.warn;console.warn=function(...a){if(String(a[0]||'').includes('cdn.tailwindcss.com should not be used in production'))return;return w.apply(console,a);};return true;})();</script>
+    <script src="https://cdn.tailwindcss.com?plugins=forms"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            primary: '#745b18',
+                            accent: '#d4b468',
+                            ink: '#1a1c1c',
+                            paper: '#faf9f9',
+                            muted: '#4d4639',
+                            border: '#d0c5b4',
+                            danger: '#ba1a1a',
+                            success: '#1aad19'
+                        }
+                    },
+                    boxShadow: {
+                        nav: '0 20px 40px rgba(26, 28, 28, 0.08)'
+                    },
+                    fontFamily: {
+                        body: ['Inter', 'sans-serif']
+                    }
+                }
+            }
+        };
+    </script>
+    <style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            vertical-align: middle;
+        }
+
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+
+        .no-scrollbar {
+            scrollbar-width: none;
+        }
+
+        #superdeals-feed {
+            -webkit-overflow-scrolling: touch;
+        }
+
+        @media (max-width: 639px) {
+            #superdeals-feed > article {
+                min-width: 78%;
+                max-width: 320px;
+                scroll-snap-align: start;
+            }
+        }
+
+        @media (min-width: 640px) {
+            #superdeals-feed > article {
+                min-width: 260px;
+                max-width: 320px;
+                scroll-snap-align: start;
+            }
+        }
+
+        mark.search-highlight {
+            background: #facc15;
+            color: #1a1c1c;
+            border-radius: 0.2rem;
+            padding: 0 0.15rem;
+        }
+
+        .search-match-card {
+            border: 1px solid rgba(212, 180, 104, 0.8);
+            box-shadow: 0 10px 28px rgba(212, 180, 104, 0.28);
+        }
+
+        /* Home page has standalone nav styles; lock logout color in all states. */
+        body.home-page #desktopLogoutItem > a,
+        body.home-page #mobileMenuLogoutBtn,
+        body.home-page a[data-action="logout"],
+        body.home-page #desktopLogoutItem > a:hover,
+        body.home-page #mobileMenuLogoutBtn:hover,
+        body.home-page a[data-action="logout"]:hover,
+        body.home-page #desktopLogoutItem > a:active,
+        body.home-page #mobileMenuLogoutBtn:active,
+        body.home-page a[data-action="logout"]:active,
+        body.home-page #desktopLogoutItem > a:focus,
+        body.home-page #mobileMenuLogoutBtn:focus,
+        body.home-page a[data-action="logout"]:focus,
+        body.home-page #desktopLogoutItem > a:focus-visible,
+        body.home-page #mobileMenuLogoutBtn:focus-visible,
+        body.home-page a[data-action="logout"]:focus-visible {
+            color: #525454 !important;
+            -webkit-text-fill-color: #525454 !important;
+        }
+    </style>
+</head>
+
+<body class="home-page bg-brand-paper font-body text-brand-ink antialiased yeshi-has-bottom-nav">
+<div id="notification-overlay" class="fixed inset-0 z-[100] hidden">
+        <div class="absolute inset-0 bg-black/40" data-close-notification></div>
+        <aside id="notification-drawer" class="absolute right-0 top-0 h-full w-[86%] max-w-sm translate-x-full bg-white shadow-2xl transition-transform duration-300">
+            <div class="flex h-full flex-col">
+                <div class="flex items-center justify-between p-5">
+                    <h2 class="text-base font-bold uppercase tracking-[0.2em]">Notifications</h2>
+                    <button type="button" data-close-notification class="rounded-full p-2 hover:bg-gray-100" aria-label="Close notifications">
+                        <span class="material-symbols-outlined">close</span>
+                    </button>
+                </div>
+                <div id="notificationList" class="flex-1 space-y-3 overflow-y-auto bg-gray-50 p-4 text-sm">
+                    <p class="text-brand-muted">Loading notifications...</p>
+                </div>
+            </div>
+        </aside>
+    </div>
+
+    <main class="px-4 pb-16 pt-8 md:px-10">
+        <section class="mx-auto mb-8 max-w-[1920px]">
+            <div class="relative">
+                <input id="searchInput" type="search" placeholder="Search heritage..." class="w-full rounded-full bg-[#f4f3f3] px-5 py-3 pr-12 text-sm text-brand-ink outline-none ring-brand-primary focus:ring">
+                <span class="material-symbols-outlined pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-brand-muted">search</span>
+            </div>
+            <p id="searchResultsInfo" class="mt-2 hidden text-xs font-semibold uppercase tracking-wide text-brand-primary"></p>
+            <div id="categoryFilters" class="no-scrollbar mt-4 flex gap-2 overflow-x-auto pb-1 text-xs font-bold uppercase tracking-wide">
+                <button type="button" data-category="All" class="filter-pill rounded-full bg-brand-primary px-4 py-2 text-white">All</button>
+                <button type="button" data-category="Women" class="filter-pill rounded-full bg-[#f4f3f3] px-4 py-2">Women</button>
+                <button type="button" data-category="Men" class="filter-pill rounded-full bg-[#f4f3f3] px-4 py-2">Men</button>
+                <button type="button" data-category="Couple" class="filter-pill rounded-full bg-[#f4f3f3] px-4 py-2">Couple</button>
+                <button type="button" data-category="Wedding" class="filter-pill rounded-full bg-[#f4f3f3] px-4 py-2">Wedding</button>
+                <button type="button" data-category="Accessories" class="filter-pill rounded-full bg-[#f4f3f3] px-4 py-2">Accessories</button>
+                <button type="button" data-category="Kids" class="filter-pill rounded-full bg-[#f4f3f3] px-4 py-2">Kids</button>
+            </div>
+        </section>
+
+        <section class="mx-auto mb-12 max-w-[1920px]">
+            <div class="mb-6 flex items-center justify-between gap-3">
+                <h2 class="text-2xl font-bold tracking-tight md:text-4xl">SuperDeals</h2>
+                <p class="flex items-center gap-1 text-xs font-bold uppercase tracking-wide text-brand-danger md:text-sm">
+                    <span class="material-symbols-outlined text-base">bolt</span>
+                    Best Price Picks
+                </p>
+            </div>
+            <div id="superdeals-feed" class="no-scrollbar flex snap-x snap-mandatory gap-3 overflow-x-auto">
+                <p class="col-span-full py-10 text-center text-brand-muted">Loading feed...</p>
+            </div>
+        </section>
+
+        <section class="mx-auto mb-12 max-w-[1920px]">
+            <div class="mb-6 flex items-center justify-between gap-3">
+                <h2 class="text-2xl font-bold tracking-tight md:text-4xl">New Design</h2>
+                <a href="#" class="flex items-center gap-1 text-xs font-bold uppercase tracking-wide text-brand-primary md:text-sm">
+                    View all
+                    <span class="material-symbols-outlined text-base">arrow_forward</span>
+                </a>
+            </div>
+            <div id="newdesign-feed" class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
+                <p class="col-span-full py-10 text-center text-brand-muted">Loading feed...</p>
+            </div>
+        </section>
+
+        <section class="mx-auto mb-14 flex max-w-[1920px] justify-center">
+            <button type="button" id="nextPageButton" class="hidden rounded-full bg-gradient-to-r from-brand-primary to-brand-accent px-8 py-3 text-xs font-bold uppercase tracking-[0.2em] text-white shadow-sm transition-opacity hover:opacity-90 md:px-12 md:text-sm">
+                Next Page
+            </button>
+        </section>
+    </main>
+
+    <div id="videoModal" class="fixed inset-0 z-[120] hidden items-center justify-center bg-black/70 p-4">
+        <div class="w-full max-w-4xl rounded-2xl bg-white p-4">
+            <div class="mb-3 flex items-center justify-between">
+                <strong class="text-brand-primary">Video Preview</strong>
+                <button type="button" id="closeVideoModal" class="rounded-md bg-[#f4f3f3] px-3 py-1 text-sm">Close</button>
+            </div>
+            <div id="videoModalBody"></div>
+        </div>
+    </div>
+
+    <script src="/js/main.js"></script>
+    <script>
+        const state = {
+            posts: [],
+            selectedCategory: 'All',
+            searchTerm: '',
+            page: 1,
+            pageSize: 10
+        };
+
+        function getCurrentUserId() {
+            try {
+                const token = localStorage.getItem('token');
+                if (token) {
+                    const payload = JSON.parse(atob(token.split('.')[1] || ''));
+                    if (payload && payload.user && payload.user.id) return String(payload.user.id);
+                }
+            } catch (_) {}
+
+            try {
+                const user = JSON.parse(localStorage.getItem('user') || 'null');
+                if (user && user._id) return String(user._id);
+            } catch (_) {}
+
+            return '';
+        }
+
+        function getRatingSummary(post) {
+            const ratings = Array.isArray(post && post.comments)
+                ? post.comments
+                    .map((c) => Number(c && c.rating))
+                    .filter((n) => Number.isFinite(n) && n >= 1 && n <= 5)
+                : [];
+            const avg = ratings.length
+                ? ratings.reduce((sum, n) => sum + n, 0) / ratings.length
+                : 0;
+            return {
+                avg: ratings.length ? avg.toFixed(1) : '0.0',
+                count: ratings.length
+            };
+        }
+
+        function getAverageRatingValue(post) {
+            const ratings = Array.isArray(post && post.comments)
+                ? post.comments
+                    .map((c) => Number(c && c.rating))
+                    .filter((n) => Number.isFinite(n) && n >= 1 && n <= 5)
+                : [];
+            if (!ratings.length) return 0;
+            return ratings.reduce((sum, n) => sum + n, 0) / ratings.length;
+        }
+
+        function getYouTubeEmbedUrl(url) {
+            const value = String(url || '').trim();
+            if (!value) return '';
+            try {
+                const u = new URL(value);
+                if (u.hostname.includes('youtube.com')) {
+                    const id = u.searchParams.get('v');
+                    if (id) return 'https://www.youtube.com/embed/' + id;
+                }
+                if (u.hostname.includes('youtu.be')) {
+                    const id = u.pathname.replace(/^\//, '');
+                    if (id) return 'https://www.youtube.com/embed/' + id;
+                }
+            } catch (_) {}
+            return '';
+        }
+
+        function getTikTokEmbedUrl(url) {
+            const value = String(url || '').trim();
+            if (!value) return '';
+            const match = value.match(/tiktok\.com\/@[^/]+\/video\/(\d+)/i);
+            if (!match || !match[1]) return '';
+            return 'https://www.tiktok.com/embed/v2/' + match[1];
+        }
+
+        function getInstagramEmbedUrl(url) {
+            const value = String(url || '').trim();
+            if (!value) return '';
+            try {
+                const u = new URL(value);
+                if (!u.hostname.includes('instagram.com')) return '';
+                const parts = u.pathname.split('/').filter(Boolean);
+                if (parts.length >= 2 && (parts[0] === 'reel' || parts[0] === 'p')) {
+                    return 'https://www.instagram.com/' + parts[0] + '/' + parts[1] + '/embed';
+                }
+            } catch (_) {}
+            return '';
+        }
+
+        function renderVideoEmbed(url) {
+            const value = String(url || '').trim();
+            if (!value) return '';
+
+            const yt = getYouTubeEmbedUrl(value);
+            if (yt) {
+                return '<iframe src="' + yt + '" title="Video preview" style="width:100%; aspect-ratio:16/9; border:0; border-radius:12px;" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>';
+            }
+
+            const tiktok = getTikTokEmbedUrl(value);
+            if (tiktok) {
+                return '<div style="max-width:420px; margin:0 auto;"><iframe src="' + tiktok + '" title="TikTok preview" style="width:100%; aspect-ratio:9/16; min-height:520px; max-height:78vh; border:0; border-radius:12px;" scrolling="no" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>';
+            }
+
+            const instagram = getInstagramEmbedUrl(value);
+            if (instagram) {
+                return '<div style="max-width:420px; margin:0 auto;"><iframe src="' + instagram + '" title="Instagram preview" style="width:100%; aspect-ratio:9/16; min-height:520px; max-height:78vh; border:0; border-radius:12px;" allow="autoplay; clipboard-write; encrypted-media; picture-in-picture" allowfullscreen></iframe></div>';
+            }
+
+            const lower = value.toLowerCase();
+            const isDirectVideo = lower.endsWith('.mp4') || lower.endsWith('.webm') || lower.endsWith('.ogg');
+            if (isDirectVideo) {
+                return '<video src="' + value + '" controls playsinline style="width:100%; border-radius:12px; background:#000;"></video>';
+            }
+
+            return '<a href="' + value + '" target="_blank" rel="noopener noreferrer" class="inline-flex rounded-md bg-[#f4f3f3] px-4 py-2">Open video link</a>';
+        }
+
+        function getVideoLabel(url) {
+            const value = String(url || '').toLowerCase();
+            if (value.includes('tiktok.com')) return 'TikTok';
+            if (value.includes('instagram.com')) return 'Instagram';
+            if (value.includes('youtube.com') || value.includes('youtu.be')) return 'YouTube';
+            return 'Video Link';
+        }
+
+        function renderVideoChooser(urls) {
+            const list = Array.isArray(urls) ? urls.filter(Boolean) : [];
+            if (!list.length) return '<p style="margin:0;color:#777;">No video available.</p>';
+            return [
+                '<div style="display:grid;gap:10px;">',
+                    '<p style="margin:0;color:#666;font-size:14px;">Choose a video source:</p>',
+                    '<div style="display:flex;flex-wrap:wrap;gap:8px;">',
+                        list.map((url, idx) => '<button type="button" data-video-choice="' + idx + '" class="rounded-md bg-[#f4f3f3] px-3 py-2 text-sm font-semibold">' + escapeHtml(getVideoLabel(url)) + '</button>').join(''),
+                    '</div>',
+                '</div>'
+            ].join('');
+        }
+
+        function openVideoModal(input) {
+            const modal = document.getElementById('videoModal');
+            const body = document.getElementById('videoModalBody');
+            if (!modal || !body) return;
+            const urls = Array.isArray(input) ? input.filter(Boolean) : [String(input || '').trim()].filter(Boolean);
+            const showChooser = () => {
+                body.innerHTML = renderVideoChooser(urls);
+                body.querySelectorAll('[data-video-choice]').forEach((btn) => {
+                    btn.addEventListener('click', () => {
+                        const idx = Number(btn.getAttribute('data-video-choice') || 0);
+                        const selected = urls[idx] || urls[0];
+                        showSelected(selected);
+                    });
+                });
+            };
+            const showSelected = (selectedUrl) => {
+                body.innerHTML = [
+                    '<div style="display:grid;gap:10px;">',
+                        '<button type="button" id="videoBackToChoices" class="rounded-md bg-[#f4f3f3] px-3 py-2 text-sm" style="justify-self:start;">Back to choices</button>',
+                        '<div>', renderVideoEmbed(selectedUrl), '</div>',
+                    '</div>'
+                ].join('');
+                const backBtn = document.getElementById('videoBackToChoices');
+                if (backBtn) backBtn.addEventListener('click', showChooser);
+            };
+            if (urls.length > 1) {
+                showChooser();
+            } else {
+                body.innerHTML = renderVideoEmbed(urls[0] || '');
+            }
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeVideoModal() {
+            const modal = document.getElementById('videoModal');
+            const body = document.getElementById('videoModalBody');
+            if (body) body.innerHTML = '';
+            if (!modal) return;
+            modal.classList.remove('flex');
+            modal.classList.add('hidden');
+        }
+
+        function escapeNotificationHtml(value) {
+            return String(value || '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        function formatNotificationTime(input) {
+            const date = new Date(input || Date.now());
+            if (Number.isNaN(date.getTime())) return '';
+            return date.toLocaleString();
+        }
+
+        async function loadNotificationUnreadCount() {
+            const token = localStorage.getItem('token');
+            const dot = document.getElementById('notificationDot');
+            if (!dot) return;
+            if (!token) {
+                dot.classList.add('hidden');
+                dot.textContent = '';
+                return;
+            }
+
+            try {
+                const res = await fetch('/api/workflow/notifications/unread-count', {
+                    headers: { 'x-auth-token': token }
+                });
+                if (!res.ok) {
+                    dot.classList.add('hidden');
+                    return;
+                }
+                const data = await res.json();
+                const unread = Number((data && (data.unreadCount ?? data.unread)) || 0);
+                if (Number.isFinite(unread) && unread > 0) {
+                    dot.classList.remove('hidden');
+                    dot.textContent = unread > 99 ? '99+' : String(unread);
+                } else {
+                    dot.classList.add('hidden');
+                    dot.textContent = '';
+                }
+            } catch (_) {
+                dot.classList.add('hidden');
+                dot.textContent = '';
+            }
+        }
+
+        async function loadNotifications() {
+            const token = localStorage.getItem('token');
+            const list = document.getElementById('notificationList');
+            if (!list) return;
+
+            if (!token) {
+                list.innerHTML = '<p class="text-brand-muted">Login to see notifications.</p>';
+                return;
+            }
+
+            list.innerHTML = '<p class="text-brand-muted">Loading notifications...</p>';
+
+            try {
+                const res = await fetch('/api/workflow/notifications?limit=30', {
+                    headers: { 'x-auth-token': token }
+                });
+                if (!res.ok) {
+                    list.innerHTML = '<p class="text-brand-muted">Could not load notifications.</p>';
+                    return;
+                }
+
+                const data = await res.json();
+                const notifications = Array.isArray(data) ? data : [];
+                if (!notifications.length) {
+                    list.innerHTML = '<p class="text-brand-muted">No notifications yet.</p>';
+                    return;
+                }
+
+                list.innerHTML = notifications.map((n) => {
+                    const title = escapeNotificationHtml(n && n.title ? n.title : 'Notification');
+                    const body = escapeNotificationHtml(n && n.body ? n.body : '');
+                    const timeText = escapeNotificationHtml(formatNotificationTime(n && n.timestamp));
+                    const unreadClass = n && n.is_read ? 'border-transparent' : 'border-[#D4B468]';
+                    const notificationId = escapeNotificationHtml(n && n._id ? n._id : '');
+                    const refId = escapeNotificationHtml(n && n.reference_id ? n.reference_id : '');
+                    const clickableClass = refId ? ' cursor-pointer hover:bg-amber-50' : '';
+                    return [
+                        '<article class="rounded-xl border-l-4 ', unreadClass, ' bg-white p-3 shadow-sm', clickableClass, '" data-notification-id="', notificationId, '" data-reference-id="', refId, '">',
+                            '<div class="flex items-center justify-between gap-2">',
+                                '<p class="text-[11px] font-bold uppercase tracking-wider text-brand-primary">', title, '</p>',
+                                '<span class="text-[10px] text-brand-muted">', timeText, '</span>',
+                            '</div>',
+                            '<p class="mt-1 text-brand-muted">', body, '</p>',
+                        '</article>'
+                    ].join('');
+                }).join('');
+                bindNotificationItemActions(token);
+            } catch (_) {
+                list.innerHTML = '<p class="text-brand-muted">Could not load notifications.</p>';
+            }
+        }
+
+        function bindNotificationItemActions(token) {
+            document.querySelectorAll('#notificationList [data-reference-id]').forEach((item) => {
+                item.addEventListener('click', async function () {
+                    const refId = item.getAttribute('data-reference-id');
+                    const notificationId = item.getAttribute('data-notification-id');
+                    if (!refId) return;
+
+                    if (token && notificationId) {
+                        fetch('/api/workflow/notifications/' + encodeURIComponent(notificationId) + '/read', {
+                            method: 'PUT',
+                            headers: { 'x-auth-token': token }
+                        }).catch(function () {});
+                    }
+
+                    // If refId looks like a MongoDB ObjectId (24 hex chars), treat as chat messageId
+                    if (/^[a-f\d]{24}$/i.test(refId)) {
+                        window.location.href = '/user/mychat.html?messageId=' + encodeURIComponent(refId);
+                    } else {
+                        window.location.href = '/user/post.html?id=' + encodeURIComponent(refId);
+                    }
+                });
+            });
+        }
+
+        function isUserLoggedIn() {
+            return !!localStorage.getItem('token');
+        }
+
+        function buildLoginRedirect(targetPath) {
+            const next = targetPath || (window.location.pathname + window.location.search);
+            return '/auth/login?next=' + encodeURIComponent(next);
+        }
+
+        function bindOrderLinkGuards() {
+            document.querySelectorAll('[data-order-link]').forEach((link) => {
+                link.addEventListener('click', function (e) {
+                    if (isUserLoggedIn()) return;
+                    e.preventDefault();
+                    const href = link.getAttribute('href') || '/user/order.html';
+                    window.location.href = buildLoginRedirect(href);
+                });
+            });
+        }
+
+        function applyMenuAuthState() {
+            const loginBtn = document.getElementById('mobileMenuLoginBtn');
+            const signupBtn = document.getElementById('mobileMenuSignupBtn');
+            const logoutBtn = document.getElementById('mobileMenuLogoutBtn');
+            const desktopLogin = document.getElementById('desktopLoginItem');
+            const desktopSignup = document.getElementById('desktopSignupItem');
+            const desktopLogout = document.getElementById('desktopLogoutItem');
+            const shoppingBagLink = document.getElementById('shoppingBagLink');
+            const loggedIn = isUserLoggedIn();
+            if (loginBtn) loginBtn.classList.toggle('hidden', loggedIn);
+            if (signupBtn) signupBtn.classList.toggle('hidden', loggedIn);
+            if (logoutBtn) logoutBtn.classList.toggle('hidden', !loggedIn);
+            if (desktopLogin) desktopLogin.classList.toggle('hidden', loggedIn);
+            if (desktopSignup) desktopSignup.classList.toggle('hidden', loggedIn);
+            if (desktopLogout) desktopLogout.classList.toggle('hidden', !loggedIn);
+            if (shoppingBagLink) shoppingBagLink.classList.toggle('hidden', !loggedIn);
+        }
+
+        function bindLogoutActions() {
+            document.querySelectorAll('[data-action="logout"]').forEach((el) => {
+                el.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    localStorage.removeItem('token');
+                    localStorage.removeItem('role');
+                    localStorage.removeItem('user');
+                    window.location.href = '/auth/login';
+                });
+            });
+        }
+
+        function formatPricePair(post) {
+            const newValue = Number(post && post.priceETB);
+            const oldValue = Number(post && post.oldPriceETB);
+            const shippingValue = Number(post && post.shippingPriceETB);
+            const shippingText = post && post.freeShipping
+                ? 'Free shipping'
+                : (Number.isFinite(shippingValue) && shippingValue >= 0 ? 'Shipping: ' + shippingValue.toLocaleString() + ' ETB' : '');
+            return {
+                newPrice: Number.isFinite(newValue) && newValue > 0 ? newValue.toLocaleString() + ' ETB' : 'Price on request',
+                oldPrice: Number.isFinite(oldValue) && oldValue > 0 ? oldValue.toLocaleString() + ' ETB' : '',
+                shipping: shippingText
+            };
+        }
+
+        function escapeHtml(value) {
+            return String(value || '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        function escapeRegExp(value) {
+            return String(value || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        }
+
+        function highlightSearchTerm(value) {
+            const text = String(value || '');
+            const term = String(state.searchTerm || '').trim();
+            if (!term) return escapeHtml(text);
+
+            const pattern = escapeRegExp(term);
+            if (!pattern) return escapeHtml(text);
+
+            const regex = new RegExp('(' + pattern + ')', 'ig');
+            return text
+                .split(regex)
+                .map((part, index) => {
+                    if (index % 2 === 1) {
+                        return '<mark class="search-highlight">' + escapeHtml(part) + '</mark>';
+                    }
+                    return escapeHtml(part);
+                })
+                .join('');
+        }
+
+        function getBagItems() {
+            try {
+                const raw = localStorage.getItem('yeshi_bag');
+                const parsed = raw ? JSON.parse(raw) : [];
+                return Array.isArray(parsed) ? parsed : [];
+            } catch (_) {
+                return [];
+            }
+        }
+
+        function saveBagItems(items) {
+            localStorage.setItem('yeshi_bag', JSON.stringify(Array.isArray(items) ? items : []));
+        }
+
+        function updateBagCountBadge() {
+            const badge = document.getElementById('bagCount');
+            if (!badge) return;
+            const count = getBagItems().length;
+            badge.textContent = String(count);
+            badge.classList.toggle('hidden', count <= 0);
+        }
+
+        function addToBag(post) {
+            if (!post || !post._id) return false;
+            const items = getBagItems();
+            const id = String(post._id);
+            const already = items.some((item) => String(item.postId) === id);
+            if (already) {
+                updateBagCountBadge();
+                return false;
+            }
+
+            const firstImage = Array.isArray(post.images) && post.images.length ? post.images[0] : '';
+            items.push({
+                postId: id,
+                title: post.title || 'Selected cloth',
+                image: firstImage || '',
+                category: post.category || '',
+                priceETB: Number(post.priceETB) || 0,
+                shippingPriceETB: Number(post.shippingPriceETB),
+                freeShipping: !!post.freeShipping,
+                createdAt: Date.now()
+            });
+            saveBagItems(items);
+            updateBagCountBadge();
+            return true;
+        }
+
+        async function incrementPostBagCount(postId) {
+            try {
+                const response = await fetch('/api/posts/' + encodeURIComponent(postId || '') + '/bag', { method: 'POST' });
+                if (!response.ok) return null;
+                const payload = await response.json();
+                const next = Number(payload && payload.bagCount);
+                return Number.isFinite(next) ? next : null;
+            } catch (_) {
+                return null;
+            }
+        }
+
+        function renderCard(post) {
+            const image = post.images && post.images.length ? post.images[0] : '';
+            const prices = formatPricePair(post);
+            const likes = Array.isArray(post.likes) ? post.likes.length : 0;
+            const comments = Array.isArray(post.comments) ? post.comments.length : 0;
+            const views = Number(post.viewCount || 0);
+            const shares = Number(post.shareCount || 0);
+            const inBag = Number(post.bagCount || 0);
+            const ordered = Number(post.orderCount || 0);
+            const showOrdered = post.orderCountVisible !== false && ordered > 0;
+            const videoUrls = Array.isArray(post.videoUrls) && post.videoUrls.length
+                ? post.videoUrls.filter(Boolean)
+                : (post.videoUrl ? [post.videoUrl] : []);
+            const encodedVideoUrls = encodeURIComponent(JSON.stringify(videoUrls));
+            const rating = getRatingSummary(post);
+            const userId = getCurrentUserId();
+            const likedByMe = !!(userId && Array.isArray(post.likes) && post.likes.some((l) => String((l && l.user) || l) === userId));
+            const searchScore = getSearchScore(post);
+            const matchedCardClass = searchScore > 0 ? ' search-match-card' : '';
+            const highlightedTitle = highlightSearchTerm(post.title || 'Untitled');
+            const highlightedDescription = highlightSearchTerm(post.description || '');
+            const highlightedCategory = highlightSearchTerm(post.category || 'General');
+            const shippingBadge = prices.shipping
+                ? (post && post.freeShipping
+                    ? '<div class="absolute right-2 top-2 z-10 rounded-full bg-[#1aad19] px-2 py-1 text-[10px] font-bold text-white">Free Shipping</div>'
+                    : '<div class="absolute right-2 top-2 z-10 rounded-full bg-[#745B18] px-2 py-1 text-[10px] font-bold text-white">' + escapeHtml(prices.shipping) + '</div>')
+                : '';
+
+            return [
+                '<article class="group shrink-0 overflow-hidden rounded-xl bg-[#f4f3f3] shadow-sm', matchedCardClass, '" data-post-id="', escapeHtml(post._id), '">',
+                    '<div class="relative aspect-[4/5] overflow-hidden bg-white">',
+                        '<div class="absolute left-2 top-2 z-10 inline-flex items-center gap-1 rounded-full bg-black/45 px-2 py-1 text-[10px] font-semibold text-white">',
+                            '<span class="material-symbols-outlined text-xs">visibility</span>', views.toLocaleString(),
+                        '</div>',
+                        shippingBadge,
+                        image
+                            ? '<img src="' + escapeHtml(image) + '" alt="' + escapeHtml(post.title) + '" class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" loading="lazy" decoding="async">'
+                            : '<div class="flex h-full items-center justify-center text-brand-muted"><span class="material-symbols-outlined text-5xl">image</span></div>',
+                        '<div class="absolute bottom-2 left-2 z-10 flex flex-col items-center gap-2 text-white">',
+                            '<button type="button" class="flex h-9 min-w-[54px] items-center justify-center gap-1 rounded-full bg-black/55 px-2 backdrop-blur" data-add-cart-post-id="', escapeHtml(post._id), '" aria-label="Add to Bag">',
+                                '<span class="material-symbols-outlined text-base">shopping_bag</span>',
+                                '<span class="text-[10px] font-semibold leading-none">', (Number.isFinite(inBag) ? inBag : 0).toLocaleString(), '</span>',
+                            '</button>',
+                            '<div class="flex h-9 min-w-[54px] items-center justify-center gap-1 rounded-full bg-black/55 px-2 backdrop-blur">',
+                                '<span class="material-symbols-outlined text-base">shopping_cart_checkout</span>',
+                                '<span class="text-[10px] font-semibold leading-none">', (showOrdered ? ordered.toLocaleString() : '-'), '</span>',
+                            '</div>',
+                            '<a href="/user/mychat.html?postId=', encodeURIComponent(post._id),
+                                '&title=', encodeURIComponent(post.title || 'Selected cloth'),
+                                '&image=', encodeURIComponent(image || ''),
+                                '&price=', encodeURIComponent(prices.newPrice || ''),
+                                '&shipping=', encodeURIComponent(prices.shipping || ''),
+                                '&category=', encodeURIComponent(post.category || ''),
+                                '&description=', encodeURIComponent(post.description || ''),
+                            '" class="flex h-9 w-9 items-center justify-center rounded-full bg-black/55 backdrop-blur" aria-label="Chat">',
+                                '<span class="material-symbols-outlined text-base">chat</span>',
+                            '</a>',
+                            (videoUrls.length
+                                ? '<button type="button" class="flex h-9 w-9 items-center justify-center rounded-full bg-black/55 backdrop-blur" data-video-urls="' + encodedVideoUrls + '" aria-label="Video"><span class="material-symbols-outlined text-base">play_circle</span></button>'
+                                : ''),
+                        '</div>',
+                        '<div class="absolute bottom-2 right-2 z-10 flex flex-col items-center gap-2 text-white">',
+                            '<button type="button" class="flex h-9 w-9 items-center justify-center rounded-full ', likedByMe ? 'bg-[#ba1a1a]' : 'bg-black/55', ' backdrop-blur" data-like-post-id="', escapeHtml(post._id), '" aria-label="Like">',
+                                '<span class="material-symbols-outlined text-base">favorite</span>',
+                            '</button>',
+                            '<span class="text-[10px] font-semibold leading-none">', likes.toLocaleString(), '</span>',
+                            '<a href="/user/post.html?id=', encodeURIComponent(post._id), '" class="flex h-9 w-9 items-center justify-center rounded-full bg-black/55 backdrop-blur" aria-label="Comment">',
+                                '<span class="material-symbols-outlined text-base">chat_bubble</span>',
+                            '</a>',
+                            '<span class="text-[10px] font-semibold leading-none">', comments.toLocaleString(), '</span>',
+                            '<button type="button" class="flex h-9 w-9 items-center justify-center rounded-full bg-black/55 backdrop-blur" data-share-post-id="', escapeHtml(post._id), '" data-share-title="', encodeURIComponent(post.title || 'Yeshi Product'), '" aria-label="Share">',
+                                '<span class="material-symbols-outlined text-base">share</span>',
+                            '</button>',
+                            '<span class="text-[10px] font-semibold leading-none">', shares.toLocaleString(), '</span>',
+                            (image
+                                ? '<button type="button" class="flex h-9 w-9 items-center justify-center rounded-full bg-black/55 backdrop-blur" data-download-url="' + encodeURIComponent(image) + '" data-download-name="' + encodeURIComponent(post.title || 'image') + '" aria-label="Download"><span class="material-symbols-outlined text-base">download</span></button>'
+                                : ''),
+                        '</div>',
+                    '</div>',
+                    '<div class="p-3">',
+                        '<div class="mb-1 flex items-center justify-between gap-2">',
+                            '<span class="text-[10px] font-bold uppercase tracking-wide text-brand-success">', highlightedCategory, '</span>',
+                            '<span class="text-[11px] text-[#745B18]">★ ', rating.avg, ' (', rating.count, ')</span>',
+                        '</div>',
+                        '<h3 class="line-clamp-2 min-h-[2.4rem] text-[13px] font-bold">', highlightedTitle, '</h3>',
+                        '<p class="mt-1 line-clamp-2 min-h-[2.3rem] text-[11px] text-brand-muted">', highlightedDescription, '</p>',
+                        '<div class="mt-2">',
+                            prices.oldPrice ? '<div class="text-[10px] text-brand-muted line-through">' + escapeHtml(prices.oldPrice) + '</div>' : '',
+                            '<div class="text-lg font-black leading-none text-[#f7081b]">', escapeHtml(prices.newPrice), '</div>',
+                            prices.shipping ? '<div class="mt-1 text-[10px] font-semibold text-[#745B18]">' + escapeHtml(prices.shipping) + '</div>' : '',
+                        '</div>',
+                        '<div class="mt-3">',
+                            '<a href="/user/post.html?id=', encodeURIComponent(post._id), '" class="rounded-md bg-gradient-to-r from-brand-primary to-brand-accent px-2 py-1 text-center text-[11px] font-semibold text-white" style="display:block;">View & Order</a>',
+                        '</div>',
+                    '</div>',
+                '</article>'
+            ].join('');
+        }
+
+        function filterPosts(posts) {
+            return posts.filter((post) => {
+                const inCategory = state.selectedCategory === 'All' || String(post.category || '').toLowerCase() === state.selectedCategory.toLowerCase();
+                const searchBase = [post.title, post.description, post.category].join(' ').toLowerCase();
+                const inSearch = !state.searchTerm || searchBase.includes(state.searchTerm);
+                return inCategory && inSearch;
+            });
+        }
+
+        function getSearchScore(post) {
+            if (!state.searchTerm) return 0;
+            const term = String(state.searchTerm || '').trim().toLowerCase();
+            if (!term) return 0;
+
+            const title = String(post && post.title ? post.title : '').toLowerCase();
+            const category = String(post && post.category ? post.category : '').toLowerCase();
+            const description = String(post && post.description ? post.description : '').toLowerCase();
+
+            let score = 0;
+            if (title === term) score += 120;
+            if (category === term) score += 90;
+            if (title.startsWith(term)) score += 70;
+            if (category.startsWith(term)) score += 55;
+            if (title.includes(term)) score += 40;
+            if (category.includes(term)) score += 30;
+            if (description.includes(term)) score += 15;
+
+            return score;
+        }
+
+        function updateSearchResultsInfo(count) {
+            const info = document.getElementById('searchResultsInfo');
+            if (!info) return;
+
+            const term = String(state.searchTerm || '').trim();
+            if (!term) {
+                info.classList.add('hidden');
+                info.textContent = '';
+                return;
+            }
+
+            const productWord = count === 1 ? 'product' : 'products';
+            info.textContent = 'Search results for "' + term + '": ' + count + ' ' + productWord;
+            info.classList.remove('hidden');
+        }
+
+        function renderFeeds() {
+            const filtered = filterPosts(state.posts);
+            const superDealsContainer = document.getElementById('superdeals-feed');
+            const newDesignContainer = document.getElementById('newdesign-feed');
+            const nextPageButton = document.getElementById('nextPageButton');
+            updateSearchResultsInfo(filtered.length);
+
+            if (!filtered.length) {
+                const empty = '<p class="col-span-full py-10 text-center text-brand-muted">No matching products found.</p>';
+                superDealsContainer.innerHTML = empty;
+                newDesignContainer.innerHTML = empty;
+                if (nextPageButton) nextPageButton.classList.add('hidden');
+                return;
+            }
+
+            const visibleCount = state.page * state.pageSize;
+            const allSuperDeals = filtered.filter((p) => {
+                const currentPrice = Number(p && p.priceETB);
+                const oldPrice = Number(p && p.oldPriceETB);
+                return Number.isFinite(currentPrice) && currentPrice > 0 && Number.isFinite(oldPrice) && oldPrice > 0;
+            });
+
+            const hasActiveSearch = !!String(state.searchTerm || '').trim();
+
+            const sortedSuperDeals = [...allSuperDeals].sort((a, b) => {
+                if (hasActiveSearch) {
+                    const scoreDiff = getSearchScore(b) - getSearchScore(a);
+                    if (scoreDiff !== 0) return scoreDiff;
+                }
+
+                const freeA = !!(a && a.freeShipping);
+                const freeB = !!(b && b.freeShipping);
+                if (freeA !== freeB) return freeB - freeA;
+
+                const ratingA = getAverageRatingValue(a);
+                const ratingB = getAverageRatingValue(b);
+                if (ratingA !== ratingB) return ratingB - ratingA;
+
+                return new Date(b && b.created_at ? b.created_at : 0).getTime() - new Date(a && a.created_at ? a.created_at : 0).getTime();
+            });
+
+            const sortedNewDesign = [...filtered].sort((a, b) => {
+                if (hasActiveSearch) {
+                    const scoreDiff = getSearchScore(b) - getSearchScore(a);
+                    if (scoreDiff !== 0) return scoreDiff;
+                }
+
+                const ratingA = getAverageRatingValue(a);
+                const ratingB = getAverageRatingValue(b);
+                if (ratingA !== ratingB) return ratingB - ratingA;
+
+                return new Date(b && b.created_at ? b.created_at : 0).getTime() - new Date(a && a.created_at ? a.created_at : 0).getTime();
+            });
+
+            const superDeals = sortedSuperDeals.slice(0, visibleCount);
+            const newDesign = sortedNewDesign.slice(0, visibleCount);
+
+            superDealsContainer.innerHTML = (superDeals.length ? superDeals : filtered.slice(0, visibleCount)).map(renderCard).join('');
+            newDesignContainer.innerHTML = newDesign.map(renderCard).join('');
+
+            const hasMore = filtered.length > visibleCount || allSuperDeals.length > visibleCount;
+            if (nextPageButton) {
+                nextPageButton.classList.toggle('hidden', !hasMore);
+            }
+
+            bindCardActions(superDealsContainer);
+            bindCardActions(newDesignContainer);
+            registerViewObservers();
+        }
+
+        function bindCardActions(container) {
+            container.querySelectorAll('[data-like-post-id]').forEach((btn) => {
+                btn.addEventListener('click', async () => {
+                    const token = localStorage.getItem('token');
+                    if (!token) {
+                        window.location.href = '/auth/login?next=' + encodeURIComponent(window.location.pathname + window.location.search);
+                        return;
+                    }
+
+                    const id = btn.getAttribute('data-like-post-id');
+                    try {
+                        const res = await fetch('/api/posts/like/' + encodeURIComponent(id || ''), {
+                            method: 'POST',
+                            headers: { 'x-auth-token': token }
+                        });
+                        if (!res.ok) return;
+                        const likes = await res.json();
+                        const target = state.posts.find((p) => String(p._id) === String(id));
+                        if (target) {
+                            target.likes = Array.isArray(likes) ? likes : [];
+                            renderFeeds();
+                        }
+                    } catch (_) {}
+                });
+            });
+
+            container.querySelectorAll('[data-video-urls]').forEach((btn) => {
+                btn.addEventListener('click', () => {
+                    let list = [];
+                    try {
+                        list = JSON.parse(decodeURIComponent(btn.getAttribute('data-video-urls') || '[]'));
+                    } catch (_) {
+                        list = [];
+                    }
+                    openVideoModal(list);
+                });
+            });
+
+            container.querySelectorAll('[data-download-url]').forEach((btn) => {
+                btn.addEventListener('click', () => {
+                    const url = decodeURIComponent(btn.getAttribute('data-download-url') || '');
+                    const name = decodeURIComponent(btn.getAttribute('data-download-name') || 'image');
+                    if (window.triggerDownload) {
+                        window.triggerDownload(url, name);
+                    } else {
+                        window.open(url, '_blank', 'noopener,noreferrer');
+                    }
+                });
+            });
+
+            container.querySelectorAll('[data-share-post-id]').forEach((btn) => {
+                btn.addEventListener('click', async () => {
+                    const id = btn.getAttribute('data-share-post-id');
+                    const title = decodeURIComponent(btn.getAttribute('data-share-title') || 'Yeshi');
+                    const url = window.location.origin + '/user/post.html?id=' + encodeURIComponent(id || '');
+                    try {
+                        if (navigator.share) {
+                            await navigator.share({ title: title, url: url });
+                        } else if (navigator.clipboard) {
+                            await navigator.clipboard.writeText(url);
+                            alert('Link copied');
+                        } else {
+                            prompt('Copy this link:', url);
+                        }
+                        fetch('/api/posts/' + encodeURIComponent(id || '') + '/share', { method: 'POST' }).catch(function () {});
+                    } catch (_) {}
+                });
+            });
+
+            container.querySelectorAll('[data-add-cart-post-id]').forEach((btn) => {
+                btn.addEventListener('click', async () => {
+                    const id = btn.getAttribute('data-add-cart-post-id');
+                    const post = state.posts.find((p) => String(p._id) === String(id));
+                    if (!post) return;
+                    const wasAdded = addToBag(post);
+                    if (!wasAdded) {
+                        btn.textContent = 'Already in Bag';
+                        return;
+                    }
+                    btn.textContent = 'Added to Bag';
+                    post.bagCount = Number(post.bagCount || 0) + 1;
+                    renderFeeds();
+                    const nextBagCount = await incrementPostBagCount(id);
+                    if (nextBagCount !== null) {
+                        post.bagCount = nextBagCount;
+                        renderFeeds();
+                    }
+                });
+            });
+        }
+
+        function registerViewObservers() {
+            const cards = document.querySelectorAll('[data-post-id]');
+            const io = new IntersectionObserver((entries) => {
+                entries.forEach((entry) => {
+                    if (!entry.isIntersecting) return;
+                    const postId = entry.target.getAttribute('data-post-id');
+                    if (!postId) return;
+                    const key = 'viewed_post_' + postId;
+                    if (sessionStorage.getItem(key)) return;
+                    sessionStorage.setItem(key, '1');
+                    fetch('/api/posts/' + encodeURIComponent(postId) + '/view', { method: 'POST' }).catch(function () {});
+                });
+            }, { threshold: 0.6 });
+
+            cards.forEach((card) => io.observe(card));
+        }
+
+        async function loadPosts() {
+            try {
+                const response = await fetch('/api/posts');
+                const posts = await response.json();
+                state.posts = Array.isArray(posts) ? posts : [];
+                renderFeeds();
+            } catch (err) {
+                const message = '<p class="col-span-full py-10 text-center text-brand-danger">Error loading feed.</p>';
+                document.getElementById('superdeals-feed').innerHTML = message;
+                document.getElementById('newdesign-feed').innerHTML = message;
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            loadPosts();
+            loadNotificationUnreadCount();
+            updateBagCountBadge();
+            bindOrderLinkGuards();
+            applyMenuAuthState();
+            bindLogoutActions();
+
+            const mobileToggle = document.getElementById('mobile-menu-toggle');
+            const mobileMenu = document.getElementById('mobile-menu');
+            if (mobileToggle && mobileMenu) {
+                mobileToggle.addEventListener('click', function () {
+                    mobileMenu.classList.toggle('hidden');
+                });
+            }
+
+            const overlay = document.getElementById('notification-overlay');
+            const drawer = document.getElementById('notification-drawer');
+            const notificationTrigger = document.getElementById('notification-trigger');
+            if (overlay && drawer && notificationTrigger) {
+                notificationTrigger.addEventListener('click', function () {
+                    overlay.classList.remove('hidden');
+                    setTimeout(function () {
+                        drawer.classList.remove('translate-x-full');
+                    }, 10);
+                    loadNotifications();
+                });
+
+                overlay.querySelectorAll('[data-close-notification]').forEach((el) => {
+                    el.addEventListener('click', function () {
+                        drawer.classList.add('translate-x-full');
+                        setTimeout(function () {
+                            overlay.classList.add('hidden');
+                        }, 250);
+                        fetch('/api/workflow/notifications/read-all', {
+                            method: 'PUT',
+                            headers: { 'x-auth-token': localStorage.getItem('token') || '' }
+                        }).catch(function () {});
+                        loadNotificationUnreadCount();
+                    });
+                });
+            }
+
+            document.getElementById('closeVideoModal')?.addEventListener('click', closeVideoModal);
+            document.getElementById('videoModal')?.addEventListener('click', function (e) {
+                if (e.target && e.target.id === 'videoModal') closeVideoModal();
+            });
+
+            document.getElementById('searchInput')?.addEventListener('input', function (e) {
+                state.searchTerm = String(e.target.value || '').toLowerCase().trim();
+                state.page = 1;
+                renderFeeds();
+            });
+
+            document.querySelectorAll('.filter-pill').forEach((btn) => {
+                btn.addEventListener('click', function () {
+                    state.selectedCategory = btn.getAttribute('data-category') || 'All';
+                    state.page = 1;
+                    document.querySelectorAll('.filter-pill').forEach((pill) => {
+                        pill.classList.remove('bg-brand-primary', 'text-white');
+                        pill.classList.add('bg-[#f4f3f3]');
+                    });
+                    btn.classList.add('bg-brand-primary', 'text-white');
+                    btn.classList.remove('bg-[#f4f3f3]');
+                    renderFeeds();
+                });
+            });
+
+            document.getElementById('nextPageButton')?.addEventListener('click', function () {
+                state.page += 1;
+                renderFeeds();
+                this.scrollIntoView({ behavior: 'smooth', block: 'end' });
+            });
+        });
+    </script>
+</body>
+</html>
+
+
+
+
+
+
+
+

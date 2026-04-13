@@ -1,0 +1,1662 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Post Details - Yeshi</title>
+    <link rel="icon" type="image/png" href="/images/logo.png">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #745b18;
+            --primary-container: #d4b468;
+            --surface: #faf9f9;
+            --surface-low: #f4f3f3;
+            --surface-high: #e8e8e8;
+            --on-surface: #1a1c1c;
+            --on-surface-variant: #4d4639;
+            --secondary: #bb0010;
+            --tertiary: #006e04;
+            --outline-ghost: rgba(126, 118, 103, 0.15);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            background: linear-gradient(180deg, #fefdfc 0%, var(--surface) 42%, #f2f0ee 100%);
+            color: var(--on-surface);
+            font-family: 'Inter', sans-serif;
+            min-height: 100vh;
+        }
+
+        a {
+            color: inherit;
+            text-decoration: none;
+        }
+
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 500, 'GRAD' 0, 'opsz' 24;
+            vertical-align: middle;
+        }
+
+        .top-nav {
+            position: sticky;
+            top: 0;
+            z-index: 50;
+            backdrop-filter: blur(12px);
+            background: rgba(250, 249, 249, 0.85);
+            border-bottom: 1px solid var(--outline-ghost);
+        }
+
+        .nav-wrap {
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: 14px 18px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 14px;
+        }
+
+        .logo {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+        }
+
+        .logo img {
+            width: auto;
+            height: 36px;
+            border-radius: 8px;
+            background: #fff;
+        }
+
+        .nav-links {
+            display: flex;
+            align-items: center;
+            gap: 18px;
+            font-size: 12px;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            font-weight: 700;
+            color: var(--on-surface-variant);
+        }
+
+        .mobile-nav-toggle {
+            display: none;
+            width: 36px;
+            height: 36px;
+            border: none;
+            border-radius: 999px;
+            background: color-mix(in srgb, var(--surface-low) 85%, #fff 15%);
+            color: var(--primary);
+            cursor: pointer;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .mobile-nav-links {
+            display: none;
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: 0 18px 12px;
+            border-top: 1px solid var(--outline-ghost);
+            background: rgba(250, 249, 249, 0.92);
+            backdrop-filter: blur(12px);
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .mobile-nav-links.open {
+            display: flex;
+        }
+
+        .mobile-nav-links a {
+            font-size: 0.78rem;
+            font-weight: 700;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            padding: 10px 12px;
+            border-radius: 8px;
+            color: var(--on-surface-variant);
+            background: transparent;
+        }
+
+        .mobile-nav-links a:hover {
+            background: color-mix(in srgb, var(--surface-low) 78%, #fff 22%);
+            color: var(--primary);
+        }
+
+        .nav-icons {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .icon-btn {
+            width: 36px;
+            height: 36px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 999px;
+            color: var(--primary);
+            transition: transform 0.2s ease, background-color 0.2s ease;
+        }
+
+        .icon-btn:hover {
+            transform: translateY(-1px);
+            background: rgba(116, 91, 24, 0.08);
+        }
+
+        .page {
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: 22px 18px 70px;
+        }
+
+        .post-shell {
+            background: transparent;
+        }
+
+        .post-hero {
+            display: grid;
+            grid-template-columns: 1.08fr 0.92fr;
+            gap: 34px;
+            align-items: start;
+            margin-top: 14px;
+        }
+
+        .media-stage {
+            background: var(--surface-low);
+            border-radius: 14px;
+            overflow: hidden;
+            position: relative;
+            min-height: 420px;
+        }
+
+        .media-stage img {
+            width: 100%;
+            height: 100%;
+            display: block;
+            object-fit: cover;
+            transition: transform 0.7s ease;
+        }
+
+        .media-stage:hover img {
+            transform: scale(1.03);
+        }
+
+        .media-nav {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 36px;
+            height: 36px;
+            border: none;
+            border-radius: 999px;
+            background: rgba(0, 0, 0, 0.45);
+            color: #fff;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 4;
+        }
+
+        .media-nav.prev {
+            left: 10px;
+        }
+
+        .media-nav.next {
+            right: 10px;
+        }
+
+        .thumb-strip {
+            margin-top: 10px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .thumb-btn {
+            border: 1px solid rgba(0, 0, 0, 0.12);
+            background: #fff;
+            border-radius: 8px;
+            padding: 2px;
+            cursor: pointer;
+            width: 58px;
+            height: 58px;
+            overflow: hidden;
+        }
+
+        .thumb-btn.active {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px rgba(116, 91, 24, 0.2);
+        }
+
+        .thumb-btn img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+
+        .details {
+            background: transparent;
+            padding-top: 8px;
+        }
+
+        .kicker {
+            color: var(--primary);
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.2em;
+        }
+
+        .title {
+            margin: 10px 0 12px;
+            font-size: clamp(2rem, 4vw, 3rem);
+            font-weight: 800;
+            line-height: 0.98;
+            letter-spacing: -0.03em;
+        }
+
+        .price-row {
+            display: flex;
+            align-items: baseline;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 14px;
+        }
+
+        .price-old {
+            color: #877f72;
+            text-decoration: line-through;
+            font-size: 0.95rem;
+        }
+
+        .price-new {
+            font-size: 2rem;
+            font-weight: 300;
+            letter-spacing: -0.01em;
+        }
+
+        .shipping {
+            color: var(--on-surface-variant);
+            font-size: 0.92rem;
+            padding-bottom: 2px;
+            border-bottom: 1px dashed rgba(116, 91, 24, 0.25);
+        }
+
+        .motif {
+            width: 92px;
+            height: 4px;
+            margin: 14px 0 16px;
+            opacity: 0.25;
+            background-image: linear-gradient(
+                90deg,
+                var(--primary) 25%,
+                transparent 25%,
+                transparent 50%,
+                var(--primary) 50%,
+                var(--primary) 75%,
+                transparent 75%,
+                transparent 100%
+            );
+            background-size: 20px 4px;
+        }
+
+        .description {
+            color: var(--on-surface-variant);
+            line-height: 1.75;
+            margin: 0 0 20px;
+            max-width: 54ch;
+        }
+
+        .action-stack {
+            display: grid;
+            gap: 10px;
+        }
+
+        .btn {
+            width: 100%;
+            border: none;
+            cursor: pointer;
+            border-radius: 8px;
+            padding: 14px 16px;
+            min-height: 52px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            font-weight: 700;
+            font-size: 0.78rem;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            transition: transform 0.2s ease, opacity 0.2s ease, background-color 0.2s ease;
+        }
+
+        .btn:active {
+            transform: scale(0.98);
+        }
+
+        .btn-primary {
+            background: linear-gradient(120deg, var(--primary) 0%, var(--primary-container) 100%);
+            color: #fff;
+        }
+
+        .btn-soft {
+            background: var(--surface-low);
+            color: var(--on-surface);
+            border: 1px solid transparent;
+        }
+
+        .btn-soft:hover {
+            border-color: var(--outline-ghost);
+        }
+
+        .meta-line {
+            margin-top: 8px;
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 16px;
+            color: var(--on-surface-variant);
+            font-size: 0.9rem;
+        }
+
+        .meta-like {
+            color: var(--secondary);
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-weight: 700;
+        }
+
+        .craft-card {
+            margin-top: 14px;
+            border-radius: 10px;
+            background: var(--surface-low);
+            padding: 14px;
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            color: var(--on-surface-variant);
+            font-size: 0.86rem;
+        }
+
+        .craft-card strong {
+            color: var(--on-surface);
+            font-size: 0.92rem;
+        }
+
+        .video-wrap {
+            margin-top: 14px;
+            background: var(--surface-low);
+            border-radius: 12px;
+            padding: 12px;
+        }
+
+        .video-wrap iframe,
+        .video-wrap video {
+            width: 100%;
+            aspect-ratio: 16 / 9;
+            border-radius: 10px;
+            border: 0;
+            background: #000;
+        }
+
+        .video-wrap.tiktok-wrap {
+            max-width: 420px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .video-wrap.tiktok-wrap iframe {
+            aspect-ratio: 9 / 16;
+            min-height: 620px;
+            height: min(80vh, 760px);
+        }
+
+        .section-head {
+            margin-top: 60px;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: end;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .section-head h2 {
+            margin: 0;
+            font-size: clamp(1.7rem, 3vw, 2.2rem);
+            letter-spacing: -0.02em;
+        }
+
+        .section-head p {
+            margin: 6px 0 0;
+            color: var(--on-surface-variant);
+            font-size: 0.9rem;
+        }
+
+        .subtle-link {
+            color: var(--primary);
+            font-weight: 700;
+            font-size: 0.74rem;
+            text-transform: uppercase;
+            letter-spacing: 0.14em;
+            border-bottom: 2px solid rgba(116, 91, 24, 0.2);
+            padding-bottom: 4px;
+        }
+
+        .curated-grid {
+            display: flex;
+            gap: 14px;
+            overflow-x: auto;
+            scroll-snap-type: x mandatory;
+            background: color-mix(in srgb, var(--surface-high) 35%, transparent);
+            border-radius: 12px;
+            padding: 18px;
+        }
+
+        .curated-grid::-webkit-scrollbar {
+            height: 8px;
+        }
+
+        .curated-grid::-webkit-scrollbar-thumb {
+            background: rgba(116, 91, 24, 0.3);
+            border-radius: 999px;
+        }
+
+        .curated-card {
+            cursor: pointer;
+            min-width: 220px;
+            max-width: 240px;
+            border-radius: 10px;
+            scroll-snap-align: start;
+            transition: transform 0.2s ease;
+        }
+
+        .curated-card:hover {
+            transform: translateY(-2px);
+        }
+
+        .curated-image {
+            border-radius: 10px;
+            overflow: hidden;
+            background: #fff;
+            aspect-ratio: 3 / 4;
+        }
+
+        .curated-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+
+        .curated-name {
+            margin-top: 8px;
+            font-size: 0.9rem;
+            font-weight: 700;
+        }
+
+        .curated-price {
+            margin-top: 2px;
+            color: var(--on-surface-variant);
+            font-size: 0.87rem;
+        }
+
+        .comments-wrap {
+            margin-top: 36px;
+            background: transparent;
+        }
+
+        .comment-item {
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 10px;
+            padding: 14px;
+            margin-bottom: 10px;
+            border: 1px solid var(--outline-ghost);
+        }
+
+        .comment-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            gap: 8px;
+        }
+
+        .comment-date {
+            color: #847a6a;
+            font-size: 0.8rem;
+        }
+
+        .comment-rating {
+            margin-top: 4px;
+            color: var(--primary);
+            font-weight: 700;
+            font-size: 0.88rem;
+        }
+
+        .comment-actions {
+            margin-top: 10px;
+            display: flex;
+            gap: 14px;
+            color: var(--on-surface-variant);
+            font-size: 0.88rem;
+        }
+
+        .comment-action {
+            border: none;
+            background: color-mix(in srgb, var(--surface-low) 80%, #fff 20%);
+            cursor: pointer;
+            color: inherit;
+            padding: 8px 12px;
+            border-radius: 999px;
+            min-height: 40px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .comment-replies {
+            margin-top: 10px;
+            margin-left: 18px;
+            padding-left: 10px;
+            border-left: 2px solid var(--outline-ghost);
+        }
+
+        .reply-item {
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+        }
+
+        .reply-form {
+            margin-top: 10px;
+            display: none;
+        }
+
+        .field {
+            width: 100%;
+            border: none;
+            border-bottom: 1px solid var(--outline-ghost);
+            padding: 10px 2px;
+            background: transparent;
+            font: inherit;
+            outline: none;
+            color: var(--on-surface);
+        }
+
+        .field:focus {
+            border-bottom: 2px solid var(--primary);
+        }
+
+        .comment-card {
+            margin-top: 16px;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.8);
+            border: 1px solid var(--outline-ghost);
+            padding: 18px;
+        }
+
+        .comment-form-grid {
+            display: grid;
+            gap: 12px;
+        }
+
+        .chat-composer {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: #ece9df;
+            border: 1px solid rgba(0, 0, 0, 0.08);
+            border-radius: 999px;
+            padding: 6px 8px;
+            min-height: 54px;
+            width: 100%;
+            max-width: 100%;
+            box-sizing: border-box;
+            overflow: hidden;
+        }
+
+        .chat-composer--reply {
+            margin-top: 8px;
+            background: #f1eee5;
+        }
+
+        .chat-composer__btn {
+            width: 40px;
+            height: 40px;
+            border: none;
+            border-radius: 999px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            flex: 0 0 auto;
+        }
+
+        .chat-composer__btn--attach {
+            background: transparent;
+            color: #463f32;
+        }
+
+        .chat-composer__btn--send {
+            background: #d9d3a4;
+            color: #5b5800;
+        }
+
+        .chat-composer__input {
+            flex: 1;
+            border: none;
+            background: transparent;
+            color: var(--on-surface-variant);
+            font: inherit;
+            outline: none;
+            min-width: 0;
+            width: 1%;
+        }
+
+        .chat-composer__filelabel {
+            max-width: 38%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            font-size: 0.82rem;
+            color: #6e6658;
+            flex: 0 1 auto;
+        }
+
+        .chat-composer__thumb {
+            width: 28px;
+            height: 28px;
+            border-radius: 6px;
+            object-fit: cover;
+            border: 1px solid rgba(0, 0, 0, 0.12);
+            display: none;
+            flex: 0 0 auto;
+        }
+
+        .chat-composer__input::placeholder {
+            color: #7d7567;
+        }
+
+        .hidden-file-input {
+            display: none;
+        }
+
+        .rating-select {
+            width: 100%;
+            border: none;
+            border-bottom: 1px solid var(--outline-ghost);
+            background: transparent;
+            padding: 8px 2px;
+            font: inherit;
+        }
+
+        .rating-select:focus {
+            outline: none;
+            border-bottom: 2px solid var(--primary);
+        }
+
+        .muted {
+            color: var(--on-surface-variant);
+        }
+
+        .error-panel {
+            background: #fff;
+            border-radius: 10px;
+            border: 1px solid rgba(186, 26, 26, 0.2);
+            padding: 18px;
+            color: #931919;
+        }
+
+        @media (max-width: 1024px) {
+            .nav-links {
+                display: none;
+            }
+
+            .mobile-nav-toggle {
+                display: inline-flex;
+            }
+
+            .curated-card {
+                min-width: 210px;
+            }
+        }
+
+        @media (max-width: 900px) {
+            .post-hero {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+
+            .media-stage {
+                min-height: 360px;
+            }
+        }
+
+        @media (max-width: 640px) {
+            .page {
+                padding-bottom: 50px;
+            }
+
+            .nav-wrap {
+                padding-left: 14px;
+                padding-right: 14px;
+            }
+
+            .mobile-nav-links {
+                padding-left: 14px;
+                padding-right: 14px;
+            }
+
+            .title {
+                font-size: 2.1rem;
+            }
+
+            .price-new {
+                font-size: 1.8rem;
+            }
+
+            .curated-card {
+                min-width: 78%;
+                max-width: 280px;
+            }
+
+            .chat-composer {
+                min-height: 48px;
+                gap: 8px;
+                padding: 5px 7px;
+            }
+
+            .chat-composer__btn {
+                width: 34px;
+                height: 34px;
+            }
+
+            .chat-composer__input {
+                font-size: 0.95rem;
+            }
+        }
+    </style>
+</head>
+
+<body class="yeshi-has-bottom-nav">
+<main class="page">
+        <section class="post-shell">
+            <div id="post-content">
+                <p class="muted">Loading...</p>
+            </div>
+        </section>
+
+        <section class="comments-wrap">
+            <div class="section-head" style="margin-top:44px; margin-bottom:12px;">
+                <div>
+                    <h2>Comments</h2>
+                    <p>Feedback from the community</p>
+                </div>
+            </div>
+
+            <div id="comments-section" style="margin-bottom: 1rem;"></div>
+
+            <div class="comment-card" id="commentCard">
+                <form id="commentForm" class="comment-form-grid">
+                    <div>
+                        <label for="commentRating" class="muted" style="font-size:0.9rem;">Your rating</label>
+                        <select id="commentRating" class="rating-select" required>
+                            <option value="5">5 stars</option>
+                            <option value="4">4 stars</option>
+                            <option value="3">3 stars</option>
+                            <option value="2">2 stars</option>
+                            <option value="1">1 star</option>
+                        </select>
+                        <div id="commentRatingPreview" style="margin-top:6px; color:var(--primary); font-weight:700;">★★★★★</div>
+                    </div>
+                    <div>
+                        <div class="chat-composer">
+                            <button type="button" class="chat-composer__btn chat-composer__btn--attach" id="commentAttachBtn" aria-label="Attach image">
+                                <span class="material-symbols-outlined">add_circle</span>
+                            </button>
+                            <input type="text" id="commentText" class="chat-composer__input" placeholder="Write comment...">
+                            <img id="commentImageThumb" class="chat-composer__thumb" alt="Selected image preview">
+                            <span id="commentImageName" class="chat-composer__filelabel" style="display:none;"></span>
+                            <button type="submit" class="chat-composer__btn chat-composer__btn--send" aria-label="Send comment">
+                                <span class="material-symbols-outlined">send</span>
+                            </button>
+                        </div>
+                        <input type="file" id="commentImage" class="hidden-file-input" accept="image/*">
+                    </div>
+                </form>
+            </div>
+        </section>
+
+        <section>
+            <div class="section-head">
+                <div>
+                    <h2>Curated for You</h2>
+                    <p>Similar masterworks you might appreciate</p>
+                </div>
+                <a class="subtle-link" href="/user/index.html">View All</a>
+            </div>
+            <div id="curated-grid" class="curated-grid">
+                <p class="muted">Loading recommendations...</p>
+            </div>
+        </section>
+    </main>
+
+    <script src="/js/main.js"></script>
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const postId = urlParams.get('id');
+        let currentPost = null;
+
+        function escapeHtml(value) {
+            return String(value || '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/\"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
+        function getYouTubeEmbedUrl(url) {
+            const value = String(url || '').trim();
+            if (!value) return '';
+            try {
+                const u = new URL(value);
+                if (u.hostname.includes('youtube.com')) {
+                    const id = u.searchParams.get('v');
+                    if (id) return `https://www.youtube.com/embed/${id}`;
+                }
+                if (u.hostname.includes('youtu.be')) {
+                    const id = u.pathname.replace(/^\//, '');
+                    if (id) return `https://www.youtube.com/embed/${id}`;
+                }
+            } catch (_) {}
+            return '';
+        }
+
+        function getTikTokEmbedUrl(url) {
+            const value = String(url || '').trim();
+            if (!value) return '';
+            const match = value.match(/tiktok\.com\/@[^/]+\/video\/(\d+)/i);
+            if (!match || !match[1]) return '';
+            return 'https://www.tiktok.com/embed/v2/' + match[1];
+        }
+
+        function getInstagramEmbedUrl(url) {
+            const value = String(url || '').trim();
+            if (!value) return '';
+            try {
+                const u = new URL(value);
+                if (!u.hostname.includes('instagram.com')) return '';
+                const parts = u.pathname.split('/').filter(Boolean);
+                if (parts.length >= 2 && (parts[0] === 'reel' || parts[0] === 'p')) {
+                    return 'https://www.instagram.com/' + parts[0] + '/' + parts[1] + '/embed';
+                }
+            } catch (_) {}
+            return '';
+        }
+
+        function renderVideoEmbed(url) {
+            const value = String(url || '').trim();
+            if (!value) return '';
+
+            const yt = getYouTubeEmbedUrl(value);
+            if (yt) {
+                return `
+                    <div class="video-wrap">
+                        <iframe src="${yt}" title="Video" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                    </div>
+                `;
+            }
+
+            const lower = value.toLowerCase();
+
+            const tiktok = getTikTokEmbedUrl(value);
+            if (tiktok) {
+                return `
+                    <div class="video-wrap tiktok-wrap">
+                        <iframe src="${tiktok}" title="TikTok video" scrolling="no" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                    </div>
+                `;
+            }
+
+            const instagram = getInstagramEmbedUrl(value);
+            if (instagram) {
+                return `
+                    <div class="video-wrap tiktok-wrap">
+                        <iframe src="${instagram}" title="Instagram reel" scrolling="no" allow="autoplay; clipboard-write; encrypted-media; picture-in-picture" allowfullscreen></iframe>
+                    </div>
+                `;
+            }
+
+            const isDirectVideo = lower.endsWith('.mp4') || lower.endsWith('.webm') || lower.endsWith('.ogg');
+            if (isDirectVideo) {
+                return `
+                    <div class="video-wrap">
+                        <video src="${value}" controls playsinline></video>
+                    </div>
+                `;
+            }
+
+            return `
+                <div class="video-wrap">
+                    <a href="${value}" target="_blank" rel="noopener noreferrer" class="btn btn-soft" style="text-transform:none; letter-spacing:0; font-size:0.92rem;">Open video link</a>
+                </div>
+            `;
+        }
+
+        function getVideoLabel(url) {
+            const value = String(url || '').toLowerCase();
+            if (value.includes('tiktok.com')) return 'TikTok';
+            if (value.includes('instagram.com')) return 'Instagram';
+            if (value.includes('youtube.com') || value.includes('youtu.be')) return 'YouTube';
+            return 'Video Link';
+        }
+
+        function renderVideoSelector(urls) {
+            const list = Array.isArray(urls) ? urls.filter(Boolean) : [];
+            if (!list.length) return '';
+            if (list.length === 1) return renderVideoEmbed(list[0]);
+
+            return `
+                <div class="video-wrap" id="videoChooserWrap">
+                    <div id="videoChooserButtons" style="display:flex;flex-wrap:wrap;gap:8px; margin-bottom:10px;">
+                        ${list.map((url, idx) => `<button type="button" class="btn btn-soft" data-video-choice="${idx}" style="width:auto; min-height:40px; text-transform:none; letter-spacing:0; font-size:0.9rem;">${escapeHtml(getVideoLabel(url))}</button>`).join('')}
+                    </div>
+                    <div id="videoChooserPlayer" class="muted" style="padding:6px 0;">Choose a video source to watch.</div>
+                </div>
+            `;
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            if (!postId) {
+                window.location.href = '/user/index.html';
+                return;
+            }
+
+            const mobileNavToggle = document.getElementById('mobileNavToggle');
+            const mobileNavMenu = document.getElementById('mobileNavMenu');
+            if (mobileNavToggle && mobileNavMenu) {
+                const closeMobileNav = () => {
+                    mobileNavMenu.classList.remove('open');
+                    mobileNavToggle.setAttribute('aria-expanded', 'false');
+                };
+
+                mobileNavToggle.addEventListener('click', () => {
+                    const willOpen = !mobileNavMenu.classList.contains('open');
+                    mobileNavMenu.classList.toggle('open', willOpen);
+                    mobileNavToggle.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+                });
+
+                mobileNavMenu.querySelectorAll('a').forEach((link) => {
+                    link.addEventListener('click', closeMobileNav);
+                });
+
+                window.addEventListener('resize', () => {
+                    if (window.innerWidth > 1024) closeMobileNav();
+                });
+            }
+
+            const token = localStorage.getItem('token');
+            const shoppingBagLink = document.getElementById('shoppingBagLink');
+            if (shoppingBagLink) {
+                shoppingBagLink.style.display = token ? '' : 'none';
+            }
+            if (!token) {
+                const card = document.getElementById('commentCard');
+                card.innerHTML = `
+                    <p style="margin:0 0 10px 0;" class="muted">Login to share your comment</p>
+                    <a class="btn btn-primary" style="max-width:220px;" href="/auth/login?next=${encodeURIComponent(window.location.pathname + window.location.search)}">Login</a>
+                `;
+            }
+
+            loadPost();
+            loadRecommendations();
+        });
+
+        (function incrementViewOnce() {
+            if (!postId) return;
+            const key = `viewed_post_${postId}`;
+            if (sessionStorage.getItem(key)) return;
+            sessionStorage.setItem(key, '1');
+            fetch(`/api/posts/${postId}/view`, { method: 'POST' }).catch(() => {});
+        })();
+
+        async function sharePost() {
+            if (!postId) return;
+            const url = `${window.location.origin}/post?id=${encodeURIComponent(postId)}`;
+            const title = (currentPost && currentPost.title) ? currentPost.title : 'Yeshi Post';
+
+            try {
+                if (navigator.share) {
+                    await navigator.share({ title, url });
+                } else if (navigator.clipboard) {
+                    await navigator.clipboard.writeText(url);
+                    alert('Link copied');
+                } else {
+                    prompt('Copy this link:', url);
+                }
+                fetch(`/api/posts/${postId}/share`, { method: 'POST' }).catch(() => {});
+                loadPost();
+            } catch (_) {}
+        }
+
+        function getBagItems() {
+            try {
+                const raw = localStorage.getItem('yeshi_bag');
+                const parsed = raw ? JSON.parse(raw) : [];
+                return Array.isArray(parsed) ? parsed : [];
+            } catch (_) {
+                return [];
+            }
+        }
+
+        function saveBagItems(items) {
+            localStorage.setItem('yeshi_bag', JSON.stringify(Array.isArray(items) ? items : []));
+        }
+
+        function addCurrentPostToBag() {
+            if (!currentPost || !currentPost._id) return;
+            const items = getBagItems();
+            const id = String(currentPost._id);
+            if (items.some((item) => String(item.postId) === id)) return false;
+
+            const firstImage = Array.isArray(currentPost.images) && currentPost.images.length ? currentPost.images[0] : '';
+            items.push({
+                postId: id,
+                title: currentPost.title || 'Selected cloth',
+                image: firstImage || '',
+                category: currentPost.category || '',
+                priceETB: Number(currentPost.priceETB) || 0,
+                shippingPriceETB: Number(currentPost.shippingPriceETB),
+                freeShipping: !!currentPost.freeShipping,
+                createdAt: Date.now()
+            });
+            saveBagItems(items);
+            return true;
+        }
+
+        async function incrementBagCount() {
+            try {
+                const response = await fetch(`/api/posts/${postId}/bag`, { method: 'POST' });
+                if (!response.ok) return;
+                const data = await response.json();
+                const count = Number(data && data.bagCount);
+                if (!Number.isFinite(count)) return;
+                if (currentPost) currentPost.bagCount = count;
+                const bagValue = document.getElementById('postBagCountValue');
+                if (bagValue) bagValue.textContent = String(count);
+            } catch (_) {
+                // ignore count update failures
+            }
+        }
+
+        async function loadPost() {
+            try {
+                const res = await fetch(`/api/posts/${postId}`);
+                if (!res.ok) throw new Error('Post not found');
+                currentPost = await res.json();
+
+                const content = document.getElementById('post-content');
+                const likes = Array.isArray(currentPost.likes) ? currentPost.likes.length : 0;
+                const bagCount = Number(currentPost.bagCount || 0);
+                const shareCount = Number(currentPost.shareCount || 0);
+                const allImages = Array.isArray(currentPost.images)
+                    ? currentPost.images.map((src) => String(src || '').trim()).filter(Boolean)
+                    : [];
+                const primaryImageUrl = allImages.length ? allImages[0] : '';
+                const safeImageAlt = escapeHtml(currentPost.title || 'Post image');
+                const videoUrls = Array.isArray(currentPost.videoUrls) && currentPost.videoUrls.length
+                    ? currentPost.videoUrls.map((v) => String(v || '').trim()).filter(Boolean)
+                    : [String(currentPost.videoUrl || '').trim()].filter(Boolean);
+                const videoHtml = renderVideoSelector(videoUrls);
+
+                const newPriceValue = Number(currentPost.priceETB);
+                const oldPriceValue = Number(currentPost.oldPriceETB);
+                const newPriceText = (Number.isFinite(newPriceValue) && newPriceValue > 0)
+                    ? `${newPriceValue.toLocaleString()} ETB`
+                    : 'Price on request';
+                const oldPriceText = (Number.isFinite(oldPriceValue) && oldPriceValue > 0)
+                    ? `${oldPriceValue.toLocaleString()} ETB`
+                    : '';
+                const shippingValue = Number(currentPost.shippingPriceETB);
+                const shippingText = currentPost.freeShipping
+                    ? 'Free shipping'
+                    : (Number.isFinite(shippingValue) && shippingValue >= 0 ? `+ ${shippingValue.toLocaleString()} ETB shipping` : '');
+
+                const ratings = Array.isArray(currentPost.comments)
+                    ? currentPost.comments
+                        .map((c) => Number(c && c.rating))
+                        .filter((n) => Number.isFinite(n) && n >= 1 && n <= 5)
+                    : [];
+                const avgRating = ratings.length
+                    ? (ratings.reduce((sum, n) => sum + n, 0) / ratings.length)
+                    : 0;
+                const avgRatingText = ratings.length ? avgRating.toFixed(1) : '0.0';
+
+                const chatHref = '/user/mychat.html?postId=' + encodeURIComponent(currentPost._id)
+                    + '&title=' + encodeURIComponent(currentPost.title || 'Selected cloth')
+                    + '&image=' + encodeURIComponent(primaryImageUrl || '')
+                    + '&price=' + encodeURIComponent(newPriceText)
+                    + '&shipping=' + encodeURIComponent(shippingText || '')
+                    + '&category=' + encodeURIComponent(currentPost.category || '')
+                    + '&description=' + encodeURIComponent(currentPost.description || '');
+
+                const downloadBtnHtml = primaryImageUrl ? `
+                    <button type="button" class="btn btn-soft" id="downloadImageBtn">
+                        Download Image <i class="fas fa-download"></i>
+                    </button>
+                ` : '';
+
+                const multiImageHtml = allImages.length > 1
+                    ? `
+                        <button type="button" class="media-nav prev" id="mediaPrevBtn" aria-label="Previous image"><span class="material-symbols-outlined">chevron_left</span></button>
+                        <button type="button" class="media-nav next" id="mediaNextBtn" aria-label="Next image"><span class="material-symbols-outlined">chevron_right</span></button>
+                      `
+                    : '';
+
+                const thumbHtml = allImages.length > 1
+                    ? `
+                        <div class="thumb-strip" id="thumbStrip">
+                            ${allImages.map((src, idx) => `
+                                <button type="button" class="thumb-btn ${idx === 0 ? 'active' : ''}" data-image-index="${idx}" aria-label="Image ${idx + 1}">
+                                    <img src="${escapeHtml(src)}" alt="${safeImageAlt}">
+                                </button>
+                            `).join('')}
+                        </div>
+                      `
+                    : '';
+
+                content.innerHTML = `
+                    <div class="post-hero">
+                        <div>
+                            <div class="media-stage">
+                                ${primaryImageUrl ? `<img id="primaryPostImage" src="${escapeHtml(primaryImageUrl)}" alt="${safeImageAlt}">` : '<div style="padding:20px;" class="muted">No image available</div>'}
+                                ${multiImageHtml}
+                            </div>
+                            ${thumbHtml}
+                            ${videoHtml}
+                        </div>
+
+                        <div class="details">
+                            <div class="kicker">Bespoke Collection</div>
+                            <h1 class="title">${escapeHtml(currentPost.title || 'Untitled design')}</h1>
+
+                            <div class="price-row">
+                                ${oldPriceText ? `<span class="price-old">${oldPriceText}</span>` : ''}
+                                <span class="price-new">${newPriceText}</span>
+                                ${shippingText ? `<span class="shipping">${shippingText}</span>` : ''}
+                            </div>
+
+                            <div class="motif"></div>
+                            <p class="description">${escapeHtml(currentPost.description || 'No description yet.')}</p>
+
+                            <div class="action-stack">
+                                <button type="button" class="btn btn-primary" id="addToBagBtn">Add to Bag</button>
+
+                                <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                                    <button type="button" class="btn btn-soft" onclick="sharePost()">Share</button>
+                                    <a href="/user/order.html?postId=${encodeURIComponent(currentPost._id)}&title=${encodeURIComponent(currentPost.title || '')}" class="btn btn-soft" id="orderThisLookBtn">Order This Look</a>
+                                </div>
+
+                                <a href="${chatHref}" class="btn btn-soft" id="chatAboutBtn">Chat About Product</a>
+                                ${downloadBtnHtml}
+                            </div>
+
+                            <div class="meta-line">
+                                <button type="button" class="comment-action" id="postLikeActionBtn" onclick="toggleLike()" style="color:${likes > 0 ? 'var(--secondary)' : 'var(--on-surface-variant)'};">
+                                    <i class="far fa-heart"></i>
+                                    Like
+                                    <strong id="postLikeCountValue">${likes}</strong>
+                                </button>
+                                <button type="button" class="comment-action" id="postShareActionBtn" onclick="sharePost()">
+                                    <i class="fas fa-share"></i>
+                                    Share
+                                    <strong id="postShareCountValue">${Number.isFinite(shareCount) ? shareCount : 0}</strong>
+                                </button>
+                                <button type="button" class="comment-action" id="postBagActionBtn">
+                                    <i class="fas fa-shopping-bag"></i>
+                                    Add to Bag
+                                    <strong id="postBagCountValue">${Number.isFinite(bagCount) ? bagCount : 0}</strong>
+                                </button>
+                                <span><i class="far fa-eye"></i> ${currentPost.viewCount || 0}</span>
+                            </div>
+
+                            <div class="meta-line" style="margin-top:6px;">
+                                <strong style="color:var(--primary)">★ ${avgRatingText}</strong>
+                                <span>(${ratings.length} ratings)</span>
+                            </div>
+
+                        </div>
+                    </div>
+                `;
+
+                const orderBtn = document.getElementById('orderThisLookBtn');
+                orderBtn?.addEventListener('click', (e) => {
+                    const token = localStorage.getItem('token');
+                    if (!token) {
+                        e.preventDefault();
+                        window.location.href = `/auth/login?next=${encodeURIComponent(orderBtn.getAttribute('href'))}`;
+                    }
+                });
+
+                const bagBtn = document.getElementById('addToBagBtn');
+                const bagActionBtn = document.getElementById('postBagActionBtn');
+                const triggerAddToBag = () => {
+                    const wasAdded = addCurrentPostToBag();
+                    if (bagBtn) bagBtn.textContent = wasAdded ? 'Added to Bag' : 'Already in Bag';
+                    if (bagActionBtn) {
+                        bagActionBtn.style.color = wasAdded ? 'var(--primary)' : 'var(--on-surface-variant)';
+                    }
+                    if (wasAdded) {
+                        const optimistic = Number((currentPost && currentPost.bagCount) || 0) + 1;
+                        if (currentPost) currentPost.bagCount = optimistic;
+                        const bagValue = document.getElementById('postBagCountValue');
+                        if (bagValue) bagValue.textContent = String(optimistic);
+                        incrementBagCount();
+                    }
+                };
+                bagBtn?.addEventListener('click', () => {
+                    triggerAddToBag();
+                });
+                bagActionBtn?.addEventListener('click', triggerAddToBag);
+
+                const chatBtn = document.getElementById('chatAboutBtn');
+                chatBtn?.addEventListener('click', (e) => {
+                    const token = localStorage.getItem('token');
+                    if (!token) {
+                        e.preventDefault();
+                        window.location.href = `/auth/login?next=${encodeURIComponent(chatBtn.getAttribute('href'))}`;
+                    }
+                });
+
+                const downloadBtn = document.getElementById('downloadImageBtn');
+                downloadBtn?.addEventListener('click', () => {
+                    const primary = document.getElementById('primaryPostImage');
+                    const url = primary ? String(primary.getAttribute('src') || '') : ((currentPost && currentPost.images && currentPost.images.length > 0) ? currentPost.images[0] : '');
+                    const name = (currentPost && currentPost.title) ? currentPost.title : 'image';
+                    if (window.triggerDownload) {
+                        window.triggerDownload(url, name);
+                    } else {
+                        window.open(url, '_blank', 'noopener,noreferrer');
+                    }
+                });
+
+                if (allImages.length > 1) {
+                    let activeIndex = 0;
+                    const primary = document.getElementById('primaryPostImage');
+                    const prevBtn = document.getElementById('mediaPrevBtn');
+                    const nextBtn = document.getElementById('mediaNextBtn');
+                    const thumbButtons = Array.from(document.querySelectorAll('#thumbStrip .thumb-btn'));
+
+                    const setActiveImage = (idx) => {
+                        activeIndex = (idx + allImages.length) % allImages.length;
+                        if (primary) primary.src = allImages[activeIndex];
+                        thumbButtons.forEach((btn, btnIdx) => {
+                            btn.classList.toggle('active', btnIdx === activeIndex);
+                        });
+                    };
+
+                    prevBtn?.addEventListener('click', () => setActiveImage(activeIndex - 1));
+                    nextBtn?.addEventListener('click', () => setActiveImage(activeIndex + 1));
+                    thumbButtons.forEach((btn) => {
+                        btn.addEventListener('click', () => {
+                            const idx = Number(btn.getAttribute('data-image-index') || 0);
+                            setActiveImage(idx);
+                        });
+                    });
+                }
+
+                if (videoUrls.length > 1) {
+                    const chooserButtons = Array.from(document.querySelectorAll('[data-video-choice]'));
+                    const chooserPlayer = document.getElementById('videoChooserPlayer');
+                    chooserButtons.forEach((btn) => {
+                        btn.addEventListener('click', () => {
+                            const idx = Number(btn.getAttribute('data-video-choice') || 0);
+                            const selected = videoUrls[idx] || videoUrls[0];
+                            if (!chooserPlayer) return;
+                            chooserPlayer.innerHTML = `
+                                <button type="button" id="videoChooserBackBtn" class="btn btn-soft" style="width:auto; min-height:40px; text-transform:none; letter-spacing:0; font-size:0.9rem; margin-bottom:10px;">Back to choices</button>
+                                ${renderVideoEmbed(selected)}
+                            `;
+                            const backBtn = document.getElementById('videoChooserBackBtn');
+                            if (backBtn) {
+                                backBtn.addEventListener('click', () => {
+                                    chooserPlayer.innerHTML = '<p class="muted" style="margin:0;">Choose a video source to watch.</p>';
+                                });
+                            }
+                        });
+                    });
+                }
+
+                renderComments(currentPost.comments);
+            } catch (err) {
+                console.error(err);
+                document.getElementById('post-content').innerHTML = '<div class="error-panel">Error loading post. Please refresh.</div>';
+            }
+        }
+
+        async function loadRecommendations() {
+            const target = document.getElementById('curated-grid');
+            if (!target) return;
+            try {
+                const response = await fetch('/api/posts');
+                if (!response.ok) throw new Error('Unable to load recommendations');
+                const posts = await response.json();
+                const list = Array.isArray(posts) ? posts : [];
+
+                const ranked = list
+                    .filter((item) => item && String(item._id) !== String(postId))
+                    .sort((a, b) => Number((b && b.viewCount) || 0) - Number((a && a.viewCount) || 0))
+                    .slice(0, 4);
+
+                if (!ranked.length) {
+                    target.innerHTML = '<p class="muted">No recommendations yet.</p>';
+                    return;
+                }
+
+                target.innerHTML = ranked.map((item) => {
+                    const image = Array.isArray(item.images) && item.images.length ? item.images[0] : '';
+                    const title = escapeHtml(item.title || 'Untitled');
+                    const price = Number(item.priceETB);
+                    const priceText = Number.isFinite(price) && price > 0 ? `${price.toLocaleString()} ETB` : 'Price on request';
+                    return `
+                        <article class="curated-card" onclick="window.location.href='/post?id=${encodeURIComponent(item._id)}'">
+                            <div class="curated-image">
+                                ${image ? `<img src="${image}" alt="${title}">` : '<div style="padding:12px;" class="muted">No image</div>'}
+                            </div>
+                            <div class="curated-name">${title}</div>
+                            <div class="curated-price">${priceText}</div>
+                        </article>
+                    `;
+                }).join('');
+            } catch (error) {
+                target.innerHTML = '<p class="muted">Could not load recommendations.</p>';
+            }
+        }
+
+        function renderComments(comments) {
+            const commentsDiv = document.getElementById('comments-section');
+            if (!comments || comments.length === 0) {
+                commentsDiv.innerHTML = '<p class="muted">No comments yet.</p>';
+                return;
+            }
+
+            commentsDiv.innerHTML = comments.map((c) => `
+                <div class="comment-item">
+                    <div class="comment-top">
+                        <strong>${escapeHtml(c.name || 'User')}</strong>
+                        <small class="comment-date">${new Date(c.date).toLocaleDateString()}</small>
+                    </div>
+                    <div class="comment-rating">★ ${Number(c.rating || 0).toFixed(1)}</div>
+                    <p style="margin-top:0.5rem;">${escapeHtml(c.text || '')}</p>
+                    ${c.image_url ? `<div style="margin-top:8px;"><a href="${escapeHtml(c.image_url)}" target="_blank" rel="noopener noreferrer"><img src="${escapeHtml(c.image_url)}" alt="Comment image" style="max-width:220px; width:100%; border-radius:10px; border:1px solid rgba(0,0,0,0.12);"></a></div>` : ''}
+
+                    <div class="comment-actions">
+                        <button type="button" class="comment-action" style="color:${c.likes && c.likes.includes(getUserId()) ? 'var(--secondary)' : 'var(--on-surface-variant)'}" onclick="likeComment('${c._id}')">
+                            <i class="${c.likes && c.likes.includes(getUserId()) ? 'fas' : 'far'} fa-heart"></i> ${c.likes ? c.likes.length : 0}
+                        </button>
+                        <button type="button" class="comment-action" onclick="showReplyForm('${c._id}')">Reply</button>
+                    </div>
+
+                    ${c.replies && c.replies.length > 0 ? `
+                        <div class="comment-replies">
+                            ${c.replies.map((r) => `
+                                <div class="reply-item">
+                                    <strong>${escapeHtml(r.name || 'User')}</strong>: ${escapeHtml(r.text || '')}
+                                    ${r.image_url ? `<div style="margin-top:6px;"><a href="${escapeHtml(r.image_url)}" target="_blank" rel="noopener noreferrer"><img src="${escapeHtml(r.image_url)}" alt="Reply image" style="max-width:180px; width:100%; border-radius:10px; border:1px solid rgba(0,0,0,0.12);"></a></div>` : ''}
+                                </div>
+                            `).join('')}
+                        </div>
+                    ` : ''}
+
+                    <div id="reply-form-${c._id}" class="reply-form">
+                        <div class="chat-composer chat-composer--reply">
+                            <button type="button" class="chat-composer__btn chat-composer__btn--attach" onclick="triggerReplyImagePicker('${c._id}')" aria-label="Attach reply image">
+                                <span class="material-symbols-outlined">add_circle</span>
+                            </button>
+                            <input type="text" id="reply-text-${c._id}" placeholder="Write comment reply..." class="chat-composer__input">
+                            <img id="reply-image-thumb-${c._id}" class="chat-composer__thumb" alt="Selected reply image preview">
+                            <span id="reply-image-name-${c._id}" class="chat-composer__filelabel" style="display:none;"></span>
+                            <button type="button" onclick="submitReply('${c._id}')" class="chat-composer__btn chat-composer__btn--send" aria-label="Send reply">
+                                <span class="material-symbols-outlined">send</span>
+                            </button>
+                        </div>
+                        <input type="file" id="reply-image-${c._id}" class="hidden-file-input" accept="image/*">
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function getUserId() {
+            const token = localStorage.getItem('token');
+            if (!token) return null;
+            try {
+                const payload = JSON.parse(atob(token.split('.')[1]));
+                return payload.user.id;
+            } catch (e) {
+                return null;
+            }
+        }
+
+        async function toggleLike() {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                window.location.href = `/auth/login?next=${encodeURIComponent(window.location.pathname + window.location.search)}`;
+                return;
+            }
+
+            try {
+                const res = await fetch(`/api/posts/like/${postId}`, {
+                    method: 'POST',
+                    headers: { 'x-auth-token': token }
+                });
+                if (res.ok) loadPost();
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        async function likeComment(commentId) {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                window.location.href = `/auth/login?next=${encodeURIComponent(window.location.pathname + window.location.search)}`;
+                return;
+            }
+
+            try {
+                const res = await fetch(`/api/posts/comment/like/${postId}/${commentId}`, {
+                    method: 'POST',
+                    headers: { 'x-auth-token': token }
+                });
+                if (res.ok) {
+                    const updatedComments = await res.json();
+                    renderComments(updatedComments);
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        function showReplyForm(commentId) {
+            const form = document.getElementById(`reply-form-${commentId}`);
+            if (!form) return;
+            form.style.display = form.style.display === 'none' || !form.style.display ? 'block' : 'none';
+        }
+
+        function triggerReplyImagePicker(commentId) {
+            const imageInput = document.getElementById(`reply-image-${commentId}`);
+            if (imageInput) imageInput.click();
+        }
+
+        function setComposerAttachmentPreview(labelEl, thumbEl, file) {
+            if (!labelEl) return;
+            const safeName = String(file && file.name ? file.name : '').trim();
+            if (!safeName) {
+                labelEl.textContent = '';
+                labelEl.style.display = 'none';
+                if (thumbEl) {
+                    thumbEl.style.display = 'none';
+                    if (thumbEl.dataset.objectUrl) {
+                        try { URL.revokeObjectURL(thumbEl.dataset.objectUrl); } catch (_) {}
+                        delete thumbEl.dataset.objectUrl;
+                    }
+                }
+                return;
+            }
+            labelEl.textContent = safeName;
+            labelEl.style.display = 'inline-block';
+            if (thumbEl && file) {
+                if (thumbEl.dataset.objectUrl) {
+                    try { URL.revokeObjectURL(thumbEl.dataset.objectUrl); } catch (_) {}
+                }
+                const obj = URL.createObjectURL(file);
+                thumbEl.src = obj;
+                thumbEl.dataset.objectUrl = obj;
+                thumbEl.style.display = 'inline-block';
+            }
+        }
+
+        function refreshCommentImageLabel() {
+            const input = document.getElementById('commentImage');
+            const label = document.getElementById('commentImageName');
+            const thumb = document.getElementById('commentImageThumb');
+            const file = input && input.files ? input.files[0] : null;
+            setComposerAttachmentPreview(label, thumb, file || null);
+        }
+
+        function refreshReplyImageLabel(commentId) {
+            const input = document.getElementById(`reply-image-${commentId}`);
+            const label = document.getElementById(`reply-image-name-${commentId}`);
+            const thumb = document.getElementById(`reply-image-thumb-${commentId}`);
+            const file = input && input.files ? input.files[0] : null;
+            setComposerAttachmentPreview(label, thumb, file || null);
+        }
+
+        async function submitReply(commentId) {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                window.location.href = `/auth/login?next=${encodeURIComponent(window.location.pathname + window.location.search)}`;
+                return;
+            }
+
+            const textInput = document.getElementById(`reply-text-${commentId}`);
+            const imageInput = document.getElementById(`reply-image-${commentId}`);
+            const text = textInput ? textInput.value : '';
+            const imageFile = imageInput && imageInput.files ? imageInput.files[0] : null;
+            if (!String(text || '').trim() && !imageFile) return;
+
+            try {
+                const fd = new FormData();
+                fd.append('text', text);
+                if (imageFile) fd.append('image', imageFile);
+                const res = await fetch(`/api/posts/comment/reply/${postId}/${commentId}`, {
+                    method: 'POST',
+                    headers: {
+                        'x-auth-token': token
+                    },
+                    body: fd
+                });
+                if (res.ok) {
+                    const updatedComments = await res.json();
+                    renderComments(updatedComments);
+                    if (textInput) textInput.value = '';
+                    if (imageInput) imageInput.value = '';
+                    refreshReplyImageLabel(commentId);
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        document.getElementById('commentForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const token = localStorage.getItem('token');
+            if (!token) {
+                window.location.href = `/auth/login?next=${encodeURIComponent(window.location.pathname + window.location.search)}`;
+                return;
+            }
+
+            const text = document.getElementById('commentText').value;
+            const rating = Number(document.getElementById('commentRating').value || 0);
+            const imageFile = document.getElementById('commentImage')?.files?.[0] || null;
+            if (!String(text || '').trim() && !imageFile) {
+                alert('Please add a comment or choose an image.');
+                return;
+            }
+
+            try {
+                const fd = new FormData();
+                fd.append('text', text);
+                fd.append('rating', String(rating));
+                if (imageFile) fd.append('image', imageFile);
+                const res = await fetch(`/api/posts/comment/${postId}`, {
+                    method: 'POST',
+                    headers: {
+                        'x-auth-token': token
+                    },
+                    body: fd
+                });
+                if (res.ok) {
+                    document.getElementById('commentText').value = '';
+                    document.getElementById('commentRating').value = '5';
+                    const imageInput = document.getElementById('commentImage');
+                    if (imageInput) imageInput.value = '';
+                    refreshCommentImageLabel();
+                    const updatedComments = await res.json();
+                    renderComments(updatedComments);
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        });
+
+        document.getElementById('commentAttachBtn')?.addEventListener('click', () => {
+            const input = document.getElementById('commentImage');
+            if (input) input.click();
+        });
+
+        document.getElementById('commentImage')?.addEventListener('change', refreshCommentImageLabel);
+
+        document.addEventListener('change', (e) => {
+            const target = e.target;
+            if (!(target instanceof HTMLInputElement)) return;
+            if (!target.id.startsWith('reply-image-')) return;
+            const commentId = target.id.replace('reply-image-', '');
+            refreshReplyImageLabel(commentId);
+        });
+
+        document.getElementById('commentRating')?.addEventListener('change', (e) => {
+            const value = Number(e.target.value || 0);
+            const normalized = Math.max(0, Math.min(5, value));
+            const full = '★'.repeat(normalized);
+            const empty = '☆'.repeat(5 - normalized);
+            const el = document.getElementById('commentRatingPreview');
+            if (el) el.textContent = full + empty;
+        });
+
+        window.triggerReplyImagePicker = triggerReplyImagePicker;
+    </script>
+</body>
+</html>
+
+
+
+
+
+
+
+

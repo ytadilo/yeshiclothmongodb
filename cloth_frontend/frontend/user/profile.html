@@ -1,0 +1,1048 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profile - Yeshi</title>
+    <script>
+        (function () {
+            var token = localStorage.getItem('token');
+            var user = {};
+            try { user = JSON.parse(localStorage.getItem('user') || '{}') || {}; } catch (_) { user = {}; }
+            var status = String(user.status || '').toLowerCase();
+            var blocked = !!user.isBanned || status === 'banned' || status === 'inactive';
+            if (token && !blocked) return;
+            var next = encodeURIComponent(window.location.pathname + window.location.search + window.location.hash);
+            if (blocked) {
+                localStorage.removeItem('token');
+                localStorage.removeItem('role');
+                localStorage.removeItem('user');
+                localStorage.removeItem('loginTime');
+            }
+            window.location.replace('/user/login.html?next=' + next);
+            document.documentElement.innerHTML = '';
+            throw new Error('AUTH_REQUIRED');
+        })();
+    </script>
+    <link rel="icon" type="image/png" href="/images/logo.png">
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .profile-top {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .avatar-shell {
+            width: 76px;
+            height: 76px;
+            border-radius: 50%;
+            background: #f4f3f3;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #745B18;
+            font-size: 28px;
+            overflow: hidden;
+            border: 2px solid rgba(116, 91, 24, 0.2);
+            flex-shrink: 0;
+        }
+
+        .upload-btn {
+            border: 1px solid rgba(116, 91, 24, 0.25);
+            background: #fff;
+            color: #745B18;
+            border-radius: 6px;
+            padding: 6px 10px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            font-weight: 700;
+            margin-top: 8px;
+        }
+
+        .curated-wrap {
+            background: #f4f3f3;
+            border-radius: 10px;
+            padding: 14px;
+            overflow: hidden;
+        }
+
+        .curated-row {
+            display: flex;
+            gap: 12px;
+            overflow-x: auto;
+            padding-bottom: 6px;
+            scroll-snap-type: x mandatory;
+        }
+
+        .curated-row::-webkit-scrollbar {
+            height: 8px;
+        }
+
+        .curated-row::-webkit-scrollbar-thumb {
+            background: rgba(116, 91, 24, 0.3);
+            border-radius: 999px;
+        }
+
+        .curated-card {
+            min-width: 220px;
+            max-width: 240px;
+            background: #fff;
+            border-radius: 10px;
+            overflow: hidden;
+            scroll-snap-align: start;
+            text-decoration: none;
+            color: inherit;
+        }
+
+        .curated-card img {
+            width: 100%;
+            height: 240px;
+            object-fit: cover;
+            display: block;
+            background: #eee;
+        }
+
+        .curated-body {
+            padding: 10px;
+        }
+
+        .curated-title {
+            font-size: 0.95rem;
+            font-weight: 700;
+            line-height: 1.35;
+            margin-bottom: 4px;
+        }
+
+        .curated-price {
+            color: #4d4639;
+            font-size: 0.88rem;
+        }
+
+        .profile-details-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 10px;
+        }
+
+        .profile-detail {
+            background: #f8f6f0;
+            border-radius: 10px;
+            padding: 10px 12px;
+            border: 1px solid rgba(116, 91, 24, 0.1);
+        }
+
+        .profile-detail-label {
+            font-size: 0.74rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: #745B18;
+            margin-bottom: 4px;
+            font-weight: 700;
+        }
+
+        .profile-detail-value {
+            font-size: 0.95rem;
+            font-weight: 800;
+            color: #2d2410;
+            word-break: break-word;
+        }
+
+        .settings-tabs {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .settings-tab-btn {
+            border: 1px solid rgba(116, 91, 24, 0.2);
+            background: #fff;
+            color: #745B18;
+            border-radius: 999px;
+            padding: 8px 12px;
+            font-weight: 700;
+            font-size: 0.85rem;
+            cursor: pointer;
+        }
+
+        .settings-tab-btn.active {
+            background: #745B18;
+            color: #fff;
+            border-color: #745B18;
+        }
+
+        .settings-pane {
+            display: none;
+        }
+
+        .settings-pane.active {
+            display: block;
+        }
+
+        .item-list {
+            display: grid;
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+
+        .item-card {
+            border: 1px solid rgba(116, 91, 24, 0.16);
+            border-radius: 10px;
+            background: #fff;
+            padding: 10px;
+        }
+    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+</head>
+
+<body class="yeshi-has-bottom-nav">
+<section class="container" style="padding: 1rem; max-width: 1100px;">
+        <div class="card" style="padding: 1rem; margin-bottom: 14px;">
+            <div class="profile-top">
+                <div class="avatar-shell">
+                    <img id="profileAvatarImg" alt="Profile" style="width:100%; height:100%; object-fit:cover; display:none;">
+                    <span id="profileAvatarFallback" style="font-weight:800;">Y</span>
+                </div>
+                <div style="min-width:0;">
+                    <div id="profileName" style="font-weight:800; font-size:1.2rem;">Guest</div>
+                    <div id="profileEmail" style="color: var(--light-text);">Login to manage your profile</div>
+                    <div id="profileStatus" style="margin-top:6px; color:#745B18; font-weight:700; font-size:0.85rem;">HERITAGE MEMBER</div>
+                    <button type="button" class="upload-btn" id="uploadAvatarBtn"><i class="fas fa-camera" style="margin-right:6px;"></i>Upload Profile</button>
+                    <input id="avatarInput" type="file" accept="image/*" style="display:none;">
+                </div>
+            </div>
+        </div>
+
+        <div class="card" style="padding: 1rem; margin-bottom: 14px;">
+            <h3 style="margin:0 0 10px; color: var(--accent-color);">Account Details</h3>
+            <div id="profileDetailsGrid" class="profile-details-grid"></div>
+        </div>
+
+        <div class="card" style="padding: 1rem; margin-bottom: 14px;">
+            <button type="button" id="openSettingsBtn" class="btn" style="display:inline-flex; align-items:center; gap:8px;">
+                <i class="fas fa-cog"></i> Settings
+            </button>
+        </div>
+
+        <div class="card" id="settingsPanel" style="padding: 1rem; margin-bottom: 14px; display:none;">
+            <h3 style="margin:0 0 10px; color: var(--accent-color);">Settings</h3>
+            <div class="settings-tabs">
+                <button type="button" class="settings-tab-btn active" data-settings-tab="personal">Personal Details</button>
+                <button type="button" class="settings-tab-btn" data-settings-tab="shipping">Shipping Address</button>
+                <button type="button" class="settings-tab-btn" data-settings-tab="measurements">Measurements</button>
+                <button type="button" class="settings-tab-btn" data-settings-tab="refund">Refund Policy</button>
+            </div>
+
+            <div id="settingsPersonal" class="settings-pane active">
+                <form id="settingsPersonalForm" style="display:grid; gap:10px; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));">
+                    <div>
+                        <label for="settingsFirstName" style="display:block; font-size:0.8rem; margin-bottom:4px;">First Name</label>
+                        <input id="settingsFirstName" type="text" class="form-control" required>
+                    </div>
+                    <div>
+                        <label for="settingsFatherName" style="display:block; font-size:0.8rem; margin-bottom:4px;">Father Name</label>
+                        <input id="settingsFatherName" type="text" class="form-control">
+                    </div>
+                    <div>
+                        <label for="settingsPhone" style="display:block; font-size:0.8rem; margin-bottom:4px;">Phone Number</label>
+                        <input id="settingsPhone" type="tel" class="form-control" required>
+                    </div>
+                    <div>
+                        <label for="settingsAge" style="display:block; font-size:0.8rem; margin-bottom:4px;">Age</label>
+                        <input id="settingsAge" type="number" min="1" max="150" class="form-control" required>
+                    </div>
+                    <div>
+                        <label for="settingsSex" style="display:block; font-size:0.8rem; margin-bottom:4px;">Sex</label>
+                        <select id="settingsSex" class="form-control" required>
+                            <option value="">Select</option>
+                            <option value="male">Male</option>
+                            <option value="female">Female</option>
+                            <option value="other">Other</option>
+                            <option value="prefer_not_to_say">Prefer not to say</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="settingsEmail" style="display:block; font-size:0.8rem; margin-bottom:4px;">Email (Read-only)</label>
+                        <input id="settingsEmail" type="email" class="form-control" readonly>
+                    </div>
+                    <div style="grid-column: 1 / -1; display:flex; gap:8px; align-items:center;">
+                        <button type="submit" class="btn">Save Personal Details</button>
+                        <span id="settingsPersonalStatus" style="font-size:0.85rem; color:var(--light-text);"></span>
+                    </div>
+                </form>
+            </div>
+
+            <div id="settingsShipping" class="settings-pane">
+                <div id="shippingAddressList" class="item-list"></div>
+                <form id="shippingAddressForm" style="display:grid; gap:10px; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));">
+                    <input id="shippingEditId" type="hidden">
+                    <div><label style="display:block; font-size:0.8rem; margin-bottom:4px;">Label</label><input id="shippingLabel" type="text" class="form-control" placeholder="Home, Office"></div>
+                    <div><label style="display:block; font-size:0.8rem; margin-bottom:4px;">Full Name</label><input id="shippingFullName" type="text" class="form-control" required></div>
+                    <div><label style="display:block; font-size:0.8rem; margin-bottom:4px;">Phone</label><input id="shippingPhone" type="tel" class="form-control" required placeholder="+251..."></div>
+                    <div><label style="display:block; font-size:0.8rem; margin-bottom:4px;">Country</label><select id="shippingCountry" class="form-control" required></select></div>
+                    <div><label style="display:block; font-size:0.8rem; margin-bottom:4px;">Region</label><input id="shippingRegion" type="text" class="form-control" required></div>
+                    <div><label style="display:block; font-size:0.8rem; margin-bottom:4px;">City</label><input id="shippingCity" type="text" class="form-control" required></div>
+                    <div><label style="display:block; font-size:0.8rem; margin-bottom:4px;">ZIP Code</label><input id="shippingZipCode" type="text" class="form-control" required></div>
+                    <div style="display:flex; align-items:center; gap:8px;"><input id="shippingIsDefault" type="checkbox"><label for="shippingIsDefault" style="margin:0;">Default Shipping Address</label></div>
+                    <div style="grid-column:1/-1; display:flex; gap:8px; align-items:center;">
+                        <button type="submit" class="btn">Save Address</button>
+                        <button type="button" class="btn btn-outline" id="shippingResetBtn">Clear</button>
+                        <span id="shippingStatus" style="font-size:0.85rem; color:var(--light-text);"></span>
+                    </div>
+                </form>
+            </div>
+
+            <div id="settingsMeasurements" class="settings-pane">
+                <div id="measurementProfileList" class="item-list"></div>
+                <form id="measurementProfileForm" style="display:grid; gap:10px; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));">
+                    <input id="measureEditId" type="hidden">
+                    <div><label style="display:block; font-size:0.8rem; margin-bottom:4px;">Profile Name</label><input id="measureProfileName" type="text" class="form-control" required></div>
+                    <div><label style="display:block; font-size:0.8rem; margin-bottom:4px;">Chest</label><input id="measureChest" type="number" step="0.1" min="0" class="form-control" required></div>
+                    <div><label style="display:block; font-size:0.8rem; margin-bottom:4px;">Waist</label><input id="measureWaist" type="number" step="0.1" min="0" class="form-control" required></div>
+                    <div><label style="display:block; font-size:0.8rem; margin-bottom:4px;">Hip</label><input id="measureHip" type="number" step="0.1" min="0" class="form-control" required></div>
+                    <div><label style="display:block; font-size:0.8rem; margin-bottom:4px;">Shoulder</label><input id="measureShoulder" type="number" step="0.1" min="0" class="form-control" required></div>
+                    <div><label style="display:block; font-size:0.8rem; margin-bottom:4px;">Length</label><input id="measureLength" type="number" step="0.1" min="0" class="form-control" required></div>
+                    <div><label style="display:block; font-size:0.8rem; margin-bottom:4px;">Sleeve Length</label><input id="measureSleeveLength" type="number" step="0.1" min="0" class="form-control" required></div>
+                    <div style="display:flex; align-items:center; gap:8px;"><input id="measureIsDefault" type="checkbox"><label for="measureIsDefault" style="margin:0;">Default Measurement</label></div>
+                    <div style="grid-column:1/-1; display:flex; gap:8px; align-items:center;">
+                        <button type="submit" class="btn">Save Measurements</button>
+                        <button type="button" class="btn btn-outline" id="measureResetBtn">Clear</button>
+                        <span id="measureStatus" style="font-size:0.85rem; color:var(--light-text);"></span>
+                    </div>
+                </form>
+            </div>
+
+            <div id="settingsRefund" class="settings-pane">
+                <div id="refund-policy" style="border:1px solid rgba(116,91,24,0.18); border-radius:10px; padding:12px; background:#fffdf8; line-height:1.5;">
+                    <h4 style="margin-top:0; color:#745B18;">Refund Policy</h4>
+                    <p><strong>1. Eligibility for Refund:</strong> Refund allowed only if payment completed, overpayment occurred, or admin cancels delivery after payment.</p>
+                    <p><strong>2. When Refund is Approved:</strong> Refund is issued if admin cancels order, product is not delivered, or customer overpaid.</p>
+                    <p><strong>3. Refund Amount:</strong> Only the paid amount is refunded. No extra compensation.</p>
+                    <p><strong>4. Non-Refundable Cases:</strong> No refund if product delivered, customer cancels without admin approval, or correct payment and delivery completed.</p>
+                    <p><strong>5. Refund Process:</strong> Refund is sent to the same payment method within 3–7 business days.</p>
+                    <p><strong>6. Notes:</strong> Admin contacts customer if delivery is canceled. Customer may contact admin anytime.</p>
+                    <p><strong>7. Contact:</strong> Use <a href="/user/mychat.html">Chat with admin</a> for refund communication.</p>
+                    <button type="button" id="backToOrderBtn" class="btn btn-outline">Back to Order Page</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="card" style="padding: 1rem; margin-bottom: 14px;">
+            <h3 style="margin:0 0 10px; color: var(--accent-color);">Quick Actions</h3>
+            <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px;">
+                <a href="/user/how-it-works.html" class="btn btn-outline" style="text-align:center;"><i class="fas fa-compass" style="margin-right:6px;"></i>How It Works</a>
+                <a href="/user/developer-information.html" class="btn btn-outline" style="text-align:center;"><i class="fas fa-code" style="margin-right:6px;"></i>Developer Information</a>
+                <a href="/size-guide" class="btn btn-outline" style="text-align:center;"><i class="fas fa-ruler" style="margin-right:6px;"></i>Size Guide</a>
+                <a href="/user/about.html" class="btn btn-outline" style="text-align:center;"><i class="fas fa-info-circle" style="margin-right:6px;"></i>About</a>
+            </div>
+        </div>
+
+        <section style="margin-bottom: 26px;">
+            <div style="display:flex; justify-content:space-between; align-items:end; gap:8px; margin-bottom: 8px;">
+                <div>
+                    <h3 style="margin:0; color: var(--accent-color);">Curated for You</h3>
+                    <p style="margin:4px 0 0; color: var(--light-text);">Similar masterworks you might appreciate</p>
+                </div>
+            </div>
+            <div class="curated-wrap">
+                <div id="curatedRow" class="curated-row">
+                    <p style="color: var(--light-text); margin: 6px;">Loading recommendations...</p>
+                </div>
+            </div>
+        </section>
+    </section>
+
+    <script src="/js/main.js"></script>
+    <script src="/js/country-data.js"></script>
+    <script>
+        const API_URL = '/api/auth';
+        let currentProfileUser = null;
+        let countryRows = [];
+
+        function splitNameParts(fullName) {
+            const parts = String(fullName || '').trim().split(/\s+/).filter(Boolean);
+            return {
+                firstName: parts[0] || '',
+                fatherName: parts.slice(1).join(' ')
+            };
+        }
+
+        function buildFullName(firstName, fatherName) {
+            return [String(firstName || '').trim(), String(fatherName || '').trim()].filter(Boolean).join(' ').trim();
+        }
+
+        function safeParseJson(raw) {
+            try {
+                return raw ? JSON.parse(raw) : null;
+            } catch (_) {
+                return null;
+            }
+        }
+
+        function escapeHtml(value) {
+            return String(value ?? '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        function setText(id, text) {
+            const el = document.getElementById(id);
+            if (!el) return;
+            el.textContent = text || '';
+        }
+
+        function formatSex(value) {
+            const normalized = String(value || '').trim().toLowerCase();
+            if (!normalized) return '—';
+            if (normalized === 'prefer_not_to_say') return 'Prefer not to say';
+            return normalized.charAt(0).toUpperCase() + normalized.slice(1).replace(/_/g, ' ');
+        }
+
+        function renderProfileDetails(user) {
+            const grid = document.getElementById('profileDetailsGrid');
+            if (!grid) return;
+
+            const fallbackName = user.fullName || getDisplayName(user);
+
+            const items = [
+                ['Full name', fallbackName || 'Guest'],
+                ['Phone', user.phone || '—'],
+                ['Age', user.age != null && user.age !== '' ? String(user.age) : '—'],
+                ['Sex', formatSex(user.sex)],
+                ['Role', user.role || 'customer']
+            ];
+
+            grid.innerHTML = items.map(([label, value]) => `
+                <div class="profile-detail">
+                    <div class="profile-detail-label">${escapeHtml(label)}</div>
+                    <div class="profile-detail-value">${escapeHtml(value)}</div>
+                </div>
+            `).join('');
+        }
+
+        function getDisplayName(user) {
+            const name = String(user?.fullName || user?.name || '').trim();
+            if (name) return name;
+            const parts = [user?.firstName, user?.fatherName].filter(Boolean).join(' ').trim();
+            if (parts) return parts;
+            const email = String(user?.email || '').trim();
+            if (email.includes('@')) return email.split('@')[0];
+            return email || 'Guest';
+        }
+
+        function getDisplayEmail(user) {
+            return String(user?.email || '').trim() || 'Login to manage your profile';
+        }
+
+        function getProfileImage(user) {
+            return user.profileImage || localStorage.getItem('yeshi_profile_avatar') || user.avatar || user.image || user.picture || '';
+        }
+
+        function populateEditForm(user) {
+            const firstNameInput = document.getElementById('settingsFirstName');
+            const fatherNameInput = document.getElementById('settingsFatherName');
+            const settingsPhone = document.getElementById('settingsPhone');
+            const settingsAge = document.getElementById('settingsAge');
+            const settingsSex = document.getElementById('settingsSex');
+            const settingsEmail = document.getElementById('settingsEmail');
+            const nameParts = splitNameParts(user.fullName || '');
+            if (firstNameInput) firstNameInput.value = nameParts.firstName;
+            if (fatherNameInput) fatherNameInput.value = String(user.fatherName || nameParts.fatherName || '').trim();
+            if (settingsPhone) settingsPhone.value = String(user.phone || '').trim();
+            if (settingsAge) settingsAge.value = user.age != null && user.age !== '' ? String(user.age) : '';
+            if (settingsSex) settingsSex.value = String(user.sex || '').trim();
+            if (settingsEmail) settingsEmail.value = String(user.email || '').trim();
+        }
+
+        function applyUserProfileHeader(userOverride) {
+            const user = userOverride || safeParseJson(localStorage.getItem('user')) || {};
+            currentProfileUser = user;
+            const fullName = getDisplayName(user);
+            const email = getDisplayEmail(user);
+            const imageUrl = getProfileImage(user);
+
+            setText('profileName', fullName);
+            setText('profileEmail', email);
+            setText('profileStatus', user.role === 'admin' ? 'ADMIN ACCOUNT' : (user.approval_status || 'HERITAGE MEMBER'));
+
+            renderProfileDetails({
+                ...user,
+                fullName,
+                email,
+                profileImage: imageUrl
+            });
+            populateEditForm({ ...user, fullName });
+            renderShippingAddressList();
+            renderMeasurementProfileList();
+
+            const shipping = Array.isArray(user.shipping_addresses) ? user.shipping_addresses : [];
+            const defaultShipping = shipping.find((a) => a.is_default) || shipping[0] || null;
+            if (defaultShipping) {
+                localStorage.setItem('yeshi_profile_shipping', JSON.stringify({
+                    fullName: defaultShipping.full_name || fullName,
+                    phone: defaultShipping.phone || user.phone || '',
+                    country: defaultShipping.country || 'Ethiopia',
+                    region: defaultShipping.region || '',
+                    regionCustom: defaultShipping.region_custom || '',
+                    city: defaultShipping.city || '',
+                    zipCode: defaultShipping.zip_code || ''
+                }));
+            }
+            localStorage.setItem('yeshi_saved_shipping_addresses', JSON.stringify(shipping));
+
+            const measurements = Array.isArray(user.measurement_profiles) ? user.measurement_profiles : [];
+            localStorage.setItem('yeshi_saved_measurements', JSON.stringify(measurements));
+
+            const fallback = document.getElementById('profileAvatarFallback');
+            const avatarImg = document.getElementById('profileAvatarImg');
+            if (fallback) {
+                const initials = String(fullName || 'Y').trim().split(/\s+/).map((v) => v.charAt(0)).join('').slice(0, 2).toUpperCase() || 'Y';
+                fallback.textContent = initials;
+            }
+            if (avatarImg && imageUrl) {
+                avatarImg.src = imageUrl;
+                avatarImg.style.display = 'block';
+                if (fallback) fallback.style.display = 'none';
+            } else {
+                if (avatarImg) avatarImg.style.display = 'none';
+                if (fallback) fallback.style.display = 'inline';
+            }
+
+        }
+
+        async function loadProfileFromServer() {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                applyUserProfileHeader();
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_URL}/me`, {
+                    headers: { 'x-auth-token': token }
+                });
+
+                if (!response.ok) {
+                    if (response.status === 401) {
+                        localStorage.removeItem('token');
+                        localStorage.removeItem('role');
+                    }
+                    applyUserProfileHeader();
+                    return;
+                }
+
+                const data = await response.json();
+                const serverUser = data && data.user ? data.user : null;
+                if (serverUser) {
+                    const stored = safeParseJson(localStorage.getItem('user')) || {};
+                    const merged = { ...stored, ...serverUser };
+                    localStorage.setItem('user', JSON.stringify(merged));
+                    if (merged.profileImage) {
+                        localStorage.setItem('yeshi_profile_avatar', merged.profileImage);
+                    }
+                    applyUserProfileHeader(merged);
+                    return;
+                }
+            } catch (_) {
+                // fall back to local state
+            }
+
+            applyUserProfileHeader();
+        }
+
+        async function persistProfilePatch(patch, statusEl) {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                window.location.href = '/user/login.html';
+                return null;
+            }
+
+            try {
+                const response = await fetch(`${API_URL}/me`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-auth-token': token
+                    },
+                    body: JSON.stringify(patch)
+                });
+                const data = await response.json().catch(() => null);
+                if (!response.ok) {
+                    if (statusEl) {
+                        statusEl.textContent = (data && data.msg) || 'Failed to save settings.';
+                        statusEl.style.color = '#ba1a1a';
+                    }
+                    return null;
+                }
+
+                const updatedUser = data && data.user ? data.user : {};
+                const storedUser = safeParseJson(localStorage.getItem('user')) || {};
+                const merged = { ...storedUser, ...updatedUser };
+                localStorage.setItem('user', JSON.stringify(merged));
+                applyUserProfileHeader(merged);
+                return merged;
+            } catch (_) {
+                if (statusEl) {
+                    statusEl.textContent = 'Failed to save settings.';
+                    statusEl.style.color = '#ba1a1a';
+                }
+                return null;
+            }
+        }
+
+        function getShippingAddresses() {
+            const user = currentProfileUser || safeParseJson(localStorage.getItem('user')) || {};
+            return Array.isArray(user.shipping_addresses) ? user.shipping_addresses : [];
+        }
+
+        function getMeasurementProfiles() {
+            const user = currentProfileUser || safeParseJson(localStorage.getItem('user')) || {};
+            return Array.isArray(user.measurement_profiles) ? user.measurement_profiles : [];
+        }
+
+        function renderShippingAddressList() {
+            const container = document.getElementById('shippingAddressList');
+            if (!container) return;
+            const list = getShippingAddresses();
+            if (!list.length) {
+                container.innerHTML = '<p style="color: var(--light-text); margin:0;">No saved addresses yet.</p>';
+                return;
+            }
+
+            container.innerHTML = list.map((item) => {
+                const id = String(item.id || item._id || '');
+                return `<div class="item-card" data-shipping-id="${escapeHtml(id)}">
+                    <div style="display:flex; justify-content:space-between; gap:8px; align-items:flex-start;">
+                        <div>
+                            <div style="font-weight:800; color:#2d2410;">${escapeHtml(item.label || 'Address')}</div>
+                            <div style="font-size:0.9rem; color:#4d4639; margin-top:3px;">${escapeHtml(item.full_name || '')} · ${escapeHtml(item.phone || '')}</div>
+                            <div style="font-size:0.86rem; color:#4d4639; margin-top:3px;">${escapeHtml([item.country, item.region_custom || item.region, item.city, item.zip_code].filter(Boolean).join(', '))}</div>
+                            ${item.is_default ? '<div style="margin-top:4px; color:#1aad19; font-weight:700; font-size:0.82rem;">Default shipping address</div>' : ''}
+                        </div>
+                        <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                            <button type="button" class="btn btn-outline" data-shipping-edit="${escapeHtml(id)}">Edit</button>
+                            <button type="button" class="btn btn-outline" data-shipping-delete="${escapeHtml(id)}">Delete</button>
+                        </div>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        function renderMeasurementProfileList() {
+            const container = document.getElementById('measurementProfileList');
+            if (!container) return;
+            const list = getMeasurementProfiles();
+            if (!list.length) {
+                container.innerHTML = '<p style="color: var(--light-text); margin:0;">No saved measurements yet.</p>';
+                return;
+            }
+
+            container.innerHTML = list.map((item) => {
+                const id = String(item.id || item._id || '');
+                return `<div class="item-card" data-measure-id="${escapeHtml(id)}">
+                    <div style="display:flex; justify-content:space-between; gap:8px; align-items:flex-start;">
+                        <div>
+                            <div style="font-weight:800; color:#2d2410;">${escapeHtml(item.profile_name || 'Measurements')}</div>
+                            <div style="font-size:0.86rem; color:#4d4639; margin-top:3px;">Chest ${escapeHtml(String(item.chest || '0'))}, Waist ${escapeHtml(String(item.waist || '0'))}, Hip ${escapeHtml(String(item.hip || '0'))}</div>
+                            <div style="font-size:0.86rem; color:#4d4639; margin-top:3px;">Shoulder ${escapeHtml(String(item.shoulder || '0'))}, Length ${escapeHtml(String(item.length || '0'))}, Sleeve ${escapeHtml(String(item.sleeve_length || '0'))}</div>
+                            ${item.is_default ? '<div style="margin-top:4px; color:#1aad19; font-weight:700; font-size:0.82rem;">Default measurement</div>' : ''}
+                        </div>
+                        <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                            <button type="button" class="btn btn-outline" data-measure-edit="${escapeHtml(id)}">Edit</button>
+                            <button type="button" class="btn btn-outline" data-measure-delete="${escapeHtml(id)}">Delete</button>
+                        </div>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        function bindAvatarUpload() {
+            const uploadBtn = document.getElementById('uploadAvatarBtn');
+            const avatarInput = document.getElementById('avatarInput');
+            if (!uploadBtn || !avatarInput) return;
+
+            uploadBtn.addEventListener('click', function () {
+                avatarInput.click();
+            });
+
+            avatarInput.addEventListener('change', async function (e) {
+                const file = e.target.files && e.target.files[0];
+                if (!file) return;
+                if (!String(file.type || '').startsWith('image/')) return;
+
+                const token = localStorage.getItem('token');
+                if (!token) {
+                    const reader = new FileReader();
+                    reader.onload = function () {
+                        const dataUrl = String(reader.result || '');
+                        if (!dataUrl) return;
+                        localStorage.setItem('yeshi_profile_avatar', dataUrl);
+
+                        const user = safeParseJson(localStorage.getItem('user')) || {};
+                        user.profileImage = dataUrl;
+                        localStorage.setItem('user', JSON.stringify(user));
+                        applyUserProfileHeader(user);
+                    };
+                    reader.readAsDataURL(file);
+                    return;
+                }
+
+                const formData = new FormData();
+                formData.append('profileImage', file);
+
+                try {
+                    const response = await fetch(`${API_URL}/me`, {
+                        method: 'PUT',
+                        headers: { 'x-auth-token': token },
+                        body: formData
+                    });
+                    const raw = await response.text();
+                    let data = null;
+                    try { data = raw ? JSON.parse(raw) : null; } catch (_) { data = null; }
+
+                    if (!response.ok) {
+                        alert((data && data.msg) || 'Failed to update profile image');
+                        return;
+                    }
+
+                    const updatedUser = data && data.user ? data.user : {};
+                    localStorage.setItem('yeshi_profile_avatar', updatedUser.profileImage || '');
+                    const storedUser = safeParseJson(localStorage.getItem('user')) || {};
+                    const merged = { ...storedUser, ...updatedUser };
+                    localStorage.setItem('user', JSON.stringify(merged));
+                    applyUserProfileHeader(merged);
+                } catch (err) {
+                    console.error(err);
+                    alert('Failed to update profile image');
+                }
+            });
+        }
+
+        async function initShippingCountrySelect() {
+            const select = document.getElementById('shippingCountry');
+            if (!select) return;
+
+            let countries = [];
+            try {
+                if (window.YeshiCountryData && typeof window.YeshiCountryData.getCountries === 'function') {
+                    countries = await window.YeshiCountryData.getCountries();
+                }
+            } catch (_) {
+                countries = [];
+            }
+            if (!Array.isArray(countries) || !countries.length) {
+                countries = Array.isArray(window.YeshiCountryData?.fallback) ? window.YeshiCountryData.fallback : [];
+            }
+            countryRows = countries;
+            select.innerHTML = countries.map((row) => `<option value="${escapeHtml(row.name)}">${escapeHtml(row.name)}</option>`).join('');
+            select.value = 'Ethiopia';
+        }
+
+        function bindSettingsPanel() {
+            const openBtn = document.getElementById('openSettingsBtn');
+            const panel = document.getElementById('settingsPanel');
+            if (openBtn && panel) {
+                openBtn.addEventListener('click', () => {
+                    panel.style.display = panel.style.display === 'none' || !panel.style.display ? 'block' : 'none';
+                    if (panel.style.display === 'block') {
+                        panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
+                });
+            }
+
+            document.querySelectorAll('[data-settings-tab]').forEach((btn) => {
+                btn.addEventListener('click', () => {
+                    const target = btn.getAttribute('data-settings-tab');
+                    document.querySelectorAll('[data-settings-tab]').forEach((b) => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    document.querySelectorAll('.settings-pane').forEach((pane) => pane.classList.remove('active'));
+                    const pane = document.getElementById(`settings${target.charAt(0).toUpperCase()}${target.slice(1)}`);
+                    if (pane) pane.classList.add('active');
+                });
+            });
+
+            const personalForm = document.getElementById('settingsPersonalForm');
+            const personalStatus = document.getElementById('settingsPersonalStatus');
+            if (personalForm) {
+                personalForm.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    const firstName = String(document.getElementById('settingsFirstName')?.value || '').trim();
+                    const fatherName = String(document.getElementById('settingsFatherName')?.value || '').trim();
+                    const phone = String(document.getElementById('settingsPhone')?.value || '').trim();
+                    const age = String(document.getElementById('settingsAge')?.value || '').trim();
+                    const sex = String(document.getElementById('settingsSex')?.value || '').trim();
+                    const fullName = buildFullName(firstName, fatherName);
+
+                    if (!fullName || !phone || !age || !sex) {
+                        personalStatus.textContent = 'Please fill all required personal fields.';
+                        personalStatus.style.color = '#ba1a1a';
+                        return;
+                    }
+
+                    personalStatus.textContent = 'Saving...';
+                    personalStatus.style.color = 'var(--light-text)';
+                    const saved = await persistProfilePatch({ fullName, fatherName, phone, age, sex }, personalStatus);
+                    if (saved) {
+                        personalStatus.textContent = 'Personal details updated.';
+                        personalStatus.style.color = '#1aad19';
+                    }
+                });
+            }
+
+            const shippingForm = document.getElementById('shippingAddressForm');
+            const shippingStatus = document.getElementById('shippingStatus');
+            const shippingResetBtn = document.getElementById('shippingResetBtn');
+            if (shippingResetBtn) {
+                shippingResetBtn.addEventListener('click', () => {
+                    shippingForm.reset();
+                    const hiddenId = document.getElementById('shippingEditId');
+                    if (hiddenId) hiddenId.value = '';
+                    if (shippingStatus) shippingStatus.textContent = '';
+                });
+            }
+
+            if (shippingForm) {
+                shippingForm.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    const editId = String(document.getElementById('shippingEditId')?.value || '').trim();
+                    const row = {
+                        label: String(document.getElementById('shippingLabel')?.value || '').trim(),
+                        full_name: String(document.getElementById('shippingFullName')?.value || '').trim(),
+                        phone: String(document.getElementById('shippingPhone')?.value || '').trim(),
+                        country: String(document.getElementById('shippingCountry')?.value || '').trim(),
+                        region: String(document.getElementById('shippingRegion')?.value || '').trim(),
+                        city: String(document.getElementById('shippingCity')?.value || '').trim(),
+                        zip_code: String(document.getElementById('shippingZipCode')?.value || '').trim(),
+                        is_default: !!document.getElementById('shippingIsDefault')?.checked
+                    };
+                    const matchCountry = countryRows.find((c) => String(c.name || '').toLowerCase() === row.country.toLowerCase());
+                    row.country_code = matchCountry ? matchCountry.code : '+251';
+
+                    if (!row.full_name || !row.phone || !row.country || !row.region || !row.city || !row.zip_code) {
+                        shippingStatus.textContent = 'Please fill all address fields.';
+                        shippingStatus.style.color = '#ba1a1a';
+                        return;
+                    }
+
+                    const list = getShippingAddresses().map((item) => ({ ...item }));
+                    const next = list.filter((item) => String(item.id || item._id || '') !== editId);
+                    if (row.is_default) {
+                        next.forEach((item) => { item.is_default = false; });
+                    }
+                    next.push(editId ? { ...row, id: editId } : row);
+
+                    shippingStatus.textContent = 'Saving...';
+                    shippingStatus.style.color = 'var(--light-text)';
+                    const saved = await persistProfilePatch({ shipping_addresses: next }, shippingStatus);
+                    if (saved) {
+                        shippingForm.reset();
+                        const hiddenId = document.getElementById('shippingEditId');
+                        if (hiddenId) hiddenId.value = '';
+                        shippingStatus.textContent = 'Shipping address saved.';
+                        shippingStatus.style.color = '#1aad19';
+                    }
+                });
+            }
+
+            const measureForm = document.getElementById('measurementProfileForm');
+            const measureStatus = document.getElementById('measureStatus');
+            const measureResetBtn = document.getElementById('measureResetBtn');
+            if (measureResetBtn) {
+                measureResetBtn.addEventListener('click', () => {
+                    measureForm.reset();
+                    const hiddenId = document.getElementById('measureEditId');
+                    if (hiddenId) hiddenId.value = '';
+                    if (measureStatus) measureStatus.textContent = '';
+                });
+            }
+
+            if (measureForm) {
+                measureForm.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    const editId = String(document.getElementById('measureEditId')?.value || '').trim();
+                    const row = {
+                        profile_name: String(document.getElementById('measureProfileName')?.value || '').trim(),
+                        chest: Number(document.getElementById('measureChest')?.value || 0),
+                        waist: Number(document.getElementById('measureWaist')?.value || 0),
+                        hip: Number(document.getElementById('measureHip')?.value || 0),
+                        shoulder: Number(document.getElementById('measureShoulder')?.value || 0),
+                        length: Number(document.getElementById('measureLength')?.value || 0),
+                        sleeve_length: Number(document.getElementById('measureSleeveLength')?.value || 0),
+                        is_default: !!document.getElementById('measureIsDefault')?.checked
+                    };
+
+                    if (!row.profile_name || row.chest <= 0 || row.waist <= 0 || row.hip <= 0 || row.shoulder <= 0 || row.length <= 0 || row.sleeve_length <= 0) {
+                        measureStatus.textContent = 'Please fill all measurement fields with valid values.';
+                        measureStatus.style.color = '#ba1a1a';
+                        return;
+                    }
+
+                    const list = getMeasurementProfiles().map((item) => ({ ...item }));
+                    const next = list.filter((item) => String(item.id || item._id || '') !== editId);
+                    if (row.is_default) {
+                        next.forEach((item) => { item.is_default = false; });
+                    }
+                    next.push(editId ? { ...row, id: editId } : row);
+
+                    measureStatus.textContent = 'Saving...';
+                    measureStatus.style.color = 'var(--light-text)';
+                    const saved = await persistProfilePatch({ measurement_profiles: next }, measureStatus);
+                    if (saved) {
+                        measureForm.reset();
+                        const hiddenId = document.getElementById('measureEditId');
+                        if (hiddenId) hiddenId.value = '';
+                        measureStatus.textContent = 'Measurement profile saved.';
+                        measureStatus.style.color = '#1aad19';
+                    }
+                });
+            }
+
+            document.addEventListener('click', async (e) => {
+                const editShippingBtn = e.target.closest('[data-shipping-edit]');
+                const deleteShippingBtn = e.target.closest('[data-shipping-delete]');
+                const editMeasureBtn = e.target.closest('[data-measure-edit]');
+                const deleteMeasureBtn = e.target.closest('[data-measure-delete]');
+
+                if (editShippingBtn) {
+                    const id = String(editShippingBtn.getAttribute('data-shipping-edit') || '');
+                    const item = getShippingAddresses().find((row) => String(row.id || row._id || '') === id);
+                    if (!item) return;
+                    document.getElementById('shippingEditId').value = id;
+                    document.getElementById('shippingLabel').value = item.label || '';
+                    document.getElementById('shippingFullName').value = item.full_name || '';
+                    document.getElementById('shippingPhone').value = item.phone || '';
+                    document.getElementById('shippingCountry').value = item.country || 'Ethiopia';
+                    document.getElementById('shippingRegion').value = item.region || '';
+                    document.getElementById('shippingCity').value = item.city || '';
+                    document.getElementById('shippingZipCode').value = item.zip_code || '';
+                    document.getElementById('shippingIsDefault').checked = !!item.is_default;
+                    document.getElementById('settingsShipping')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+
+                if (deleteShippingBtn) {
+                    const id = String(deleteShippingBtn.getAttribute('data-shipping-delete') || '');
+                    const next = getShippingAddresses().filter((row) => String(row.id || row._id || '') !== id);
+                    await persistProfilePatch({ shipping_addresses: next }, document.getElementById('shippingStatus'));
+                }
+
+                if (editMeasureBtn) {
+                    const id = String(editMeasureBtn.getAttribute('data-measure-edit') || '');
+                    const item = getMeasurementProfiles().find((row) => String(row.id || row._id || '') === id);
+                    if (!item) return;
+                    document.getElementById('measureEditId').value = id;
+                    document.getElementById('measureProfileName').value = item.profile_name || '';
+                    document.getElementById('measureChest').value = item.chest || '';
+                    document.getElementById('measureWaist').value = item.waist || '';
+                    document.getElementById('measureHip').value = item.hip || '';
+                    document.getElementById('measureShoulder').value = item.shoulder || '';
+                    document.getElementById('measureLength').value = item.length || '';
+                    document.getElementById('measureSleeveLength').value = item.sleeve_length || '';
+                    document.getElementById('measureIsDefault').checked = !!item.is_default;
+                    document.getElementById('settingsMeasurements')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+
+                if (deleteMeasureBtn) {
+                    const id = String(deleteMeasureBtn.getAttribute('data-measure-delete') || '');
+                    const next = getMeasurementProfiles().filter((row) => String(row.id || row._id || '') !== id);
+                    await persistProfilePatch({ measurement_profiles: next }, document.getElementById('measureStatus'));
+                }
+            });
+
+            const backBtn = document.getElementById('backToOrderBtn');
+            if (backBtn) {
+                backBtn.addEventListener('click', () => {
+                    if (window.history.length > 1) {
+                        window.history.back();
+                    } else {
+                        window.location.href = '/order';
+                    }
+                });
+            }
+        }
+
+        function inferPreferredCategory() {
+            const bag = safeParseJson(localStorage.getItem('yeshi_bag'));
+            const list = Array.isArray(bag) ? bag : [];
+            const categories = list
+                .map(function (item) { return String(item && item.category || '').toLowerCase(); })
+                .filter(Boolean);
+
+            const women = categories.filter(function (c) { return c.includes('women') || c.includes('woman') || c.includes('female'); }).length;
+            const men = categories.filter(function (c) { return c.includes('men') || c.includes('man') || c.includes('male'); }).length;
+
+            if (women === 0 && men === 0) return '';
+            return women >= men ? 'women' : 'men';
+        }
+
+        async function loadCuratedRecommendations() {
+            const row = document.getElementById('curatedRow');
+            if (!row) return;
+
+            try {
+                const response = await fetch('/api/posts');
+                if (!response.ok) throw new Error('Failed to load posts');
+                const posts = await response.json();
+                const list = Array.isArray(posts) ? posts : [];
+                const preferred = inferPreferredCategory();
+
+                let ranked = list;
+                if (preferred) {
+                    ranked = list.filter(function (p) {
+                        const c = String(p && p.category || '').toLowerCase();
+                        return c.includes(preferred);
+                    });
+                }
+
+                if (!ranked.length) {
+                    ranked = list;
+                }
+
+                ranked = ranked
+                    .sort(function (a, b) { return Number((b && b.viewCount) || 0) - Number((a && a.viewCount) || 0); })
+                    .slice(0, 10);
+
+                if (!ranked.length) {
+                    row.innerHTML = '<p style="color: var(--light-text); margin: 6px;">No recommendations yet.</p>';
+                    return;
+                }
+
+                row.innerHTML = ranked.map(function (post) {
+                    const image = Array.isArray(post.images) && post.images.length ? post.images[0] : '/images/logo.png';
+                    const price = Number(post.priceETB);
+                    const priceText = Number.isFinite(price) && price > 0 ? price.toLocaleString() + ' ETB' : 'Price on request';
+                    const title = String(post.title || 'Untitled');
+                    return '<a class="curated-card" href="/post?id=' + encodeURIComponent(post._id) + '">'
+                        + '<img src="' + image + '" alt="' + title.replace(/"/g, '&quot;') + '">'
+                        + '<div class="curated-body">'
+                        + '<div class="curated-title">' + title + '</div>'
+                        + '<div class="curated-price">' + priceText + '</div>'
+                        + '</div></a>';
+                }).join('');
+            } catch (_) {
+                row.innerHTML = '<p style="color: var(--light-text); margin: 6px;">Could not load recommendations.</p>';
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            initShippingCountrySelect();
+            loadProfileFromServer();
+            bindAvatarUpload();
+            bindSettingsPanel();
+            loadCuratedRecommendations();
+        });
+    </script>
+</body>
+</html>
+
+
+
+
+
+
+
+

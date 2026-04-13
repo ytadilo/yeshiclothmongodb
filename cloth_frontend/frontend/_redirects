@@ -1,0 +1,76 @@
+# ---------------------------
+# Netlify redirects + proxy
+# Publish directory: frontend
+# Backend URL (Render): https://cloth-backend-io1m.onrender.com
+# ---------------------------
+
+# Proxy API to Render (keeps frontend code using /api/* unchanged)
+/api/*  https://cloth-backend-io1m.onrender.com/api/:splat  200!
+
+# Canonicalize: hide /user prefix + .html extensions (explicit, avoid breaking auth files)
+# NOTE: do not redirect /user/index.html to /, because the root index.html may redirect to /user/index.html.
+/user/order.html  /order  301!
+/user/size-guide.html  /size-guide  301!
+/user/about.html  /about  301!
+/user/mychat.html  /mychat  301!
+/user/contact.html  /mychat  301!
+/user/how-it-works.html  /how-it-works  301!
+/user/post.html  /post  301!
+/user/my-orders.html  /my-orders  301!
+/user/favorites.html  /favorites  301!
+/user/cart.html  /cart  301!
+/user/profile.html  /profile  301!
+
+/user/login.html  /auth/login  301!
+/user/signup.html  /auth/register  301!
+/user/forgot-password.html  /auth/forgot-password  301!
+/user/reset-password.html  /auth/reset-password  301!
+
+/index.html  /  301!
+/order.html  /order  301!
+/size-guide.html  /size-guide  301!
+/about.html  /about  301!
+/mychat.html  /mychat  301!
+/contact.html  /mychat  301!
+/how-it-works.html  /how-it-works  301!
+/post.html  /post  301!
+/my-orders.html  /my-orders  301!
+/favorites.html  /favorites  301!
+/cart.html  /cart  301!
+/profile.html  /profile  301!
+
+# Pretty URLs for user pages
+/  /user/index.html  200
+/post  /user/post.html  200
+/post.html  /user/post.html  200
+/my-orders  /user/my-orders.html  200
+/my-orders.html  /user/my-orders.html  200
+/favorites  /user/favorites.html  200
+/user/favorites  /user/favorites.html  200
+/cart  /user/cart.html  200
+/profile  /user/profile.html  200
+/order  /user/order.html  200
+/size-guide  /user/size-guide.html  200
+/about  /user/about.html  200
+/mychat  /user/mychat.html  200
+/mychat.html  /user/mychat.html  200
+/contact  /user/mychat.html  200
+/how-it-works  /user/how-it-works.html  200
+/auth/login  /user/login.html  200
+/auth/register  /user/signup.html  200
+/auth/signup  /user/signup.html  200
+/auth/forgot-password  /user/forgot-password.html  200
+/auth/reset-password  /user/reset-password.html  200
+
+# Pretty URLs for admin pages
+/admin  /admin/orders.html  200
+/admin/login  /admin/login.html  200
+/admin/orders  /admin/orders.html  200
+/admin/users  /admin/users.html  200
+/admin/posts  /admin/posts.html  200
+/admin/chat  /admin/chat.html  200
+/admin/order-stats  /admin/order-stats.html  200
+/admin/links  /admin/links.html  200
+/admin/forgot-password  /admin/forgot-password.html  200
+/admin/verify-otp  /admin/verify-otp.html  200
+/admin/reset-password  /admin/reset-password.html  200

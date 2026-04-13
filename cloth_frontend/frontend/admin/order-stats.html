@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Order Statistics - Yeshi Admin</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/png" href="/images/logo.png">
+    <meta name="theme-color" content="#1E4B35">
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="/css/admin-dashboard.css">
+    <style>
+        .nav-item-active { background: linear-gradient(90deg, #735c00 0%, #D4AF37 100%); color: #fff !important; font-weight: 700; }
+    </style>
+</head>
+<body class="admin-page">
+    <div class="admin-shell">
+        <aside class="admin-sidebar w-64 bg-white border-r border-cream-300 flex flex-col z-30">
+            <div class="h-16 flex items-center px-6 border-b border-cream-300">
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 bg-black rounded-lg flex items-center justify-center text-gold-500">
+                        <span class="material-symbols-outlined text-xl font-bold">account_balance</span>
+                    </div>
+                    <h1 class="text-sm font-bold tracking-tight text-gray-900">Administrative</h1>
+                </div>
+            </div>
+            <nav class="flex-1 py-6 space-y-1">
+                <a class="flex items-center gap-3 px-6 py-3 text-sm font-medium text-gray-500 hover:bg-cream-50 hover:text-gold-600 transition-colors" href="/admin/posts">
+                    <span class="material-symbols-outlined text-xl">article</span>
+                    <span>Manage Posts</span>
+                </a>
+                <a class="flex items-center gap-3 px-6 py-3 text-sm font-medium text-gray-500 hover:bg-cream-50 hover:text-gold-600 transition-colors" href="/admin/users">
+                    <span class="material-symbols-outlined text-xl">group</span>
+                    <span>User Management</span>
+                </a>
+                <a class="flex items-center gap-3 px-6 py-3 text-sm font-medium text-gray-500 hover:bg-cream-50 hover:text-gold-600 transition-colors" href="/admin/orders">
+                    <span class="material-symbols-outlined text-xl">shopping_bag</span>
+                    <span>All Customer Orders</span>
+                </a>
+                <a class="flex items-center gap-3 px-6 py-3 text-sm font-medium text-gray-500 hover:bg-cream-50 hover:text-gold-600 transition-colors" href="/admin/chat">
+                    <span class="material-symbols-outlined text-xl">chat_bubble</span>
+                    <span>Customer Chats</span>
+                </a>
+                <a class="flex items-center gap-3 px-6 py-3 text-sm font-bold nav-item-active" href="/admin/order-stats">
+                    <span class="material-symbols-outlined text-xl">leaderboard</span>
+                    <span>Order Statistics</span>
+                </a>
+                <a class="flex items-center gap-3 px-6 py-3 text-sm font-medium text-gray-500 hover:bg-cream-50 hover:text-gold-600 transition-colors" href="/admin/links">
+                    <span class="material-symbols-outlined text-xl">link</span>
+                    <span>Follow / Contact Links</span>
+                </a>
+            </nav>
+            <div class="p-4 border-t border-cream-300 space-y-1">
+                <button id="changePasswordLink" class="w-full flex items-center gap-3 px-2 py-2 text-xs font-semibold text-gray-500 hover:text-gold-600 transition-colors" type="button">
+                    <span class="material-symbols-outlined text-lg">lock_reset</span>
+                    <span>Change Password</span>
+                </button>
+                <button onclick="logout()" class="w-full flex items-center gap-3 px-2 py-2 text-xs font-semibold text-[#525454] hover:bg-red-50 rounded-lg transition-colors" type="button">
+                    <span class="material-symbols-outlined text-lg">logout</span>
+                    <span>Logout</span>
+                </button>
+            </div>
+        </aside>
+        <div class="admin-content">
+            <main class="admin-content-scroll">
+                <div class="dashboard-wrap">
+            <section class="panel" style="max-width: 1100px; margin: 32px auto 0; background: #fff; border-radius: 16px; box-shadow: 0 8px 32px rgba(30,75,53,0.07); padding: 32px 24px;">
+        <h3>Order Statistics</h3>
+        <p style="color: var(--light-text); margin-bottom: 12px;">Overview from the order form (counts + breakdowns).</p>
+
+        <div id="orderStatsCards" style="display:flex; gap: 10px; flex-wrap:wrap; margin-bottom: 12px;"></div>
+
+        <div style="display:flex; gap: 12px; flex-wrap:wrap; margin-bottom: 24px;">
+            <div style="flex: 1; min-width: 280px; border: 1px solid rgba(0,0,0,0.08); border-radius: 12px; padding: 12px;">
+                <strong style="color: var(--accent-color);">By Status</strong>
+                <div id="orderStatsByStatus" style="margin-top: 10px;"></div>
+            </div>
+            <div style="flex: 1; min-width: 280px; border: 1px solid rgba(0,0,0,0.08); border-radius: 12px; padding: 12px;">
+                <strong style="color: var(--accent-color);">Top Categories</strong>
+                <div id="orderStatsTopCategories" style="margin-top: 10px;"></div>
+            </div>
+            <div style="flex: 1; min-width: 280px; border: 1px solid rgba(0,0,0,0.08); border-radius: 12px; padding: 12px;">
+                <strong style="color: var(--accent-color);">Last 7 Days</strong>
+                <div id="orderStatsLast7" style="margin-top: 10px;"></div>
+            </div>
+        </div>
+
+        <!-- Enhanced Analytics Section -->
+        <section style="margin-top: 32px;">
+            <h3>Advanced Analytics</h3>
+            <div style="margin-bottom: 16px;">
+                <label for="startDateFilter">Start Date:</label>
+                <input type="date" id="startDateFilter" style="padding:4px 8px; border:1px solid #ccc; border-radius:6px;">
+                <label for="endDateFilter">End Date:</label>
+                <input type="date" id="endDateFilter" style="padding:4px 8px; border:1px solid #ccc; border-radius:6px;">
+                <label for="groupBy">Group By:</label>
+                <select id="groupBy" style="padding:4px 8px; border:1px solid #ccc; border-radius:6px;">
+                    <option value="">None</option>
+                    <option value="day">Day</option>
+                    <option value="month">Month</option>
+                    <option value="year">Year</option>
+                </select>
+                <button onclick="loadAnalytics()" style="padding:4px 12px; margin-left:8px; background:var(--accent-color); color:#fff; border:none; border-radius:6px;">Apply</button>
+            </div>
+            <div style="display:flex; gap:12px; flex-wrap:wrap; margin-bottom:20px;">
+                <div style="flex:1; min-width:280px; border:1px solid rgba(0,0,0,0.08); border-radius:12px; padding:12px;">
+                    <strong style="color: var(--accent-color);">User Visits Over Time</strong>
+                    <div style="height:260px; margin-top:10px; overflow:hidden;">
+                        <canvas id="visitsLineChart"></canvas>
+                    </div>
+                </div>
+                <div style="flex:1; min-width:280px; border:1px solid rgba(0,0,0,0.08); border-radius:12px; padding:12px;">
+                    <strong style="color: var(--accent-color);">Product Performance</strong>
+                    <div style="height:260px; margin-top:10px; overflow:hidden;">
+                        <canvas id="productBarChart"></canvas>
+                    </div>
+                </div>
+                <div style="flex:1; min-width:280px; border:1px solid rgba(0,0,0,0.08); border-radius:12px; padding:12px;">
+                    <strong style="color: var(--accent-color);">Device Usage</strong>
+                    <div style="height:260px; margin-top:10px; overflow:hidden;">
+                        <canvas id="devicePieChart"></canvas>
+                    </div>
+                </div>
+            </div>
+            <div id="userAnalytics" style="margin-bottom: 24px;"></div>
+            <div style="margin-bottom: 24px; border:1px solid rgba(0,0,0,0.08); border-radius:12px; padding:12px;">
+                <strong style="color: var(--accent-color);">User Activity Graph</strong>
+                <div style="height:260px; margin-top:10px; overflow:auto;">
+                    <canvas id="userActivityChart"></canvas>
+                </div>
+            </div>
+            <div style="margin-bottom: 24px; border:1px solid rgba(0,0,0,0.08); border-radius:12px; padding:12px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:10px;">
+                    <strong style="color: var(--accent-color);">User Activity Table</strong>
+                    <input id="userTableFilter" type="text" placeholder="Filter by user/device" style="padding:6px 8px; border:1px solid #ccc; border-radius:6px; min-width:220px;">
+                </div>
+                <div style="overflow:auto;">
+                    <table style="width:100%; border-collapse:collapse; font-size:13px;">
+                        <thead>
+                            <tr>
+                                <th data-sort-key="identity" style="text-align:left; cursor:pointer; border-bottom:1px solid rgba(0,0,0,0.1); padding:8px;">User / Device</th>
+                                <th data-sort-key="sessionCount" style="text-align:left; cursor:pointer; border-bottom:1px solid rgba(0,0,0,0.1); padding:8px;">Sessions</th>
+                                <th data-sort-key="totalTimeSpentSeconds" style="text-align:left; cursor:pointer; border-bottom:1px solid rgba(0,0,0,0.1); padding:8px;">Time Spent (s)</th>
+                                <th data-sort-key="firstVisit" style="text-align:left; cursor:pointer; border-bottom:1px solid rgba(0,0,0,0.1); padding:8px;">First Visit</th>
+                                <th data-sort-key="lastActive" style="text-align:left; cursor:pointer; border-bottom:1px solid rgba(0,0,0,0.1); padding:8px;">Last Active</th>
+                                <th data-sort-key="deviceType" style="text-align:left; cursor:pointer; border-bottom:1px solid rgba(0,0,0,0.1); padding:8px;">Device</th>
+                                <th style="text-align:left; border-bottom:1px solid rgba(0,0,0,0.1); padding:8px;">Account</th>
+                            </tr>
+                        </thead>
+                        <tbody id="userAnalyticsTableBody"></tbody>
+                    </table>
+                </div>
+                <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:10px;">
+                    <button id="userTablePrev" type="button" style="padding:4px 10px; border:1px solid #ccc; border-radius:6px;">Prev</button>
+                    <span id="userTablePageInfo" style="align-self:center; color:#555;"></span>
+                    <button id="userTableNext" type="button" style="padding:4px 10px; border:1px solid #ccc; border-radius:6px;">Next</button>
+                </div>
+            </div>
+            <div id="productAnalytics" style="margin-bottom: 24px;"></div>
+            <div id="engagementAnalytics" style="margin-bottom: 24px;"></div>
+            <div id="mediaAnalytics" style="margin-bottom: 24px;"></div>
+        </section>
+                </section>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Change Password Modal (hidden by default) -->
+    <div id="changePasswordModal" style="display:none; position:fixed; z-index:1000; left:0; top:0; width:100vw; height:100vh; background:rgba(30,75,53,0.13); align-items:center; justify-content:center;">
+        <form id="changePasswordForm" style="background:#fff; border-radius:12px; box-shadow:0 4px 24px rgba(30,75,53,0.13); padding:32px 24px; min-width:320px; max-width:90vw; display:flex; flex-direction:column; gap:16px;">
+            <h3 style="margin:0 0 8px; color:var(--accent-color);">Change Password</h3>
+            <input id="currentPass" type="password" placeholder="Current Password" required style="padding:10px; border-radius:8px; border:1px solid #ccc;">
+            <input id="newPass" type="password" placeholder="New Password" required style="padding:10px; border-radius:8px; border:1px solid #ccc;">
+            <div style="display:flex; gap:8px; justify-content:flex-end;">
+                <button type="button" id="cancelChangePassword" style="background:#eee; color:#333; border:none; border-radius:8px; padding:8px 16px; cursor:pointer;">Cancel</button>
+                <button type="submit" style="background:var(--accent-color); color:#fff; border:none; border-radius:8px; padding:8px 16px; cursor:pointer;">Update</button>
+            </div>
+        </form>
+    </div>
+
+    <script src="/js/auth.js?v=20260402"></script>
+    <script src="/js/admin-common.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="/js/order-stats.js"></script>
+    <script>
+        const { ensureAdmin, escapeHtml, apiFetch } = window.AdminCommon;
+
+        document.getElementById('changePasswordLink').addEventListener('click', (e) => {
+            e.preventDefault();
+            document.getElementById('changePasswordModal').style.display = 'flex';
+        });
+        document.getElementById('cancelChangePassword').addEventListener('click', () => {
+            document.getElementById('changePasswordModal').style.display = 'none';
+        });
+        document.getElementById('changePasswordModal').addEventListener('click', (e) => {
+            if (e.target && e.target.id === 'changePasswordModal') {
+                document.getElementById('changePasswordModal').style.display = 'none';
+            }
+        });
+        document.getElementById('changePasswordForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const currentPassword = document.getElementById('currentPass').value;
+            const newPassword = document.getElementById('newPass').value;
+            try {
+                const res = await apiFetch('/api/auth/admin/change-password', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ currentPassword, newPassword })
+                });
+                const data = await res.json();
+                alert(data.msg || (res.ok ? 'Password updated' : 'Failed to update password'));
+                if (res.ok) {
+                    document.getElementById('changePasswordModal').style.display = 'none';
+                    e.target.reset();
+                }
+            } catch (err) {
+                console.error(err);
+                alert('Error changing password');
+            }
+        });
+
+        function renderKeyValueList(items) {
+            if (!items || items.length === 0) return '<div style="color: var(--light-text);">No data.</div>';
+            return `
+                <div style="display:flex; flex-direction:column; gap: 8px;">
+                    ${items.map((it) => {
+                        const label = (it && it._id) ? String(it._id) : '—';
+                        const count = (it && typeof it.count === 'number') ? it.count : 0;
+                        return `
+                            <div style="display:flex; justify-content:space-between; gap: 10px; border-bottom: 1px solid rgba(0,0,0,0.06); padding-bottom: 6px;">
+                                <span style="color:#333;">${escapeHtml(label)}</span>
+                                <strong>${count}</strong>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            `;
+        }
+
+        async function loadOrderStats() {
+            if (!ensureAdmin()) return;
+
+            const cardsEl = document.getElementById('orderStatsCards');
+            const byStatusEl = document.getElementById('orderStatsByStatus');
+            const topCatsEl = document.getElementById('orderStatsTopCategories');
+            const last7El = document.getElementById('orderStatsLast7');
+
+            try {
+                const res = await apiFetch('/api/orders/stats');
+                const data = await res.json();
+                if (!res.ok) throw new Error(data?.msg || 'Failed to load order statistics');
+
+                if (cardsEl) {
+                    const lastOrderAt = data.lastOrderAt ? new Date(data.lastOrderAt).toLocaleString() : '—';
+                    const totalOrders = typeof data.totalOrders === 'number' ? data.totalOrders : 0;
+                    const payments = (data.breakdown && Array.isArray(data.breakdown.byPaymentStatus)) ? data.breakdown.byPaymentStatus : [];
+                    const confirmedPayments = (payments.find((x) => x && x._id === 'Confirmed')?.count) || 0;
+                    const pendingPayments = (payments.find((x) => x && x._id === 'Pending')?.count) || 0;
+
+                    cardsEl.innerHTML = `
+                        <div class="order-card__status" style="background: rgba(0,0,0,0.06); color: #111;">Total orders: <strong>${totalOrders}</strong></div>
+                        <div class="order-card__status" style="background: rgba(30,75,53,0.10); color: var(--accent-color);">Payment confirmed: <strong>${confirmedPayments}</strong></div>
+                        <div class="order-card__status" style="background: rgba(180,83,9,0.10); color: #b45309;">Payment pending: <strong>${pendingPayments}</strong></div>
+                        <div class="order-card__status" style="background: rgba(0,0,0,0.06); color: #111;">Last order: <strong>${escapeHtml(lastOrderAt)}</strong></div>
+                    `;
+                }
+
+                if (byStatusEl) byStatusEl.innerHTML = renderKeyValueList((data.breakdown && data.breakdown.byStatus) || []);
+                if (topCatsEl) topCatsEl.innerHTML = renderKeyValueList((data.top && data.top.categories) || []);
+                if (last7El) last7El.innerHTML = renderKeyValueList(data.last7Days || []);
+
+            } catch (err) {
+                console.error(err);
+                if (cardsEl) cardsEl.innerHTML = '<div style="color: var(--light-text);">Failed to load stats.</div>';
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            loadOrderStats();
+        });
+    </script>
+</body>
+</html>

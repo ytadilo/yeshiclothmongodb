@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Management - Yeshi Admin</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/png" href="/images/logo.png">
+    <meta name="theme-color" content="#1E4B35">
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="/css/admin-dashboard.css">
+    <style>
+        .nav-item-active { background: linear-gradient(90deg, #735c00 0%, #D4AF37 100%); color: #fff !important; font-weight: 700; }
+    </style>
+</head>
+<body class="admin-page admin-users-page">
+    <div class="admin-shell">
+        <aside class="admin-sidebar w-64 bg-white border-r border-cream-300 flex flex-col z-30">
+            <div class="h-16 flex items-center px-6 border-b border-cream-300">
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 bg-black rounded-lg flex items-center justify-center text-gold-500">
+                        <span class="material-symbols-outlined text-xl font-bold">account_balance</span>
+                    </div>
+                    <h1 class="text-sm font-bold tracking-tight text-gray-900">Administrative</h1>
+                </div>
+            </div>
+            <nav class="flex-1 py-6 space-y-1">
+                <a class="flex items-center gap-3 px-6 py-3 text-sm font-medium text-gray-500 hover:bg-cream-50 hover:text-gold-600 transition-colors" href="/admin/posts">
+                    <span class="material-symbols-outlined text-xl">article</span>
+                    <span>Manage Posts</span>
+                </a>
+                <a class="flex items-center gap-3 px-6 py-3 text-sm font-bold nav-item-active" href="/admin/users">
+                    <span class="material-symbols-outlined text-xl">group</span>
+                    <span>User Management</span>
+                </a>
+                <a class="flex items-center gap-3 px-6 py-3 text-sm font-medium text-gray-500 hover:bg-cream-50 hover:text-gold-600 transition-colors" href="/admin/orders">
+                    <span class="material-symbols-outlined text-xl">shopping_bag</span>
+                    <span>All Customer Orders</span>
+                </a>
+                <a class="flex items-center gap-3 px-6 py-3 text-sm font-medium text-gray-500 hover:bg-cream-50 hover:text-gold-600 transition-colors" href="/admin/chat">
+                    <span class="material-symbols-outlined text-xl">chat_bubble</span>
+                    <span>Customer Chats</span>
+                </a>
+                <a class="flex items-center gap-3 px-6 py-3 text-sm font-medium text-gray-500 hover:bg-cream-50 hover:text-gold-600 transition-colors" href="/admin/order-stats">
+                    <span class="material-symbols-outlined text-xl">leaderboard</span>
+                    <span>Order Statistics</span>
+                </a>
+                <a class="flex items-center gap-3 px-6 py-3 text-sm font-medium text-gray-500 hover:bg-cream-50 hover:text-gold-600 transition-colors" href="/admin/links">
+                    <span class="material-symbols-outlined text-xl">link</span>
+                    <span>Follow / Contact Links</span>
+                </a>
+            </nav>
+            <div class="p-4 border-t border-cream-300 space-y-1">
+                <button id="changePasswordLink" class="w-full flex items-center gap-3 px-2 py-2 text-xs font-semibold text-gray-500 hover:text-gold-600 transition-colors" type="button">
+                    <span class="material-symbols-outlined text-lg">lock_reset</span>
+                    <span>Change Password</span>
+                </button>
+                <button onclick="logout()" class="w-full flex items-center gap-3 px-2 py-2 text-xs font-semibold text-[#525454] hover:bg-red-50 rounded-lg transition-colors" type="button">
+                    <span class="material-symbols-outlined text-lg">logout</span>
+                    <span>Logout</span>
+                </button>
+            </div>
+        </aside>
+        <div class="admin-content">
+            <div id="changePasswordModal" class="modal" aria-hidden="true">
+        <div class="modal__card" role="dialog" aria-modal="true" aria-label="Change password">
+            <h3>Change Password</h3>
+            <form id="changePasswordForm">
+                <div class="form-group">
+                    <label for="currentPass">Current password</label>
+                    <input type="password" id="currentPass" class="form-control" placeholder="Current password" autocomplete="current-password" required>
+                </div>
+                <div class="form-group">
+                    <label for="newPass">New password</label>
+                    <input type="password" id="newPass" class="form-control" placeholder="New password" autocomplete="new-password" required minlength="6">
+                </div>
+                <div class="modal__actions">
+                    <button type="submit" class="btn">Update</button>
+                    <button type="button" class="btn-secondary" id="cancelChangePassword">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="userDevicesModal" class="modal" aria-hidden="true">
+        <div class="modal__card" role="dialog" aria-modal="true" aria-label="User devices" style="max-width: 920px;">
+            <h3 style="margin-top:0;">User Devices</h3>
+            <div class="dashboard-subtitle" id="userDevicesSubtitle" style="margin-top:-8px;"></div>
+
+            <div style="display:flex; gap: 10px; flex-wrap:wrap; margin: 12px 0;">
+                <button type="button" class="btn-secondary" id="refreshUserDevicesBtn">Refresh</button>
+                <button type="button" class="btn-secondary" id="closeUserDevicesBtn">Close</button>
+            </div>
+
+            <div id="userDevicesList" style="max-height: 52vh; overflow:auto; border: 1px solid rgba(0,0,0,0.08); border-radius: 12px; padding: 12px;">
+                Loading devices...
+            </div>
+        </div>
+    </div>
+
+            <main class="admin-content-scroll">
+                <div class="dashboard-wrap admin-users-layout">
+        <div class="dashboard-top">
+            <div>
+                <h2 class="dashboard-title">User Management</h2>
+                <div class="dashboard-subtitle">Set user status to active, inactive, or banned.</div>
+            </div>
+        </div>
+
+        <section class="panel">
+            <div id="userStats" style="display:flex; gap: 10px; flex-wrap:wrap; margin-bottom: 12px;"></div>
+
+            <div class="form-group">
+                <label for="userSearch">Search (name/email/phone)</label>
+                <input type="text" id="userSearch" class="form-control" placeholder="Search users...">
+            </div>
+
+            <div style="overflow:auto; border: 1px solid rgba(0,0,0,0.08); border-radius: 12px;">
+                <table style="width:100%; border-collapse: collapse; min-width: 820px;" id="usersTable">
+                    <thead>
+                        <tr style="background: rgba(0,0,0,0.03);">
+                            <th style="text-align:left; padding: 12px;">Name</th>
+                            <th style="text-align:left; padding: 12px;">Email</th>
+                            <th style="text-align:left; padding: 12px;">Phone</th>
+                            <th style="text-align:left; padding: 12px;">Role</th>
+                            <th style="text-align:left; padding: 12px;">Provider</th>
+                            <th style="text-align:left; padding: 12px;">Status</th>
+                            <th style="text-align:left; padding: 12px;">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="users-admin-list">
+                        <tr><td colspan="7" style="padding: 12px;">Loading users...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section class="panel">
+            <div style="display:flex; align-items:end; justify-content:space-between; gap: 12px; margin-bottom: 12px; flex-wrap:wrap;">
+                <div>
+                    <h3 style="margin:0; color: var(--accent-color);">Device Blocking</h3>
+                    <div class="dashboard-subtitle">All recorded user device fingerprints with block controls.</div>
+                </div>
+                <button type="button" class="btn-secondary" id="refreshAllDevicesBtn">Refresh devices</button>
+            </div>
+            <div id="allDevicesSummary" style="display:flex; gap: 10px; flex-wrap:wrap; margin-bottom: 12px;"></div>
+            <div id="allDevicesList" style="max-height: 52vh; overflow:auto; border: 1px solid rgba(0,0,0,0.08); border-radius: 12px; padding: 12px;">
+                Loading devices...
+            </div>
+        </section>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script src="/js/auth.js?v=20260402"></script>
+    <script src="/js/admin-common.js"></script>
+    <script>
+        const { ensureAdmin, escapeHtml, getImgUrl, apiFetch } = window.AdminCommon;
+        let __allUsers = [];
+        let __activeUserForDevices = null;
+        let __allDevices = [];
+
+        document.getElementById('changePasswordLink').addEventListener('click', (e) => {
+            e.preventDefault();
+            document.getElementById('changePasswordModal').style.display = 'flex';
+        });
+        document.getElementById('cancelChangePassword').addEventListener('click', () => {
+            document.getElementById('changePasswordModal').style.display = 'none';
+        });
+        document.getElementById('changePasswordModal').addEventListener('click', (e) => {
+            if (e.target && e.target.id === 'changePasswordModal') {
+                document.getElementById('changePasswordModal').style.display = 'none';
+            }
+        });
+        document.getElementById('changePasswordForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const currentPassword = document.getElementById('currentPass').value;
+            const newPassword = document.getElementById('newPass').value;
+            try {
+                const res = await apiFetch('/api/auth/admin/change-password', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ currentPassword, newPassword })
+                });
+                const data = await res.json();
+                alert(data.msg || (res.ok ? 'Password updated' : 'Failed to update password'));
+                if (res.ok) {
+                    document.getElementById('changePasswordModal').style.display = 'none';
+                    e.target.reset();
+                }
+            } catch (err) {
+                console.error(err);
+                alert('Error changing password');
+            }
+        });
+
+        function renderUsersAdmin(list) {
+            const container = document.getElementById('users-admin-list');
+            if (!container) return;
+
+            if (!Array.isArray(list) || list.length === 0) {
+                container.innerHTML = '<tr><td colspan="7" style="padding: 12px;">No users found.</td></tr>';
+                return;
+            }
+
+            const statsEl = document.getElementById('userStats');
+            if (statsEl) {
+                const total = list.length;
+                const active = list.filter(u => (u.status || 'active') === 'active').length;
+                const inactive = list.filter(u => (u.status || 'active') === 'inactive').length;
+                const banned = list.filter(u => (u.status || 'active') === 'banned').length;
+                statsEl.innerHTML = `
+                    <div class="order-card__status" style="background: rgba(0,0,0,0.06); color: #111;">Total: <strong>${total}</strong></div>
+                    <div class="order-card__status" style="background: rgba(30,75,53,0.10); color: var(--accent-color);">Active: <strong>${active}</strong></div>
+                    <div class="order-card__status" style="background: rgba(180,83,9,0.10); color: #b45309;">Inactive: <strong>${inactive}</strong></div>
+                    <div class="order-card__status" style="background: rgba(185,28,28,0.10); color: #b91c1c;">Banned: <strong>${banned}</strong></div>
+                `;
+            }
+
+            container.innerHTML = list.map((u) => {
+                const status = (u.status || 'active');
+                const role = u.role || 'customer';
+                const provider = u.authProvider || 'local';
+                const badgeColor = status === 'banned' ? '#b91c1c' : (status === 'inactive' ? '#b45309' : 'var(--accent-color)');
+
+                return `
+                    <tr data-user-id="${escapeHtml(u._id)}" style="border-top: 1px solid rgba(0,0,0,0.06);">
+                        <td style="padding: 12px;">
+                            <div style="display:flex; align-items:flex-start; gap:10px; min-width:220px;">
+                                ${u.profileImage
+                                    ? `<img src="${escapeHtml(getImgUrl(u.profileImage))}" alt="${escapeHtml(u.fullName || 'User')}" style="width:42px; height:42px; object-fit:cover; border-radius:999px; border:1px solid rgba(0,0,0,0.12);">`
+                                    : `<div style="width:42px; height:42px; border-radius:999px; background:#f4f3f3; color:#745B18; display:flex; align-items:center; justify-content:center; font-weight:800; border:1px solid rgba(0,0,0,0.08);">${escapeHtml(String(u.fullName || 'U').slice(0,2).toUpperCase())}</div>`}
+                                <div style="min-width:0;">
+                                    <div style="font-weight: 800; color: var(--accent-color);">${escapeHtml(u.fullName || 'User')}</div>
+                                    <div style="color:#666; font-size:12px;">Father: ${escapeHtml(u.fatherName || '—')}</div>
+                                    <div style="color:#666; font-size:12px;">Age: ${escapeHtml(String(u.age ?? '—'))} · Sex: ${escapeHtml(String(u.sex || '—'))}</div>
+                                    <div style="color:#666; font-size:12px;">Approval: ${escapeHtml(String(u.approval_status || 'APPROVED'))}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td style="padding: 12px; color: #333;">${escapeHtml(u.email || '')}</td>
+                        <td style="padding: 12px; color: #333;">${escapeHtml(u.phone || '')}</td>
+                        <td style="padding: 12px;">${escapeHtml(role)}</td>
+                        <td style="padding: 12px;">${escapeHtml(provider)}</td>
+                        <td style="padding: 12px; font-weight: 800; color: ${badgeColor};">${escapeHtml(status)}</td>
+                        <td style="padding: 12px;">
+                            <div style="display:flex; gap: 8px; align-items:center;">
+                                <select class="form-control" style="max-width: 180px;" data-user-status>
+                                    <option value="active" ${status === 'active' ? 'selected' : ''}>active</option>
+                                    <option value="inactive" ${status === 'inactive' ? 'selected' : ''}>inactive</option>
+                                    <option value="banned" ${status === 'banned' ? 'selected' : ''}>banned</option>
+                                </select>
+                                <button class="btn" type="button" onclick="updateUserStatusAdmin('${escapeHtml(u._id)}')">Update</button>
+                                <button class="btn-secondary" type="button" onclick="openUserDevices('${escapeHtml(u._id)}')">Devices</button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function openDevicesModal() {
+            document.getElementById('userDevicesModal').style.display = 'flex';
+        }
+
+        function closeDevicesModal() {
+            document.getElementById('userDevicesModal').style.display = 'none';
+        }
+
+        document.getElementById('closeUserDevicesBtn')?.addEventListener('click', closeDevicesModal);
+        document.getElementById('userDevicesModal')?.addEventListener('click', (e) => {
+            if (e.target && e.target.id === 'userDevicesModal') closeDevicesModal();
+        });
+
+        async function loadUserDevices(userId) {
+            if (!ensureAdmin()) return;
+            const listEl = document.getElementById('userDevicesList');
+            const subtitleEl = document.getElementById('userDevicesSubtitle');
+            if (!listEl) return;
+
+            listEl.textContent = 'Loading devices...';
+            const user = (__allUsers || []).find((u) => String(u._id) === String(userId));
+            if (subtitleEl) {
+                subtitleEl.textContent = user ? `${user.fullName || 'User'} · ${user.email || ''}` : '';
+            }
+
+            try {
+                const res = await apiFetch(`/api/admin/users/${encodeURIComponent(userId)}/devices`);
+                const data = await res.json();
+                if (!res.ok) throw new Error(data?.msg || 'Failed to load devices');
+
+                const devices = Array.isArray(data?.devices) ? data.devices : [];
+                if (devices.length === 0) {
+                    listEl.textContent = 'No devices recorded yet. (User must login at least once.)';
+                    return;
+                }
+
+                listEl.innerHTML = devices.map((d) => {
+                    const hash = escapeHtml(d.deviceHash || '');
+                    const blocked = !!d.blocked;
+                    const ua = escapeHtml(d.userAgent || '');
+                    const lastSeen = d.lastSeenAt ? new Date(d.lastSeenAt).toLocaleString() : '';
+                    const badgeColor = blocked ? '#b91c1c' : 'var(--accent-color)';
+                    const badgeText = blocked ? 'blocked' : 'allowed';
+
+                    return `
+                        <div style="border-top: 1px solid rgba(0,0,0,0.06); padding: 10px 0;">
+                            <div style="display:flex; align-items:center; justify-content:space-between; gap: 12px;">
+                                <div style="min-width:0;">
+                                    <div style="font-weight:800; word-break: break-all;">${hash}</div>
+                                    ${ua ? `<div style=\"color:#444; font-size: 12px; word-break: break-word;\">${ua}</div>` : ''}
+                                    ${lastSeen ? `<div style=\"color:#666; font-size: 12px;\">Last seen: ${escapeHtml(lastSeen)}</div>` : ''}
+                                </div>
+                                <div style="display:flex; align-items:center; gap: 10px; flex-wrap:wrap; justify-content:flex-end;">
+                                    <div class="order-card__status" style="background: rgba(0,0,0,0.06); color: ${badgeColor};">${badgeText}</div>
+                                    ${blocked
+                                        ? `<button class=\"btn-secondary\" type=\"button\" onclick=\"unblockDevice('${hash}')\">Unblock</button>`
+                                        : `<button class=\"btn\" type=\"button\" onclick=\"blockDevice('${hash}')\">Block</button>`
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            } catch (err) {
+                console.error(err);
+                listEl.textContent = err?.message || 'Failed to load devices.';
+            }
+        }
+
+        function renderAllDevices(list) {
+            const container = document.getElementById('allDevicesList');
+            const summary = document.getElementById('allDevicesSummary');
+            if (!container) return;
+
+            const devices = Array.isArray(list) ? list : [];
+            const total = devices.length;
+            const blocked = devices.filter((device) => !!device.blocked).length;
+            const uniqueUsers = new Set(devices.map((device) => String(device.user?.id || '')).filter(Boolean)).size;
+
+            if (summary) {
+                summary.innerHTML = `
+                    <div class="order-card__status" style="background: rgba(0,0,0,0.06); color: #111;">Total fingerprints: <strong>${total}</strong></div>
+                    <div class="order-card__status" style="background: rgba(185,28,28,0.10); color: #b91c1c;">Blocked: <strong>${blocked}</strong></div>
+                    <div class="order-card__status" style="background: rgba(30,75,53,0.10); color: var(--accent-color);">Users seen: <strong>${uniqueUsers}</strong></div>
+                `;
+            }
+
+            if (!devices.length) {
+                container.textContent = 'No device fingerprints recorded yet.';
+                return;
+            }
+
+            container.innerHTML = devices.map((device) => {
+                const hash = escapeHtml(device.deviceHash || '');
+                const blockedDevice = !!device.blocked;
+                const user = device.user || null;
+                const userName = escapeHtml(user?.fullName || 'Unknown user');
+                const userEmail = escapeHtml(user?.email || '');
+                const userPhone = escapeHtml(user?.phone || '');
+                const userRole = escapeHtml(user?.role || '');
+                const userStatus = escapeHtml(user?.status || '');
+                const ua = escapeHtml(device.userAgent || '');
+                const firstSeen = device.firstSeenAt ? new Date(device.firstSeenAt).toLocaleString() : '';
+                const lastSeen = device.lastSeenAt ? new Date(device.lastSeenAt).toLocaleString() : '';
+                const badgeColor = blockedDevice ? '#b91c1c' : 'var(--accent-color)';
+                const badgeText = blockedDevice ? 'blocked' : 'allowed';
+
+                return `
+                    <div style="border-top: 1px solid rgba(0,0,0,0.06); padding: 10px 0;">
+                        <div style="display:flex; align-items:start; justify-content:space-between; gap: 12px; flex-wrap:wrap;">
+                            <div style="min-width:0; flex:1;">
+                                <div style="display:flex; gap: 8px; flex-wrap:wrap; align-items:center; margin-bottom: 6px;">
+                                    <div style="font-weight:800; color: var(--accent-color);">${userName}</div>
+                                    <div class="order-card__status" style="background: rgba(0,0,0,0.06); color: ${badgeColor};">${badgeText}</div>
+                                </div>
+                                <div style="color:#444; font-size: 12px; margin-bottom: 4px;">${userEmail}${userPhone ? ` · ${userPhone}` : ''}${userRole ? ` · ${userRole}` : ''}${userStatus ? ` · ${userStatus}` : ''}</div>
+                                <div style="font-weight:800; word-break: break-all; margin-bottom: 4px;">${hash}</div>
+                                ${ua ? `<div style="color:#666; font-size: 12px; word-break: break-word; margin-bottom: 4px;">${ua}</div>` : ''}
+                                <div style="color:#666; font-size: 12px;">${firstSeen ? `First seen: ${escapeHtml(firstSeen)}` : ''}${firstSeen && lastSeen ? ' · ' : ''}${lastSeen ? `Last seen: ${escapeHtml(lastSeen)}` : ''}</div>
+                            </div>
+                            <div style="display:flex; gap: 8px; align-items:center; flex-wrap:wrap; justify-content:flex-end;">
+                                ${blockedDevice
+                                    ? `<button class="btn-secondary" type="button" onclick="unblockDevice('${hash}')">Unblock</button>`
+                                    : `<button class="btn" type="button" onclick="blockDevice('${hash}')">Block</button>`
+                                }
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        async function loadAllDevices() {
+            if (!ensureAdmin()) return;
+            const container = document.getElementById('allDevicesList');
+            if (!container) return;
+
+            container.textContent = 'Loading devices...';
+
+            try {
+                const res = await apiFetch('/api/admin/devices/all');
+                const data = await res.json();
+                if (!res.ok) throw new Error(data?.msg || 'Failed to load devices');
+
+                __allDevices = Array.isArray(data?.devices) ? data.devices : [];
+                renderAllDevices(__allDevices);
+            } catch (err) {
+                console.error(err);
+                container.textContent = err?.message || 'Failed to load devices.';
+            }
+        }
+
+        async function blockDevice(deviceHash) {
+            if (!ensureAdmin()) return;
+            try {
+                const res = await apiFetch('/api/admin/devices/block', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ deviceHash })
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data?.msg || 'Failed to block');
+                await loadUserDevices(__activeUserForDevices);
+                await loadAllDevices();
+            } catch (err) {
+                console.error(err);
+                alert(err?.message || 'Error blocking device');
+            }
+        }
+
+        async function unblockDevice(deviceHash) {
+            if (!ensureAdmin()) return;
+            try {
+                const res = await apiFetch('/api/admin/devices/unblock', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ deviceHash })
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data?.msg || 'Failed to unblock');
+                await loadUserDevices(__activeUserForDevices);
+                await loadAllDevices();
+            } catch (err) {
+                console.error(err);
+                alert(err?.message || 'Error unblocking device');
+            }
+        }
+
+        window.blockDevice = blockDevice;
+        window.unblockDevice = unblockDevice;
+
+        async function openUserDevices(userId) {
+            __activeUserForDevices = userId;
+            openDevicesModal();
+            await loadUserDevices(userId);
+        }
+
+        window.openUserDevices = openUserDevices;
+
+        document.getElementById('refreshUserDevicesBtn')?.addEventListener('click', () => {
+            if (__activeUserForDevices) loadUserDevices(__activeUserForDevices);
+        });
+
+        document.getElementById('refreshAllDevicesBtn')?.addEventListener('click', () => {
+            loadAllDevices();
+        });
+
+        async function loadUsersAdmin() {
+            if (!ensureAdmin()) return;
+            const container = document.getElementById('users-admin-list');
+            if (!container) return;
+
+            try {
+                const res = await apiFetch('/api/admin/users');
+                const data = await res.json();
+                if (!res.ok) throw new Error(data?.msg || 'Failed to load users');
+                __allUsers = Array.isArray(data) ? data : [];
+                renderUsersAdmin(__allUsers);
+            } catch (err) {
+                console.error(err);
+                container.innerHTML = '<tr><td colspan="7" style="padding: 12px;">Failed to load users.</td></tr>';
+            }
+        }
+
+        async function updateUserStatusAdmin(userId) {
+            const row = document.querySelector(`[data-user-id="${CSS.escape(userId)}"]`);
+            const select = row ? row.querySelector('[data-user-status]') : null;
+            const status = select ? select.value : 'active';
+
+            try {
+                const res = await apiFetch(`/api/admin/users/${userId}/status`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ status })
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data?.msg || 'Failed to update user');
+                alert('User updated');
+                loadUsersAdmin();
+            } catch (err) {
+                console.error(err);
+                alert(err?.message || 'Error updating user');
+            }
+        }
+
+        window.updateUserStatusAdmin = updateUserStatusAdmin;
+
+        document.getElementById('userSearch')?.addEventListener('input', (e) => {
+            const q = String(e.target.value || '').trim().toLowerCase();
+            if (!q) {
+                renderUsersAdmin(__allUsers);
+                return;
+            }
+            const filtered = __allUsers.filter((u) => {
+                const hay = `${u.fullName || ''} ${u.email || ''} ${u.phone || ''}`.toLowerCase();
+                return hay.includes(q);
+            });
+            renderUsersAdmin(filtered);
+        });
+
+        document.addEventListener('DOMContentLoaded', () => {
+            loadUsersAdmin();
+            loadAllDevices();
+        });
+    </script>
+</body>
+</html>

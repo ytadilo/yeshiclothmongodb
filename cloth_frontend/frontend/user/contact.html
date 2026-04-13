@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Redirecting to MyChat...</title>
+    <script>
+        (function () {
+            var q = window.location.search || '';
+            var h = window.location.hash || '';
+            window.location.replace('/user/mychat.html' + q + h);
+        })();
+    </script>
+</head>
+<body>
+    <p>Redirecting to MyChat...</p>
+</body>
+</html>

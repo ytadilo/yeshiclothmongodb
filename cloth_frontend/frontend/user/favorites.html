@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Favorites - Yeshi</title>
+    <script>
+        (function () {
+            var token = localStorage.getItem('token');
+            var user = {};
+            try { user = JSON.parse(localStorage.getItem('user') || '{}') || {}; } catch (_) { user = {}; }
+            var status = String(user.status || '').toLowerCase();
+            var blocked = !!user.isBanned || status === 'banned' || status === 'inactive';
+            if (token && !blocked) return;
+            var next = encodeURIComponent(window.location.pathname + window.location.search + window.location.hash);
+            if (blocked) {
+                localStorage.removeItem('token');
+                localStorage.removeItem('role');
+                localStorage.removeItem('user');
+                localStorage.removeItem('loginTime');
+            }
+            window.location.replace('/user/login.html?next=' + next);
+            document.documentElement.innerHTML = '';
+            throw new Error('AUTH_REQUIRED');
+        })();
+    </script>
+    <link rel="icon" type="image/png" href="/images/logo.png">
+    <script>window.__yeshiWarnPatch=window.__yeshiWarnPatch||(()=>{const w=console.warn;console.warn=function(...a){if(String(a[0]||'').includes('cdn.tailwindcss.com should not be used in production'))return;return w.apply(console,a);};return true;})();</script>
+    <script src="https://cdn.tailwindcss.com?plugins=forms"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            primary: '#745b18',
+                            accent: '#d4b468',
+                            ink: '#1a1c1c',
+                            paper: '#faf9f9',
+                            muted: '#4d4639',
+                            border: '#d0c5b4',
+                            danger: '#ba1a1a',
+                            success: '#1aad19'
+                        }
+                    },
+                    boxShadow: {
+                        nav: '0 20px 40px rgba(26, 28, 28, 0.08)'
+                    },
+                    fontFamily: {
+                        body: ['Inter', 'sans-serif']
+                    }
+                }
+            }
+        };
+    </script>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            background: #faf9f9;
+            color: #1a1c1c;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            vertical-align: middle;
+        }
+
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { scrollbar-width: none; }
+
+        .wrap {
+            max-width: 1240px;
+            margin: 0 auto;
+            padding: 102px 16px 60px;
+        }
+
+        .top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 18px;
+        }
+
+        .back {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            color: #745b18;
+            text-decoration: none;
+            font-weight: 700;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: clamp(1.5rem, 3vw, 2.2rem);
+            letter-spacing: -0.02em;
+        }
+
+        .muted {
+            color: #4d4639;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 14px;
+        }
+
+        .card {
+            background: #f4f3f3;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 6px 18px rgba(0,0,0,0.06);
+        }
+
+        .card img {
+            width: 100%;
+            aspect-ratio: 4/5;
+            object-fit: cover;
+            display: block;
+            background: #fff;
+        }
+
+        .body {
+            padding: 12px;
+        }
+
+        .title {
+            margin: 0;
+            font-size: 0.95rem;
+            font-weight: 700;
+            line-height: 1.4;
+            min-height: 2.6em;
+        }
+
+        .price {
+            margin-top: 8px;
+            color: #f7081b;
+            font-weight: 800;
+            font-size: 1.05rem;
+        }
+
+        .actions {
+            margin-top: 10px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        .btn {
+            border: 0;
+            border-radius: 8px;
+            padding: 9px 10px;
+            font-size: 0.78rem;
+            font-weight: 700;
+            cursor: pointer;
+            text-align: center;
+            text-decoration: none;
+        }
+
+        .btn-soft {
+            background: #ececec;
+            color: #1a1c1c;
+        }
+
+        .btn-primary {
+            background: linear-gradient(120deg, #745b18 0%, #d4b468 100%);
+            color: #fff;
+        }
+
+        .empty {
+            border: 1px dashed #d0c5b4;
+            border-radius: 12px;
+            padding: 22px;
+            background: #fff;
+        }
+
+        .footer-section a { color: inherit; text-decoration: none; }
+
+        @media (max-width: 768px) {
+            .wrap { padding-top: 32px; }
+        }
+    </style>
+</head>
+
+<body class="font-body text-brand-ink antialiased yeshi-has-bottom-nav">
+<div id="notification-overlay" class="fixed inset-0 z-[100] hidden">
+        <div class="absolute inset-0 bg-black/40" data-close-notification></div>
+        <aside id="notification-drawer" class="absolute right-0 top-0 h-full w-[86%] max-w-sm translate-x-full bg-white shadow-2xl transition-transform duration-300">
+            <div class="flex h-full flex-col">
+                <div class="flex items-center justify-between p-5">
+                    <h2 class="text-base font-bold uppercase tracking-[0.2em]">Notifications</h2>
+                    <button type="button" data-close-notification class="rounded-full p-2 hover:bg-gray-100" aria-label="Close notifications">
+                        <span class="material-symbols-outlined">close</span>
+                    </button>
+                </div>
+                <div id="notificationList" class="flex-1 space-y-3 overflow-y-auto bg-gray-50 p-4 text-sm">
+                    <p class="text-brand-muted">Loading notifications...</p>
+                </div>
+            </div>
+        </aside>
+    </div>
+
+    <main class="wrap">
+        <div class="top">
+            <a class="back" href="/user/">
+                <span class="material-symbols-outlined">arrow_back</span>
+                Back
+            </a>
+            <h1>Liked Products</h1>
+            <span></span>
+        </div>
+
+        <p class="muted" id="subtitle">Loading your liked products...</p>
+        <section id="favoritesGrid" class="grid" aria-live="polite"></section>
+    </main>
+
+    <script src="/js/main.js"></script>
+    <script>
+        function isUserLoggedIn() {
+            return !!localStorage.getItem('token');
+        }
+
+        function buildLoginRedirect(targetPath) {
+            const next = targetPath || (window.location.pathname + window.location.search);
+            return '/user/login.html?next=' + encodeURIComponent(next);
+        }
+
+        function applyMenuAuthState() {
+            const loginBtn = document.getElementById('mobileMenuLoginBtn');
+            const signupBtn = document.getElementById('mobileMenuSignupBtn');
+            const logoutBtn = document.getElementById('mobileMenuLogoutBtn');
+            const desktopLogin = document.getElementById('desktopLoginItem');
+            const desktopSignup = document.getElementById('desktopSignupItem');
+            const desktopLogout = document.getElementById('desktopLogoutItem');
+            const shoppingBagLink = document.getElementById('shoppingBagLink');
+            const loggedIn = isUserLoggedIn();
+            if (loginBtn) loginBtn.classList.toggle('hidden', loggedIn);
+            if (signupBtn) signupBtn.classList.toggle('hidden', loggedIn);
+            if (logoutBtn) logoutBtn.classList.toggle('hidden', !loggedIn);
+            if (desktopLogin) desktopLogin.classList.toggle('hidden', loggedIn);
+            if (desktopSignup) desktopSignup.classList.toggle('hidden', loggedIn);
+            if (desktopLogout) desktopLogout.classList.toggle('hidden', !loggedIn);
+            if (shoppingBagLink) shoppingBagLink.classList.toggle('hidden', !loggedIn);
+        }
+
+        function bindLogoutActions() {
+            document.querySelectorAll('[data-action="logout"]').forEach((el) => {
+                el.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    localStorage.removeItem('token');
+                    localStorage.removeItem('role');
+                    localStorage.removeItem('user');
+                    window.location.href = '/user/login.html';
+                });
+            });
+        }
+
+        function updateBagCountBadge() {
+            const badge = document.getElementById('bagCount');
+            if (!badge) return;
+            try {
+                const list = JSON.parse(localStorage.getItem('yeshi_bag') || '[]');
+                const count = Array.isArray(list) ? list.length : 0;
+                badge.textContent = String(count);
+                badge.classList.toggle('hidden', count <= 0);
+            } catch (_) {
+                badge.textContent = '0';
+                badge.classList.add('hidden');
+            }
+        }
+
+        function escapeNotificationHtml(value) {
+            return String(value || '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        function formatNotificationTime(input) {
+            const date = new Date(input || Date.now());
+            if (Number.isNaN(date.getTime())) return '';
+            return date.toLocaleString();
+        }
+
+        async function loadNotificationUnreadCount() {
+            const token = localStorage.getItem('token');
+            const dot = document.getElementById('notificationDot');
+            if (!dot) return;
+            if (!token) {
+                dot.classList.add('hidden');
+                return;
+            }
+            try {
+                const res = await fetch('/api/workflow/notifications/unread-count', { headers: { 'x-auth-token': token } });
+                if (!res.ok) {
+                    dot.classList.add('hidden');
+                    return;
+                }
+                const data = await res.json();
+                const unread = Number(data && data.unread);
+                dot.classList.toggle('hidden', !(Number.isFinite(unread) && unread > 0));
+            } catch (_) {
+                dot.classList.add('hidden');
+            }
+        }
+
+        async function loadNotifications() {
+            const token = localStorage.getItem('token');
+            const list = document.getElementById('notificationList');
+            if (!list) return;
+
+            if (!token) {
+                list.innerHTML = '<p class="text-brand-muted">Login to see notifications.</p>';
+                return;
+            }
+
+            list.innerHTML = '<p class="text-brand-muted">Loading notifications...</p>';
+            try {
+                const res = await fetch('/api/workflow/notifications?limit=30', { headers: { 'x-auth-token': token } });
+                if (!res.ok) {
+                    list.innerHTML = '<p class="text-brand-muted">Could not load notifications.</p>';
+                    return;
+                }
+                const data = await res.json();
+                const notifications = Array.isArray(data) ? data : [];
+                if (!notifications.length) {
+                    list.innerHTML = '<p class="text-brand-muted">No notifications yet.</p>';
+                    return;
+                }
+                list.innerHTML = notifications.map((n) => {
+                    const title = escapeNotificationHtml(n && n.title ? n.title : 'Notification');
+                    const body = escapeNotificationHtml(n && n.body ? n.body : '');
+                    const timeText = escapeNotificationHtml(formatNotificationTime(n && n.timestamp));
+                    const unreadClass = n && n.is_read ? 'border-transparent' : 'border-[#D4B468]';
+                    return '<article class="rounded-xl border-l-4 ' + unreadClass + ' bg-white p-3 shadow-sm">'
+                        + '<div class="flex items-center justify-between gap-2">'
+                        + '<p class="text-[11px] font-bold uppercase tracking-wider text-brand-primary">' + title + '</p>'
+                        + '<span class="text-[10px] text-brand-muted">' + timeText + '</span>'
+                        + '</div>'
+                        + '<p class="mt-1 text-brand-muted">' + body + '</p>'
+                        + '</article>';
+                }).join('');
+            } catch (_) {
+                list.innerHTML = '<p class="text-brand-muted">Could not load notifications.</p>';
+            }
+        }
+
+        function getCurrentUserId() {
+            try {
+                const token = localStorage.getItem('token');
+                if (token) {
+                    const payload = JSON.parse(atob(token.split('.')[1] || ''));
+                    if (payload && payload.user && payload.user.id) return String(payload.user.id);
+                }
+            } catch (_) {}
+
+            try {
+                const user = JSON.parse(localStorage.getItem('user') || 'null');
+                if (user && (user._id || user.id)) return String(user._id || user.id);
+            } catch (_) {}
+
+            return '';
+        }
+
+        function priceText(post) {
+            const n = Number(post && post.priceETB);
+            if (Number.isFinite(n) && n > 0) return n.toLocaleString() + ' ETB';
+            return 'Price on request';
+        }
+
+        function isLikedByMe(post, myId) {
+            if (!myId || !post || !Array.isArray(post.likes)) return false;
+            return post.likes.some((entry) => {
+                const uid = entry && typeof entry === 'object' ? (entry.user || entry._id || entry.id) : entry;
+                return String(uid || '') === myId;
+            });
+        }
+
+        function renderCard(post) {
+            const id = String(post && post._id || '');
+            const title = String(post && post.title || 'Untitled').replace(/[<>&"']/g, (ch) => ({ '<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;',"'":'&#39;' }[ch]));
+            const img = Array.isArray(post && post.images) && post.images.length ? String(post.images[0] || '') : '/images/logo.png';
+            const safeImg = img.replace(/"/g, '&quot;');
+            return [
+                '<article class="card">',
+                    '<img src="', safeImg, '" alt="', title, '">',
+                    '<div class="body">',
+                        '<h3 class="title">', title, '</h3>',
+                        '<div class="price">', priceText(post), '</div>',
+                        '<div class="actions">',
+                            '<a class="btn btn-soft" href="/user/mychat.html?postId=', encodeURIComponent(id), '&title=', encodeURIComponent(post && post.title || 'Selected cloth'), '&image=', encodeURIComponent(img), '&price=', encodeURIComponent(priceText(post)), '&category=', encodeURIComponent(post && post.category || ''), '&description=', encodeURIComponent(post && post.description || ''), '">Chat</a>',
+                            '<a class="btn btn-primary" href="/user/post.html?id=', encodeURIComponent(id), '">View</a>',
+                        '</div>',
+                    '</div>',
+                '</article>'
+            ].join('');
+        }
+
+        async function loadFavorites() {
+            const grid = document.getElementById('favoritesGrid');
+            const subtitle = document.getElementById('subtitle');
+            if (!grid || !subtitle) return;
+
+            const token = localStorage.getItem('token');
+            const myId = getCurrentUserId();
+            if (!token || !myId) {
+                subtitle.textContent = 'Login to see your liked products.';
+                grid.innerHTML = '<div class="empty"><p class="muted">You are not logged in.</p><p><a class="btn btn-primary" href="/user/login.html?next=' + encodeURIComponent('/user/favorites') + '">Login</a></p></div>';
+                return;
+            }
+
+            try {
+                const res = await fetch('/api/posts', { headers: { 'x-auth-token': token } });
+                const posts = await res.json();
+                if (!res.ok) throw new Error('Failed to load posts');
+
+                const liked = (Array.isArray(posts) ? posts : []).filter((post) => isLikedByMe(post, myId));
+                subtitle.textContent = liked.length ? ('You liked ' + liked.length + ' product' + (liked.length === 1 ? '' : 's')) : 'No liked products yet.';
+
+                if (!liked.length) {
+                    grid.innerHTML = '<div class="empty"><p class="muted">Tap Like on products to see them here.</p></div>';
+                    return;
+                }
+
+                grid.innerHTML = liked.map(renderCard).join('');
+            } catch (_) {
+                subtitle.textContent = 'Could not load liked products.';
+                grid.innerHTML = '<div class="empty"><p class="muted">Please try again later.</p></div>';
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            loadFavorites();
+            applyMenuAuthState();
+            bindLogoutActions();
+            updateBagCountBadge();
+            loadNotificationUnreadCount();
+
+            const mobileToggle = document.getElementById('mobile-menu-toggle');
+            const mobileMenu = document.getElementById('mobile-menu');
+            if (mobileToggle && mobileMenu) {
+                mobileToggle.addEventListener('click', function () {
+                    mobileMenu.classList.toggle('hidden');
+                });
+            }
+
+            const overlay = document.getElementById('notification-overlay');
+            const drawer = document.getElementById('notification-drawer');
+            const notificationTrigger = document.getElementById('notification-trigger');
+            if (overlay && drawer && notificationTrigger) {
+                notificationTrigger.addEventListener('click', function () {
+                    overlay.classList.remove('hidden');
+                    setTimeout(function () {
+                        drawer.classList.remove('translate-x-full');
+                    }, 10);
+                    loadNotifications();
+                });
+
+                overlay.querySelectorAll('[data-close-notification]').forEach((el) => {
+                    el.addEventListener('click', function () {
+                        drawer.classList.add('translate-x-full');
+                        setTimeout(function () {
+                            overlay.classList.add('hidden');
+                        }, 250);
+                    });
+                });
+            }
+        });
+    </script>
+</body>
+</html>
+
+
+
+
+
+
+
+

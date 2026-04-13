@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Orders - Yeshi</title>
+    <script>
+        (function () {
+            var token = localStorage.getItem('token');
+            var user = {};
+            try { user = JSON.parse(localStorage.getItem('user') || '{}') || {}; } catch (_) { user = {}; }
+            var status = String(user.status || '').toLowerCase();
+            var blocked = !!user.isBanned || status === 'banned' || status === 'inactive';
+            if (token && !blocked) return;
+            var next = encodeURIComponent(window.location.pathname + window.location.search + window.location.hash);
+            if (blocked) {
+                localStorage.removeItem('token');
+                localStorage.removeItem('role');
+                localStorage.removeItem('user');
+                localStorage.removeItem('loginTime');
+            }
+            window.location.replace('/user/login.html?next=' + next);
+            document.documentElement.innerHTML = '';
+            throw new Error('AUTH_REQUIRED');
+        })();
+    </script>
+    <link rel="icon" type="image/png" href="/images/logo.png">
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+</head>
+
+<body class="yeshi-has-bottom-nav">
+<section class="hero" style="padding: 0.2rem 1rem; min-height: auto;">
+        <div class="container">
+            <h1 style="font-size: 1.35rem; margin-bottom: 4px;">My Orders</h1>
+            <p style="font-size: 0.9rem; margin: 0;">Track your order status anytime.</p>
+        </div>
+    </section>
+
+    <section class="container" style="margin-top: 20px; margin-bottom: 40px;">
+        <div class="card" style="padding: 1.5rem;">
+            <h3 style="color: var(--accent-color); margin-bottom: 8px;">Order History</h3>
+            <p style="color: var(--light-text); margin-bottom: 14px;">Your ordered products and their current status.</p>
+            <div id="myOrdersList" class="product-grid" style="display:block;">
+                <p style="text-align:center; width:100%;">Loading your orders...</p>
+            </div>
+        </div>
+    </section>
+
+    <script src="/js/main.js"></script>
+    <script src="/js/my-orders.js"></script>
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+

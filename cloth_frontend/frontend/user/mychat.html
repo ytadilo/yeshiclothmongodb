@@ -1,0 +1,1414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MyChat - Yeshi</title>
+    <script>
+        (function () {
+            var token = localStorage.getItem('token');
+            var user = {};
+            try { user = JSON.parse(localStorage.getItem('user') || '{}') || {}; } catch (_) { user = {}; }
+            var status = String(user.status || '').toLowerCase();
+            var blocked = !!user.isBanned || status === 'banned' || status === 'inactive';
+            if (token && !blocked) return;
+            var next = encodeURIComponent(window.location.pathname + window.location.search + window.location.hash);
+            if (blocked) {
+                localStorage.removeItem('token');
+                localStorage.removeItem('role');
+                localStorage.removeItem('user');
+                localStorage.removeItem('loginTime');
+            }
+            window.location.replace('/user/login.html?next=' + next);
+            document.documentElement.innerHTML = '';
+            throw new Error('AUTH_REQUIRED');
+        })();
+    </script>
+    <link rel="icon" type="image/png" href="/images/logo.png">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&display=swap">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap">
+    <style>
+        :root {
+            --primary: #735c00;
+            --primary-container: #D4AF37;
+            --surface: #fff8f0;
+            --surface-low: #fbf3e5;
+            --surface-high: #f5ead7;
+            --surface-lowest: #ffffff;
+            --on-surface: #1a1c1c;
+            --on-surface-variant: #4d4639;
+            --outline-ghost: rgba(126, 118, 103, 0.12);
+            --secondary: #bb0010;
+            --tertiary: #006e04;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: 'Manrope', sans-serif;
+            color: var(--on-surface);
+            background:
+                radial-gradient(circle at 15% 20%, rgba(212, 180, 104, 0.11), transparent 34%),
+                radial-gradient(circle at 85% 90%, rgba(116, 91, 24, 0.08), transparent 30%),
+                var(--surface);
+            min-height: 100vh;
+        }
+
+        body.mychat-page {
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        a {
+            color: inherit;
+            text-decoration: none;
+        }
+
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 500, 'GRAD' 0, 'opsz' 24;
+            vertical-align: middle;
+        }
+
+        .shell {
+            max-width: 600px;
+            height: 100vh;
+            margin: 0 auto;
+            background: color-mix(in srgb, var(--surface) 94%, #ffffff 6%);
+            box-shadow: 0 0 0 1px var(--outline-ghost), 0 24px 60px rgba(26, 28, 28, 0.06);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .topbar {
+            position: sticky;
+            top: 0;
+            z-index: 30;
+            background: rgba(250, 249, 249, 0.84);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--outline-ghost);
+        }
+
+        .topbar-row {
+            padding: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+        }
+
+        .topbar-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            min-width: 0;
+        }
+
+        .topbar-btn {
+            width: 34px;
+            height: 34px;
+            border-radius: 999px;
+            border: none;
+            background: transparent;
+            color: var(--on-surface-variant);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+
+        .topbar-btn:hover {
+            background: rgba(116, 91, 24, 0.08);
+        }
+
+        .topbar-icon-wrap {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .topbar-icon-badge {
+            position: absolute;
+            top: -5px;
+            right: -7px;
+            min-width: 18px;
+            height: 18px;
+            border-radius: 999px;
+            background: #bb0010;
+            color: #fff;
+            font-size: 11px;
+            line-height: 18px;
+            text-align: center;
+            font-weight: 700;
+            padding: 0 4px;
+            display: none;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .support-label {
+            color: var(--primary);
+            text-transform: uppercase;
+            letter-spacing: 0.2em;
+            font-size: 0.72rem;
+            font-weight: 700;
+            margin-bottom: 2px;
+        }
+
+        .support-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 1.05rem;
+            font-weight: 700;
+            letter-spacing: -0.01em;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--tertiary);
+        }
+
+        .chat-stream {
+            flex: 1;
+            min-height: 0;
+            padding: 18px 14px 178px;
+            overflow-y: auto;
+        }
+
+        .time-chip {
+            margin: 4px auto 18px;
+            width: max-content;
+            background: var(--surface-high);
+            color: var(--on-surface-variant);
+            border-radius: 999px;
+            padding: 8px 18px;
+            font-size: 0.76rem;
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+            font-weight: 600;
+        }
+
+        .message-block {
+            margin-bottom: 18px;
+            max-width: 94%;
+        }
+
+        .message-row {
+            display: flex;
+            align-items: flex-end;
+            gap: 5px;
+            margin-bottom: 6px;
+            min-height: 38px;
+        }
+
+        .avatar {
+            width: 38px;
+            height: 38px;
+            border-radius: 12px;
+            background: var(--surface-high);
+            color: var(--on-surface-variant);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            flex-shrink: 0;
+            overflow: hidden;
+        }
+
+        .bubble {
+            background: var(--surface-lowest);
+            border-radius: 12px;
+            padding: 7px 10px;
+            line-height: 1.42;
+            color: var(--on-surface);
+            box-shadow: 0 6px 16px rgba(26, 28, 28, 0.03);
+            max-width: 82%;
+            white-space: pre-wrap;
+            font-size: 0.89rem;
+        }
+
+        .bubble.user {
+            margin-left: auto;
+            background: color-mix(in srgb, var(--primary-container) 22%, #fff 78%);
+            border-bottom-right-radius: 6px;
+        }
+
+        .bubble.concierge {
+            border-bottom-left-radius: 6px;
+        }
+
+        .bubble img {
+            max-width: 200px;
+            max-height: 200px;
+            border-radius: 8px;
+            margin-top: 8px;
+            display: block;
+        }
+
+        .context-card {
+            margin: 8px 0 20px;
+            width: min(95%, 560px);
+            border-radius: 14px;
+            overflow: hidden;
+            background: var(--surface-lowest);
+            box-shadow: 0 20px 40px rgba(26, 28, 28, 0.06);
+        }
+
+        .context-photo {
+            width: 100%;
+            aspect-ratio: 4 / 5;
+            object-fit: cover;
+            display: block;
+            background: var(--surface-low);
+        }
+
+        .context-body {
+            padding: 14px;
+        }
+
+        .context-title {
+            margin: 0;
+            font-size: 1.3rem;
+            line-height: 1.12;
+            letter-spacing: -0.01em;
+        }
+
+        .context-price {
+            color: var(--primary);
+            font-weight: 700;
+            font-size: 0.95rem;
+            white-space: nowrap;
+            margin-top: 6px;
+        }
+
+        .context-desc {
+            margin: 10px 0 12px;
+            color: var(--on-surface-variant);
+            line-height: 1.52;
+            font-size: 0.93rem;
+        }
+
+        .motif-line {
+            width: 100%;
+            height: 4px;
+            opacity: 0.18;
+            background-image: linear-gradient(90deg, var(--primary) 25%, transparent 25%, transparent 50%, var(--primary) 50%, var(--primary) 75%, transparent 75%, transparent 100%);
+            background-size: 18px 4px;
+        }
+
+        .btn {
+            border: none;
+            border-radius: 9px;
+            padding: 11px 12px;
+            cursor: pointer;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.13em;
+            font-weight: 700;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 7px;
+            flex: 1;
+        }
+
+        .reply-meta {
+            margin: 10px 0 0;
+            color: var(--on-surface-variant);
+            font-size: 0.7rem;
+            letter-spacing: 0.04em;
+        }
+
+        .related-wrap {
+            margin-top: 18px;
+            border-radius: 12px;
+            background: #f4f3f3;
+            padding: 12px;
+        }
+
+        .related-head {
+            margin-bottom: 10px;
+        }
+
+        .related-head h3 {
+            margin: 0;
+            font-size: 1.55rem;
+            letter-spacing: -0.02em;
+        }
+
+        .related-head p {
+            margin: 4px 0 0;
+            color: var(--on-surface-variant);
+            font-size: 0.9rem;
+        }
+
+        .related-row {
+            display: flex;
+            gap: 10px;
+            overflow-x: auto;
+            padding-bottom: 6px;
+            scroll-snap-type: x mandatory;
+        }
+
+        .related-card {
+            min-width: 180px;
+            max-width: 210px;
+            border-radius: 10px;
+            overflow: hidden;
+            background: #fff;
+            scroll-snap-align: start;
+        }
+
+        .related-card img {
+            width: 100%;
+            height: 180px;
+            object-fit: cover;
+            display: block;
+            background: #fff;
+        }
+
+        .related-card-body {
+            padding: 8px;
+        }
+
+        .related-title {
+            margin: 0;
+            font-size: 0.87rem;
+            font-weight: 700;
+            line-height: 1.35;
+        }
+
+        .related-price {
+            margin-top: 4px;
+            color: var(--on-surface-variant);
+            font-size: 0.82rem;
+        }
+
+        .composer-wrap {
+            position: fixed;
+            left: 50%;
+            transform: translateX(-50%);
+            bottom: 74px;
+            width: min(760px, 100%);
+            padding: 10px 14px;
+            background: rgba(250, 249, 249, 0.9);
+            backdrop-filter: blur(12px);
+            border-top: 1px solid var(--outline-ghost);
+            z-index: 20;
+        }
+
+        .composer {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: var(--surface-low);
+            border-radius: 999px;
+            padding: 9px 11px;
+        }
+
+        .replying-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            margin-bottom: 8px;
+            border-left: 3px solid var(--primary);
+            background: color-mix(in srgb, var(--primary-container) 14%, #fff 86%);
+            border-radius: 12px;
+            padding: 8px 10px;
+        }
+
+        .replying-text {
+            margin: 0;
+            font-size: 0.86rem;
+            color: var(--primary);
+            font-weight: 600;
+            line-height: 1.35;
+        }
+
+        .replying-cancel {
+            border: none;
+            background: transparent;
+            color: var(--on-surface-variant);
+            font-size: 0.82rem;
+            font-weight: 700;
+            cursor: pointer;
+            padding: 4px 6px;
+            border-radius: 8px;
+        }
+
+        .replying-cancel:hover {
+            background: color-mix(in srgb, var(--primary) 12%, #fff 88%);
+            color: var(--primary);
+        }
+
+        .attachment-preview-bar {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+            border-radius: 12px;
+            border: 1px solid var(--outline-ghost);
+            background: #fff;
+            padding: 8px 10px;
+        }
+
+        .attachment-preview-thumb {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            object-fit: cover;
+            border: 1px solid rgba(0, 0, 0, 0.12);
+        }
+
+        .attachment-preview-name {
+            flex: 1;
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            font-size: 0.82rem;
+            color: var(--on-surface-variant);
+        }
+
+        .composer input {
+            border: none;
+            outline: none;
+            background: transparent;
+            width: 100%;
+            font: inherit;
+            color: var(--on-surface);
+        }
+
+        .composer input::placeholder {
+            color: color-mix(in srgb, var(--on-surface-variant) 70%, #fff 30%);
+        }
+
+        .round-btn {
+            width: 34px;
+            height: 34px;
+            border-radius: 999px;
+            border: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            background: transparent;
+            color: var(--on-surface-variant);
+            flex-shrink: 0;
+        }
+
+        .round-btn.send {
+            background: color-mix(in srgb, var(--primary-container) 34%, #fff 66%);
+            color: var(--primary);
+        }
+
+        .chat-empty,
+        .chat-error {
+            color: var(--on-surface-variant);
+            font-size: 0.9rem;
+            text-align: center;
+            margin: 12px 0;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        @media (max-width: 640px) {
+            .context-title {
+                font-size: 1.12rem;
+            }
+
+            .composer-wrap {
+                bottom: 84px;
+            }
+
+            .chat-stream {
+                padding-bottom: 170px;
+            }
+
+            .chat-head {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 6px;
+            }
+
+            .chat-title {
+                font-size: 1.05rem;
+            }
+
+            .latest-talk-btn {
+                right: 10px;
+                top: 50%;
+                transform: translateY(-50%);
+                padding: 9px 10px;
+            }
+        }
+
+        @media (max-width: 900px) {
+            .shell {
+                max-width: 100vw;
+                min-width: 0;
+                height: 100vh;
+                box-shadow: none;
+                border-radius: 0;
+            }
+
+            .chat-stream {
+                padding: 10px 2vw 110px 2vw;
+                min-height: 0;
+            }
+
+            .composer-wrap {
+                width: 100vw;
+                left: 0;
+                transform: none;
+                padding: 8px 2vw;
+                bottom: 84px;
+            }
+
+            .bubble img {
+                max-width: 90vw;
+                max-height: 40vw;
+            }
+        }
+
+        .chat-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px 16px 10px 16px;
+            border-bottom: 1px solid var(--outline-ghost);
+            background: rgba(255,255,255,0.85);
+            backdrop-filter: blur(12px);
+        }
+
+        .chat-title {
+            font-weight: 700;
+            font-size: 1.13rem;
+        }
+
+        .latest-talk-btn {
+            position: fixed;
+            right: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            z-index: 40;
+            border: none;
+            border-radius: 999px;
+            width: 52px;
+            height: 52px;
+            background: rgba(21, 21, 22, 0.92);
+            color: #f2f2f2;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 8px 22px rgba(0, 0, 0, 0.28);
+            cursor: pointer;
+        }
+
+        .latest-talk-btn .material-symbols-outlined {
+            font-size: 28px;
+            font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;
+        }
+
+        .latest-talk-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            min-width: 19px;
+            height: 19px;
+            border-radius: 999px;
+            padding: 0 5px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: #bb0010;
+            color: #fff;
+            font-size: 11px;
+            font-weight: 700;
+            line-height: 1;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.24);
+        }
+
+        .latest-talk-badge.hidden {
+            display: none;
+        }
+
+        .latest-talk-btn.hidden {
+            display: none;
+        }
+
+        @media (min-width: 901px) {
+            #yeshiMobileBottomNav {
+                display: none !important;
+                visibility: hidden !important;
+                pointer-events: none !important;
+            }
+
+            body.mychat-page {
+                padding-bottom: 0 !important;
+            }
+        }
+
+        body.embedded-chat-panel #yeshiMobileBottomNav {
+            display: none !important;
+            visibility: hidden !important;
+            pointer-events: none !important;
+        }
+
+        body.embedded-chat-panel {
+            padding-bottom: 0 !important;
+        }
+
+        body.embedded-chat-panel .composer-wrap {
+            bottom: 0 !important;
+        }
+
+        body.embedded-chat-panel .chat-stream {
+            padding-bottom: 132px !important;
+        }
+    </style>
+</head>
+<body class="mychat-page">
+    <div class="shell">
+        <header class="topbar">
+            <div class="topbar-row">
+                <div class="topbar-left">
+                    <button type="button" class="topbar-btn" aria-label="Back" onclick="window.history.length > 1 ? window.history.back() : (window.location.href='/user/index.html')">
+                        <span class="material-symbols-outlined">arrow_back_ios_new</span>
+                    </button>
+                    <div>
+                        <div class="support-label">administrator</div>
+                        <div class="support-title"><span class="status-dot" aria-hidden="true"></span>Support Team</div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <main class="chat-stream">
+
+        <section class="chat">
+            <div id="productContext" style="display:none; margin: 18px 18px 0 18px;">
+                <!-- Product card will be rendered here by JS if product info is present -->
+            </div>
+            <div id="messages" class="messages">
+                <section id="messagesPanel" aria-live="polite">
+                    <p class="muted">Messages will appear here.</p>
+                </section>
+            </div>
+            <p id="chatMeta" class="reply-meta"></p>
+        </section>
+        <!-- Related products section removed as requested -->
+    </main>
+
+        <div class="composer-wrap">
+            <div id="replyPreviewBar" class="replying-bar hidden">
+                <p id="replyPreviewText" class="replying-text"></p>
+                <button type="button" id="clearReplyBtn" class="replying-cancel">Cancel</button>
+            </div>
+            <div id="attachmentPreviewBar" class="attachment-preview-bar hidden">
+                <img id="attachmentPreviewThumb" class="attachment-preview-thumb" alt="Selected image preview">
+                <span id="attachmentPreviewName" class="attachment-preview-name"></span>
+                <button type="button" id="clearAttachmentBtn" class="replying-cancel">Remove</button>
+            </div>
+            <form id="composerForm" class="composer" autocomplete="off">
+                <input type="file" id="fileInput" accept="image/*" style="display:none;">
+                <button type="button" class="round-btn" id="attachBtn" aria-label="Attach">
+                    <span class="material-symbols-outlined">add_circle</span>
+                </button>
+                <input id="composerInput" type="text" placeholder="Inquire about craftsmanship...">
+                <button type="submit" class="round-btn send" aria-label="Send">
+                    <span class="material-symbols-outlined" style="font-variation-settings:'FILL' 1">send</span>
+                </button>
+            </form>
+        </div>
+
+        <button type="button" id="latestTalkBtn" class="latest-talk-btn hidden" aria-label="Go to new chat">
+            <span class="material-symbols-outlined">arrow_downward</span>
+            <span id="latestTalkBadge" class="latest-talk-badge hidden" aria-live="polite"></span>
+        </button>
+    </div>
+
+    <script src="/js/main.js"></script>
+    <script>
+        (function () {
+            const params = new URLSearchParams(window.location.search);
+            if (params.get('embedded') === '1') {
+                document.body.classList.add('embedded-chat-panel');
+            }
+            const postId = String(params.get('postId') || '').trim();
+            const title = String(params.get('title') || '').trim();
+            const image = String(params.get('image') || '').trim();
+            const price = String(params.get('price') || '').trim();
+            const shipping = String(params.get('shipping') || '').trim();
+            const category = String(params.get('category') || '').trim();
+            const description = String(params.get('description') || '').trim();
+            const token = localStorage.getItem('token');
+            const user = JSON.parse(localStorage.getItem('user') || '{}');
+            const myUserId = user && (user.id || user._id) ? String(user.id || user._id) : '';
+
+            const productContextState = {
+                postId,
+                title,
+                image,
+                price,
+                shipping,
+                category,
+                description
+            };
+
+            const productBox = document.getElementById('productContext');
+            // Render product context card if info is present
+            function renderProductContext() {
+                productBox.style.display = '';
+                // Product context is shown as a chat message card, not as a separate top panel.
+                productBox.innerHTML = '';
+                productBox.style.display = 'none';
+            }
+
+            async function hydrateProductContextFromPost() {
+                if (!productContextState.postId) return;
+                if (productContextState.image && productContextState.price && productContextState.description) return;
+                try {
+                    const res = await fetch('/api/posts/' + encodeURIComponent(productContextState.postId));
+                    if (!res.ok) return;
+                    const post = await res.json();
+                    const firstImage = Array.isArray(post.images) && post.images.length ? String(post.images[0] || '') : '';
+                    const priceNum = Number(post.priceETB);
+                    const shippingNum = Number(post.shippingPriceETB);
+                    productContextState.title = productContextState.title || String(post.title || '');
+                    productContextState.image = productContextState.image || firstImage;
+                    productContextState.category = productContextState.category || String(post.category || '');
+                    productContextState.description = productContextState.description || String(post.description || '');
+                    if (!productContextState.price) {
+                        productContextState.price = Number.isFinite(priceNum) && priceNum > 0 ? `${priceNum.toLocaleString()} ETB` : 'Price on request';
+                    }
+                    if (!productContextState.shipping) {
+                        productContextState.shipping = post.freeShipping
+                            ? 'Free shipping'
+                            : (Number.isFinite(shippingNum) && shippingNum >= 0 ? `${shippingNum.toLocaleString()} ETB` : '');
+                    }
+                } catch (_) {
+                    // ignore
+                }
+            }
+            renderProductContext();
+            const messagesPanel = document.getElementById('messagesPanel');
+            const chatStream = document.querySelector('.chat-stream');
+            const latestTalkBtn = document.getElementById('latestTalkBtn');
+            const latestTalkBadge = document.getElementById('latestTalkBadge');
+            const chatMeta = document.getElementById('chatMeta');
+            const relatedRow = document.getElementById('relatedRow');
+            const composerForm = document.getElementById('composerForm');
+            const composerInput = document.getElementById('composerInput');
+            const sendBtn = composerForm ? composerForm.querySelector('button[type="submit"]') : null;
+            const replyPreviewBar = document.getElementById('replyPreviewBar');
+            const replyPreviewText = document.getElementById('replyPreviewText');
+            const clearReplyBtn = document.getElementById('clearReplyBtn');
+            const attachmentPreviewBar = document.getElementById('attachmentPreviewBar');
+            const attachmentPreviewThumb = document.getElementById('attachmentPreviewThumb');
+            const attachmentPreviewName = document.getElementById('attachmentPreviewName');
+            const clearAttachmentBtn = document.getElementById('clearAttachmentBtn');
+            let adminId = '';
+            let pollId = null;
+            let fileInput = document.getElementById('fileInput');
+            let attachBtn = document.getElementById('attachBtn');
+            let selectedAttachmentFile = null;
+            let unseenIncomingCount = 0;
+            let initializedMessageState = false;
+            let knownIncomingMessageIds = new Set();
+
+            function isAtChatBottom(threshold = 36) {
+                if (!chatStream) return true;
+                const distance = chatStream.scrollHeight - chatStream.scrollTop - chatStream.clientHeight;
+                return distance <= threshold;
+            }
+
+            function updateLatestTalkBadge() {
+                if (!latestTalkBadge) return;
+                if (unseenIncomingCount > 0) {
+                    latestTalkBadge.textContent = unseenIncomingCount > 99 ? '99+' : String(unseenIncomingCount);
+                    latestTalkBadge.classList.remove('hidden');
+                } else {
+                    latestTalkBadge.textContent = '';
+                    latestTalkBadge.classList.add('hidden');
+                }
+            }
+
+            function resetLatestTalkCounter() {
+                unseenIncomingCount = 0;
+                updateLatestTalkBadge();
+            }
+
+            function withAuthToken(url) {
+                const u = String(url || '').trim();
+                if (!u) return '';
+                if (!u.startsWith('/api/uploads/')) return u;
+                if (!token) return u;
+                if (/[?&](token|auth)=/.test(u)) return u;
+                const sep = u.includes('?') ? '&' : '?';
+                return u + sep + 'token=' + encodeURIComponent(token);
+            }
+
+            function escapeHtml(value) {
+                return String(value || '')
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;');
+            }
+
+            function getMessageDescriptor(rawMessage) {
+                const value = String(rawMessage || '').trim();
+                if (!value) return { kind: 'message', text: 'message' };
+
+                if (/^\[Image\]\([^)]+\)\s*$/i.test(value)) return { kind: 'image', text: 'image' };
+                if (/^\[Video\]\([^)]+\)\s*$/i.test(value)) return { kind: 'video', text: 'video' };
+                if (/^\[File\]\([^)]+\)\s*$/i.test(value)) return { kind: 'file', text: 'file' };
+
+                try {
+                    const parsed = JSON.parse(value);
+                    if (parsed && (parsed.type === 'product_context' || parsed.postId || parsed.title || parsed.image)) {
+                        return { kind: 'product', text: 'product' };
+                    }
+                } catch (_) {
+                    // ignore parse errors
+                }
+
+                const cleaned = value.replace(/\[(Image|Video|File)\]\([^)]+\)/gi, '').trim();
+                if (!cleaned) return { kind: 'message', text: 'message' };
+                return {
+                    kind: 'text',
+                    text: cleaned.length > 58 ? cleaned.slice(0, 58) + '...' : cleaned
+                };
+            }
+
+            function getReplyLabel(rawMessage) {
+                const descriptor = getMessageDescriptor(rawMessage);
+                if (descriptor.kind === 'text') {
+                    return 'Replying to: ' + descriptor.text;
+                }
+                return 'Replying to ' + descriptor.text;
+            }
+
+            function resolveReplySourceMessage(msg, list) {
+                if (!msg || !msg.reply_to) return '';
+
+                if (msg.reply_to.message) return String(msg.reply_to.message || '');
+
+                const replyId = String(
+                    (msg.reply_to && (msg.reply_to._id || msg.reply_to.id)) || msg.reply_to || ''
+                );
+                if (!replyId) return '';
+
+                const target = Array.isArray(list)
+                    ? list.find((m) => String((m && m._id) || '') === replyId)
+                    : null;
+                return target && target.message ? String(target.message) : '';
+            }
+
+            function clearReplyTarget() {
+                if (!composerInput) return;
+                composerInput.removeAttribute('data-reply-to');
+                composerInput.placeholder = 'Inquire about craftsmanship...';
+                if (replyPreviewText) replyPreviewText.textContent = '';
+                if (replyPreviewBar) replyPreviewBar.classList.add('hidden');
+            }
+
+            function setReplyTarget(replyId, rawMessage) {
+                if (!composerInput || !replyId) return;
+                composerInput.setAttribute('data-reply-to', String(replyId));
+                composerInput.placeholder = 'Write your reply...';
+                if (replyPreviewText) replyPreviewText.textContent = getReplyLabel(rawMessage);
+                if (replyPreviewBar) replyPreviewBar.classList.remove('hidden');
+            }
+
+            if (clearReplyBtn) {
+                clearReplyBtn.addEventListener('click', clearReplyTarget);
+            }
+
+            function clearAttachmentSelection() {
+                selectedAttachmentFile = null;
+                if (fileInput) fileInput.value = '';
+                if (attachmentPreviewThumb && attachmentPreviewThumb.dataset.objectUrl) {
+                    try { URL.revokeObjectURL(attachmentPreviewThumb.dataset.objectUrl); } catch (_) {}
+                    delete attachmentPreviewThumb.dataset.objectUrl;
+                }
+                if (attachmentPreviewName) attachmentPreviewName.textContent = '';
+                if (attachmentPreviewBar) attachmentPreviewBar.classList.add('hidden');
+            }
+
+            function updateAttachmentPreview(file) {
+                if (!file) {
+                    clearAttachmentSelection();
+                    return;
+                }
+                selectedAttachmentFile = file;
+                if (attachmentPreviewName) {
+                    attachmentPreviewName.textContent = String(file.name || 'attachment');
+                }
+                if (attachmentPreviewThumb) {
+                    if (attachmentPreviewThumb.dataset.objectUrl) {
+                        try { URL.revokeObjectURL(attachmentPreviewThumb.dataset.objectUrl); } catch (_) {}
+                    }
+                    const obj = URL.createObjectURL(file);
+                    attachmentPreviewThumb.src = obj;
+                    attachmentPreviewThumb.dataset.objectUrl = obj;
+                }
+                if (attachmentPreviewBar) attachmentPreviewBar.classList.remove('hidden');
+            }
+
+            if (clearAttachmentBtn) {
+                clearAttachmentBtn.addEventListener('click', clearAttachmentSelection);
+            }
+
+            function scrollToLatestTalk(smooth = true) {
+                if (!chatStream) return;
+                chatStream.scrollTo({
+                    top: chatStream.scrollHeight,
+                    behavior: smooth ? 'smooth' : 'auto'
+                });
+                resetLatestTalkCounter();
+                updateLatestTalkButton();
+            }
+
+            function updateLatestTalkButton() {
+                if (!latestTalkBtn || !chatStream) return;
+                const distance = chatStream.scrollHeight - chatStream.scrollTop - chatStream.clientHeight;
+                const shouldShow = distance > 140 || unseenIncomingCount > 0;
+                if (shouldShow) {
+                    latestTalkBtn.classList.remove('hidden');
+                } else {
+                    latestTalkBtn.classList.add('hidden');
+                }
+            }
+
+            if (latestTalkBtn) {
+                latestTalkBtn.addEventListener('click', function () {
+                    latestTalkBtn.classList.add('hidden');
+                    scrollToLatestTalk(true);
+                });
+            }
+
+            if (chatStream) {
+                chatStream.addEventListener('scroll', function () {
+                    if (isAtChatBottom(30)) {
+                        resetLatestTalkCounter();
+                    }
+                    updateLatestTalkButton();
+                }, { passive: true });
+            }
+
+            // Handle file attachment selection (preview first, send on submit)
+            if (attachBtn && fileInput) {
+                attachBtn.addEventListener('click', function() {
+                    fileInput.click();
+                });
+
+                fileInput.addEventListener('change', async function(e) {
+                    const file = e.target.files[0];
+                    if (!file) return;
+                    updateAttachmentPreview(file);
+                });
+            }
+
+            if (!token) {
+                window.location.href = '/user/login.html?next=' + encodeURIComponent(window.location.pathname + window.location.search);
+                return;
+            }
+
+            function inferPreferredCategory() {
+                try {
+                    const bag = JSON.parse(localStorage.getItem('yeshi_bag') || '[]');
+                    const list = Array.isArray(bag) ? bag : [];
+                    const categories = list.map(function (i) { return String(i && i.category || '').toLowerCase(); });
+                    const women = categories.filter(function (c) { return c.includes('women') || c.includes('woman'); }).length;
+                    const men = categories.filter(function (c) { return c.includes('men') || c.includes('man'); }).length;
+                    if (!women && !men) return '';
+                    return women >= men ? 'women' : 'men';
+                } catch (_) {
+                    return '';
+                }
+            }
+
+            async function loadRelated() {
+                if (!relatedRow) return;
+                try {
+                    const res = await fetch('/api/posts');
+                    if (!res.ok) throw new Error('Failed');
+                    const posts = await res.json();
+                    const list = Array.isArray(posts) ? posts : [];
+                    const preferred = inferPreferredCategory();
+
+                    let items = preferred
+                        ? list.filter(function (p) {
+                            return String(p && p.category || '').toLowerCase().includes(preferred);
+                        })
+                        : list;
+
+                    if (!items.length) items = list;
+                    items = items.slice(0, 10);
+
+                    if (!items.length) {
+                        relatedRow.innerHTML = '<p class="chat-empty">No recommendations yet.</p>';
+                        return;
+                    }
+
+                    relatedRow.innerHTML = items.map(function (post) {
+                        const img = Array.isArray(post.images) && post.images.length ? post.images[0] : '/images/logo.png';
+                        const priceValue = Number(post.priceETB);
+                        const priceText = Number.isFinite(priceValue) && priceValue > 0 ? priceValue.toLocaleString() + ' ETB' : 'Price on request';
+                        const t = String(post.title || 'Untitled');
+                        return '<a class="related-card" href="/post?id=' + encodeURIComponent(post._id) + '">'
+                            + '<img src="' + img + '" alt="' + t.replace(/"/g, '&quot;') + '">'
+                            + '<div class="related-card-body">'
+                            + '<p class="related-title">' + t + '</p>'
+                            + '<p class="related-price">' + priceText + '</p>'
+                            + '</div></a>';
+                    }).join('');
+                } catch (_) {
+                    relatedRow.innerHTML = '<p class="chat-empty">Could not load recommendations.</p>';
+                }
+            }
+
+            function renderMessages(messages, options) {
+                if (!messagesPanel) return;
+                const list = Array.isArray(messages) ? messages : [];
+                const opts = options || {};
+                const wasAtBottom = !!opts.wasAtBottom;
+                if (!list.length) {
+                    messagesPanel.innerHTML = '<p class="muted">Messages will appear here.</p>';
+                    if (latestTalkBtn) latestTalkBtn.classList.add('hidden');
+                    resetLatestTalkCounter();
+                    return;
+                }
+                let html = '';
+                html += list.map(function (msg) {
+                    let isProductContext = false;
+                    let productInfo = null;
+                    let messageContent = String(msg && msg.message || '');
+                    try {
+                        if (messageContent.startsWith('{') && messageContent.endsWith('}')) {
+                            productInfo = JSON.parse(messageContent);
+                            if (productInfo && (productInfo.type === 'product_context' || productInfo.postId || productInfo.title || productInfo.image)) {
+                                isProductContext = true;
+                            }
+                        }
+                    } catch {}
+                    const senderId = msg && msg.sender_id && (msg.sender_id._id || msg.sender_id.id)
+                        ? String(msg.sender_id._id || msg.sender_id.id)
+                        : String(msg.sender_id || '');
+                    const mine = senderId && myUserId && senderId === myUserId;
+                    // User message: right, admin message: left
+                    const userAvatarHtml = `<div class="avatar" style="background:#745b18;color:#fff;width:32px;height:32px;display:flex;align-items:center;justify-content:center;border-radius:50%;font-weight:700;">U</div>`;
+                    const adminAvatarHtml = `<div class="avatar" style="background:#745b18;color:#fff;width:32px;height:32px;display:flex;align-items:center;justify-content:center;border-radius:50%;font-weight:700;">A</div>`;
+                    let rowClass = 'message-row';
+                    let alignStyle = mine ? 'justify-content: flex-end;' : 'justify-content: flex-start;';
+                    // Product context card
+                    if (isProductContext) {
+                        return `<div class="${rowClass}" style="${alignStyle} align-items:flex-end;" data-message-id="${msg._id}">
+            ${!mine ? adminAvatarHtml : ''}
+            <div class="bubble${mine ? ' user' : ''}" style="padding:0; background:transparent; box-shadow:none; text-align:${mine ? 'right' : 'left'};">
+                <div class="product-card" style="background:#fff;border-radius:12px;box-shadow:0 2px 8px #0001;padding:12px 14px 14px 14px;max-width:320px;min-width:220px;">
+                    <img src="${productInfo.image || '/images/logo.png'}" alt="${productInfo.title || 'Product'}" style="width:100%;max-width:260px;border-radius:8px;display:block;margin-bottom:10px;">
+                    <div style="font-weight:700;font-size:1.05rem;margin-bottom:4px;">${productInfo.title || ''}</div>
+                    <div style="color:#745b18;font-weight:600;margin-bottom:4px;">${productInfo.price ? 'Price: ' + productInfo.price : ''}</div>
+                    <div style="font-size:0.94rem;color:#666;margin-bottom:4px;">${productInfo.category ? 'Category: ' + productInfo.category : ''}</div>
+                    <div style="font-size:0.94rem;color:#745b18;margin-bottom:8px;">${productInfo.shipping ? 'Shipping: ' + productInfo.shipping : ''}</div>
+                    <div style="font-size:0.97rem;color:#444;margin-bottom:8px;">${productInfo.description || ''}</div>
+                    ${productInfo.postId ? `<a href="/user/post.html?id=${productInfo.postId}" target="_blank" style="color:#745b18;text-decoration:underline;font-size:0.97rem;">View Product</a>` : ''}
+                </div>
+            </div>
+            ${mine ? userAvatarHtml : ''}
+        </div>`;
+                    }
+                    // Handle image messages
+                    const imageMatch = messageContent.match(/\[Image\]\(([^)]+)\)/);
+                    let contentHtml = '';
+                    if (imageMatch) {
+                        const imageUrl = withAuthToken(imageMatch[1]);
+                        contentHtml = '<img src="' + imageUrl + '" alt="Sent image" style="max-width: 200px; max-height: 200px; border-radius: 8px; margin-top: 8px;">';
+                        messageContent = messageContent.replace(/\[Image\]\([^)]+\)/, '').trim();
+                    }
+                    const textContent = escapeHtml(messageContent);
+
+                    // Reply preview
+                    let replyHtml = '';
+                    if (msg.reply_to) {
+                        const sourceMessage = resolveReplySourceMessage(msg, list);
+                        const replyLabel = sourceMessage ? getReplyLabel(sourceMessage) : 'Replying to message';
+                        replyHtml = `<div class="reply-preview" style="border-left:3px solid #d4b468;padding-left:8px;margin-bottom:4px;font-size:0.92em;color:#745b18;">${escapeHtml(replyLabel)}</div>`;
+                    }
+
+                    // Timestamp
+                    const time = msg.timestamp ? new Date(msg.timestamp) : null;
+                    const timeStr = time ? time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+
+                    // Sent/Seen status
+                    let statusHtml = '';
+                    if (mine) {
+                        if (msg.seen) {
+                            statusHtml = `<span style="color:#1aad19;font-size:0.85em;">Seen${msg.seen_at ? ' (' + new Date(msg.seen_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + ')' : ''}</span>`;
+                        } else {
+                            statusHtml = `<span style="color:#d4b468;font-size:0.85em;">Sent</span>`;
+                        }
+                    }
+
+                    // Reply button
+                    let replyBtn = `<button class="reply-btn" data-reply-id="${msg._id}" style="background:none;border:none;color:#745b18;cursor:pointer;font-size:0.9em;margin-left:4px;">↩️ Reply</button>`;
+
+                    return `<div class="${rowClass}" style="${alignStyle} align-items:flex-end;" data-message-id="${msg._id}">
+            ${!mine ? adminAvatarHtml : ''}
+            <div class="bubble${mine ? ' user' : ''}" style="text-align:${mine ? 'right' : 'left'};">
+                ${replyHtml}
+                <div>${textContent ? textContent : ''}${contentHtml}</div>
+                <div style="margin-top:6px;font-size:0.85em;color:#888;display:flex;align-items:center;gap:8px;">
+                    <span>${timeStr}</span>
+                    ${statusHtml}
+                    ${replyBtn}
+                </div>
+            </div>
+            ${mine ? userAvatarHtml : ''}
+        </div>`;
+                }).join('');
+                messagesPanel.innerHTML = html;
+
+                if (wasAtBottom && chatStream) {
+                    try {
+                        scrollToLatestTalk(false);
+                    } catch (_) {
+                        // ignore
+                    }
+                }
+
+                updateLatestTalkButton();
+
+                // Bind reply buttons
+                document.querySelectorAll('.reply-btn').forEach(function(btn) {
+                    btn.addEventListener('click', function() {
+                        const replyId = btn.getAttribute('data-reply-id');
+                        const msg = list.find(m => String(m._id) === String(replyId));
+                        if (msg && composerInput) {
+                            composerInput.focus();
+                            setReplyTarget(replyId, msg.message || '');
+                        }
+                    });
+                });
+            }
+
+            async function loadContacts() {
+                const res = await fetch('/api/workflow/chat/contacts', {
+                    headers: { 'x-auth-token': token }
+                });
+                if (!res.ok) throw new Error('Failed contacts');
+                const contacts = await res.json();
+                const list = Array.isArray(contacts) ? contacts : [];
+                if (!list.length) throw new Error('No admin contact available');
+                const admin = list.find((c) => String(c && c.role || '').toLowerCase() === 'admin') || list[0];
+                if (!admin || !admin._id) throw new Error('No admin contact available');
+                adminId = String(admin._id);
+                if (sendBtn) sendBtn.disabled = false;
+                if (chatMeta) chatMeta.textContent = 'Live MyChat support';
+            }
+
+            async function loadMessages() {
+                if (!adminId) return;
+                const wasAtBottom = isAtChatBottom(32);
+                const res = await fetch('/api/workflow/chat/messages?other_user_id=' + encodeURIComponent(adminId), {
+                    headers: { 'x-auth-token': token }
+                });
+                if (!res.ok) throw new Error('Failed messages');
+                const messages = await res.json();
+                const list = Array.isArray(messages) ? messages : [];
+
+                let newIncoming = 0;
+                const incomingIds = new Set();
+                list.forEach((m) => {
+                    const senderId = String((m && m.sender_id && (m.sender_id._id || m.sender_id.id)) || (m && m.sender_id) || '');
+                    if (!senderId || senderId === myUserId) return;
+                    const msgId = String((m && m._id) || '');
+                    if (!msgId) return;
+                    incomingIds.add(msgId);
+                    if (initializedMessageState && !knownIncomingMessageIds.has(msgId)) {
+                        newIncoming += 1;
+                    }
+                });
+                knownIncomingMessageIds = incomingIds;
+
+                if (!wasAtBottom && newIncoming > 0) {
+                    unseenIncomingCount += newIncoming;
+                    updateLatestTalkBadge();
+                }
+
+                renderMessages(list, { wasAtBottom });
+                if (!initializedMessageState) {
+                    initializedMessageState = true;
+                }
+
+                if (chatMeta) chatMeta.textContent = 'Live MyChat support';
+
+                // Scroll to and highlight message if messageId param is present
+                const urlParams = new URLSearchParams(window.location.search);
+                const highlightId = urlParams.get('messageId');
+                if (highlightId) {
+                    // Wait for DOM update
+                    setTimeout(() => {
+                        const el = messagesPanel.querySelector(`[data-message-id="${highlightId}"]`);
+                        if (el) {
+                            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            el.style.boxShadow = '0 0 0 3px #d4b468, 0 0 12px #745b18aa';
+                            el.style.transition = 'box-shadow 0.4s';
+                            setTimeout(() => {
+                                el.style.boxShadow = '';
+                            }, 2000);
+                        }
+                    }, 100);
+                }
+            }
+
+            async function sendMessage(text) {
+                const trimmed = String(text || '').trim();
+                if (!trimmed) return;
+                if (!adminId) {
+                    throw new Error('Admin is unavailable right now. Please retry in a moment.');
+                }
+                // Support reply
+                let replyTo = composerInput.getAttribute('data-reply-to');
+                const payload = { receiver_id: adminId, message: trimmed };
+                if (replyTo) payload.reply_to = replyTo;
+                const res = await fetch('/api/workflow/chat/messages', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-auth-token': token
+                    },
+                    body: JSON.stringify(payload)
+                });
+                if (!res.ok) {
+                    const raw = await res.text();
+                    throw new Error(raw || 'Failed to send');
+                }
+                composerInput.value = '';
+                clearReplyTarget();
+                await loadMessages();
+            }
+
+            async function sendComposedMessage(text, attachmentFile) {
+                const trimmed = String(text || '').trim();
+                const file = attachmentFile || null;
+                if (!trimmed && !file) return;
+                if (!adminId) {
+                    throw new Error('Admin is unavailable right now. Please retry in a moment.');
+                }
+
+                let message = trimmed;
+                if (file) {
+                    if (chatMeta) chatMeta.textContent = 'Uploading image...';
+                    const formData = new FormData();
+                    formData.append('file', file);
+                    const uploadRes = await fetch('/api/workflow/chat/upload', {
+                        method: 'POST',
+                        headers: {
+                            'x-auth-token': token
+                        },
+                        body: formData
+                    });
+                    if (!uploadRes.ok) throw new Error('Upload failed');
+                    const uploadData = await uploadRes.json();
+                    const imageTag = '[Image](' + uploadData.url + ')';
+                    message = message ? (message + '\n' + imageTag) : imageTag;
+                }
+
+                await sendMessage(message);
+                clearAttachmentSelection();
+                if (chatMeta) chatMeta.textContent = 'Live MyChat support';
+            }
+
+            if (postId || title) {
+                productBox.classList.remove('hidden');
+
+                // Send product context as a chat message every time user enters from product chat CTA.
+                (async function sendProductContextIfNeeded() {
+                    try {
+                        await hydrateProductContextFromPost();
+                        renderProductContext();
+                        await loadContacts();
+                        const productContext = {
+                            type: 'product_context',
+                            postId: productContextState.postId || '',
+                            title: productContextState.title || '',
+                            image: productContextState.image || '',
+                            price: productContextState.price || '',
+                            shipping: productContextState.shipping || '',
+                            category: productContextState.category || '',
+                            description: productContextState.description || ''
+                        };
+                        await fetch('/api/workflow/chat/messages', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'x-auth-token': token
+                            },
+                            body: JSON.stringify({ receiver_id: adminId, message: JSON.stringify(productContext) })
+                        });
+                        await loadMessages();
+                        if (composerInput) composerInput.value = '';
+                    } catch (err) {
+                        // ignore
+                    }
+                })();
+
+                if (composerInput) {
+                    composerInput.value = '';
+                }
+            }
+
+            if (composerForm && composerInput) {
+                composerForm.addEventListener('submit', async function (e) {
+                    e.preventDefault();
+                    const typed = (composerInput.value || '').trim();
+                    if (!typed && !selectedAttachmentFile) return;
+                    try {
+                        if (sendBtn) sendBtn.disabled = true;
+                        await sendComposedMessage(typed, selectedAttachmentFile);
+                    } catch (err) {
+                        if (chatMeta) chatMeta.textContent = (err && err.message) ? err.message : 'Could not send message. Please try again.';
+                    } finally {
+                        if (sendBtn) sendBtn.disabled = false;
+                    }
+                });
+            }
+
+            (async function init() {
+                if (sendBtn) sendBtn.disabled = true;
+                await hydrateProductContextFromPost();
+                renderProductContext();
+                loadRelated();
+                try {
+                    await loadContacts();
+                    await loadMessages();
+                    scrollToLatestTalk(false);
+                    pollId = window.setInterval(loadMessages, 5000);
+                } catch (err) {
+                    if (messagesPanel) messagesPanel.innerHTML = '<p class="muted">Messages will appear here. <button id="reloadChatBtn" style="margin-left:8px;">Reload</button></p>';
+                    const reloadBtn = document.getElementById('reloadChatBtn');
+                    if (reloadBtn) reloadBtn.onclick = function() { window.location.reload(); };
+                    if (chatMeta) chatMeta.textContent = 'Admin is unavailable right now. Please try again later.';
+                }
+            })();
+
+            window.addEventListener('beforeunload', function () {
+                if (pollId) window.clearInterval(pollId);
+            });
+        })();
+    </script>
+</body>
+</html>

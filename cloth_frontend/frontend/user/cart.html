@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shopping Bag - Yeshi</title>
+    <script>
+        (function () {
+            var token = localStorage.getItem('token');
+            var user = {};
+            try { user = JSON.parse(localStorage.getItem('user') || '{}') || {}; } catch (_) { user = {}; }
+            var status = String(user.status || '').toLowerCase();
+            var blocked = !!user.isBanned || status === 'banned' || status === 'inactive';
+            if (token && !blocked) return;
+            var next = encodeURIComponent(window.location.pathname + window.location.search + window.location.hash);
+            if (blocked) {
+                localStorage.removeItem('token');
+                localStorage.removeItem('role');
+                localStorage.removeItem('user');
+                localStorage.removeItem('loginTime');
+            }
+            window.location.replace('/user/login.html?next=' + next);
+            document.documentElement.innerHTML = '';
+            throw new Error('AUTH_REQUIRED');
+        })();
+    </script>
+    <link rel="icon" type="image/png" href="/images/logo.png">
+    <script>window.__yeshiWarnPatch=window.__yeshiWarnPatch||(()=>{const w=console.warn;console.warn=function(...a){if(String(a[0]||'').includes('cdn.tailwindcss.com should not be used in production'))return;return w.apply(console,a);};return true;})();</script>
+    <script src="https://cdn.tailwindcss.com?plugins=forms"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            primary: '#745b18',
+                            accent: '#d4b468',
+                            ink: '#1a1c1c',
+                            paper: '#faf9f9',
+                            muted: '#4d4639',
+                            border: '#d0c5b4',
+                            danger: '#ba1a1a',
+                            success: '#1aad19'
+                        }
+                    },
+                    boxShadow: {
+                        nav: '0 20px 40px rgba(26, 28, 28, 0.08)'
+                    },
+                    fontFamily: {
+                        body: ['Inter', 'sans-serif']
+                    }
+                }
+            }
+        };
+    </script>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body { margin: 0; }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            vertical-align: middle;
+        }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { scrollbar-width: none; }
+    </style>
+</head>
+
+<body class="bg-brand-paper font-body text-brand-ink antialiased yeshi-has-bottom-nav">
+<div id="notification-overlay" class="fixed inset-0 z-[100] hidden">
+        <div class="absolute inset-0 bg-black/40" data-close-notification></div>
+        <aside id="notification-drawer" class="absolute right-0 top-0 h-full w-[86%] max-w-sm translate-x-full bg-white shadow-2xl transition-transform duration-300">
+            <div class="flex h-full flex-col">
+                <div class="flex items-center justify-between p-5">
+                    <h2 class="text-base font-bold uppercase tracking-[0.2em]">Notifications</h2>
+                    <button type="button" data-close-notification class="rounded-full p-2 hover:bg-gray-100" aria-label="Close notifications">
+                        <span class="material-symbols-outlined">close</span>
+                    </button>
+                </div>
+                <div id="notificationList" class="flex-1 space-y-3 overflow-y-auto bg-gray-50 p-4 text-sm">
+                    <p class="text-brand-muted">Loading notifications...</p>
+                </div>
+            </div>
+        </aside>
+    </div>
+
+    <section class="container" style="padding: 40px 1rem 2rem; max-width: 1100px; margin: 0 auto;">
+        <h1 style="margin: 0.5rem 0 0.25rem;">Shopping Bag</h1>
+        <p style="color: #4d4639; margin-bottom: 1rem;">Review saved clothes and continue ordering.</p>
+
+        <div id="bagActions" style="display:none; margin-bottom: 12px; gap: 8px;">
+            <button type="button" class="rounded-md border border-brand-border bg-white px-4 py-2 text-sm font-semibold" id="clearBagBtn">Clear Bag</button>
+        </div>
+
+        <div id="bagList" style="display:block;">
+            <p style="text-align:center; width:100%;">Loading bag...</p>
+        </div>
+    </section>
+
+    <script>
+        function isUserLoggedIn() {
+            return !!localStorage.getItem('token');
+        }
+
+        function applyMenuAuthState() {
+            const loginBtn = document.getElementById('mobileMenuLoginBtn');
+            const signupBtn = document.getElementById('mobileMenuSignupBtn');
+            const logoutBtn = document.getElementById('mobileMenuLogoutBtn');
+            const desktopLogin = document.getElementById('desktopLoginItem');
+            const desktopSignup = document.getElementById('desktopSignupItem');
+            const desktopLogout = document.getElementById('desktopLogoutItem');
+            const loggedIn = isUserLoggedIn();
+            if (loginBtn) loginBtn.classList.toggle('hidden', loggedIn);
+            if (signupBtn) signupBtn.classList.toggle('hidden', loggedIn);
+            if (logoutBtn) logoutBtn.classList.toggle('hidden', !loggedIn);
+            if (desktopLogin) desktopLogin.classList.toggle('hidden', loggedIn);
+            if (desktopSignup) desktopSignup.classList.toggle('hidden', loggedIn);
+            if (desktopLogout) desktopLogout.classList.toggle('hidden', !loggedIn);
+        }
+
+        function bindLogoutActions() {
+            document.querySelectorAll('[data-action="logout"]').forEach((el) => {
+                el.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    localStorage.removeItem('token');
+                    localStorage.removeItem('role');
+                    localStorage.removeItem('user');
+                    window.location.href = '/user/login.html';
+                });
+            });
+        }
+
+        function updateBagCountBadge() {
+            const badge = document.getElementById('bagCount');
+            if (!badge) return;
+            const count = getBagItems().length;
+            badge.textContent = String(count);
+            badge.classList.toggle('hidden', count <= 0);
+        }
+
+        function bindTopNavActions() {
+            const mobileToggle = document.getElementById('mobile-menu-toggle');
+            const mobileMenu = document.getElementById('mobile-menu');
+            if (mobileToggle && mobileMenu) {
+                mobileToggle.addEventListener('click', function () {
+                    mobileMenu.classList.toggle('hidden');
+                });
+            }
+
+            const overlay = document.getElementById('notification-overlay');
+            const drawer = document.getElementById('notification-drawer');
+            const notificationTrigger = document.getElementById('notification-trigger');
+            if (overlay && drawer && notificationTrigger) {
+                notificationTrigger.addEventListener('click', function () {
+                    overlay.classList.remove('hidden');
+                    setTimeout(function () {
+                        drawer.classList.remove('translate-x-full');
+                    }, 10);
+                });
+                overlay.querySelectorAll('[data-close-notification]').forEach((el) => {
+                    el.addEventListener('click', function () {
+                        drawer.classList.add('translate-x-full');
+                        setTimeout(function () {
+                            overlay.classList.add('hidden');
+                        }, 250);
+                    });
+                });
+            }
+        }
+
+        function getBagItems() {
+            try {
+                const raw = localStorage.getItem('yeshi_bag');
+                const parsed = raw ? JSON.parse(raw) : [];
+                return Array.isArray(parsed) ? parsed : [];
+            } catch (_) {
+                return [];
+            }
+        }
+
+        function saveBagItems(items) {
+            localStorage.setItem('yeshi_bag', JSON.stringify(Array.isArray(items) ? items : []));
+        }
+
+        function escapeHtml(value) {
+            return String(value || '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        function formatPrice(value) {
+            const n = Number(value);
+            return Number.isFinite(n) && n > 0 ? n.toLocaleString() + ' ETB' : 'Price on request';
+        }
+
+        function removeFromBag(postId) {
+            const items = getBagItems().filter((item) => String(item.postId) !== String(postId));
+            saveBagItems(items);
+            renderBag();
+        }
+
+        function clearBag() {
+            saveBagItems([]);
+            renderBag();
+        }
+
+        function orderFromBag(postId, title) {
+            const next = '/user/order.html?postId=' + encodeURIComponent(postId) + '&title=' + encodeURIComponent(title || 'Selected cloth');
+            const token = localStorage.getItem('token');
+            if (!token) {
+                window.location.href = '/user/login.html?next=' + encodeURIComponent(next);
+                return;
+            }
+            window.location.href = next;
+        }
+
+        function renderBag() {
+            const container = document.getElementById('bagList');
+            const actions = document.getElementById('bagActions');
+            if (!container || !actions) return;
+
+            const items = getBagItems();
+            actions.style.display = items.length ? 'flex' : 'none';
+
+            if (!items.length) {
+                container.innerHTML = '<p style="text-align:center; width:100%;">Your shopping bag is empty.</p>';
+                return;
+            }
+
+            container.innerHTML = items.map((item) => {
+                const shipping = item.freeShipping
+                    ? 'Free shipping'
+                    : (Number.isFinite(Number(item.shippingPriceETB)) ? 'Shipping: ' + Number(item.shippingPriceETB).toLocaleString() + ' ETB' : '');
+                return [
+                    '<div class="rounded-xl bg-[#f4f3f3] p-4 shadow-sm" style="margin-bottom:12px;">',
+                        '<div style="display:flex; gap: 12px; align-items:flex-start;">',
+                            item.image ? '<img src="' + escapeHtml(item.image) + '" alt="' + escapeHtml(item.title) + '" style="width: 95px; height: 95px; object-fit: cover; border-radius: 10px; border: 1px solid rgba(0,0,0,0.08);">' : '',
+                            '<div style="min-width:0; flex:1;">',
+                                '<h3 style="margin:0 0 6px;">' + escapeHtml(item.title) + '</h3>',
+                                (item.category ? '<p style="margin:0 0 6px; color:#4d4639;">' + escapeHtml(item.category) + '</p>' : ''),
+                                '<div style="color:#ba1a1a; font-weight:800;">' + escapeHtml(formatPrice(item.priceETB)) + '</div>',
+                                (shipping ? '<div style="margin-top:4px; color:#745B18; font-weight:700;">' + escapeHtml(shipping) + '</div>' : ''),
+                                '<div style="display:flex; gap:8px; margin-top:10px; flex-wrap:wrap;">',
+                                    '<button type="button" class="rounded-md bg-gradient-to-r from-brand-primary to-brand-accent px-3 py-2 text-xs font-bold uppercase tracking-wide text-white" data-buy-post-id="' + escapeHtml(item.postId) + '" data-buy-title="' + escapeHtml(item.title) + '">Buy from Bag</button>',
+                                    '<button type="button" class="rounded-md border border-brand-border bg-white px-3 py-2 text-xs font-bold uppercase tracking-wide" data-remove-post-id="' + escapeHtml(item.postId) + '">Remove</button>',
+                                '</div>',
+                            '</div>',
+                        '</div>',
+                    '</div>'
+                ].join('');
+            }).join('');
+
+            container.querySelectorAll('[data-buy-post-id]').forEach((btn) => {
+                btn.addEventListener('click', function () {
+                    const postId = btn.getAttribute('data-buy-post-id') || '';
+                    const title = btn.getAttribute('data-buy-title') || 'Selected cloth';
+                    orderFromBag(postId, title);
+                });
+            });
+
+            container.querySelectorAll('[data-remove-post-id]').forEach((btn) => {
+                btn.addEventListener('click', function () {
+                    const postId = btn.getAttribute('data-remove-post-id') || '';
+                    removeFromBag(postId);
+                });
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            applyMenuAuthState();
+            bindLogoutActions();
+            bindTopNavActions();
+            document.getElementById('clearBagBtn')?.addEventListener('click', clearBag);
+            renderBag();
+            updateBagCountBadge();
+        });
+    </script>
+
+    <script src="/js/main.js"></script>
+</body>
+</html>
+
+
+
+
+
+
+
+

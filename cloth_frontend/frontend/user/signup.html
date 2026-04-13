@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign Up - Yeshi</title>
+    <link rel="icon" type="image/png" href="/images/logo.png">
+    <meta name="theme-color" content="#1E4B35">
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="/css/auth.css">
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+</head>
+<body class="auth-page">
+
+    <main class="auth-shell auth-shell-single" role="main">
+        <section class="auth-panel" aria-label="Register form">
+            <div class="auth-panel-logo"><img src="/images/logo.png" alt="Yeshi"></div>
+            <h2>Create account</h2>
+            <p>Fill in your details below.</p>
+
+            <form id="signupForm" class="auth-form">
+                <div class="form-group">
+                    <label for="firstName">First name</label>
+                    <input type="text" id="firstName" class="form-control" autocomplete="given-name" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="fatherName">Father’s name</label>
+                    <input type="text" id="fatherName" class="form-control" autocomplete="additional-name">
+                </div>
+
+                <div class="form-group">
+                    <label for="age">Age</label>
+                    <input type="number" id="age" class="form-control" min="1" max="150" autocomplete="bday-year" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="sex">Sex</label>
+                    <select id="sex" class="form-control" required>
+                        <option value="">Select sex</option>
+                        <option value="male">Male</option>
+                        <option value="female">Female</option>
+                        <option value="other">Other</option>
+                        <option value="prefer_not_to_say">Prefer not to say</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <input type="text" id="email" class="form-control" autocomplete="email" inputmode="email" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="phone">Phone</label>
+                    <input type="text" id="phone" class="form-control" autocomplete="tel" inputmode="tel" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <div class="password-row">
+                        <input type="password" id="password" class="form-control" autocomplete="new-password" required>
+                        <button type="button" class="password-toggle" data-toggle-password="password" aria-label="Show password">Show</button>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="confirmPassword">Re-enter password</label>
+                    <div class="password-row">
+                        <input type="password" id="confirmPassword" class="form-control" autocomplete="new-password" required>
+                        <button type="button" class="password-toggle" data-toggle-password="confirmPassword" aria-label="Show confirmation password">Show</button>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="profileImage">Profile picture (optional)</label>
+                    <input type="file" id="profileImage" class="form-control" accept="image/*">
+                </div>
+
+                <div class="auth-actions">
+                    <button type="submit" class="btn">Create account</button>
+                </div>
+            </form>
+
+            <div class="auth-divider"><span>or</span></div>
+            <div id="googleSignIn" class="google-signin"></div>
+
+            <div class="auth-links">
+                <div>Already have an account? <a class="secondary" href="/auth/login">Login</a></div>
+                <div><a href="/index.html">Continue browsing</a></div>
+            </div>
+            <div class="auth-hint">By creating an account, you can order and comment.</div>
+        </section>
+    </main>
+
+    <script src="/js/auth.js?v=20260402"></script>
+    <script>
+        (function () {
+            function togglePassword(targetId, button) {
+                var input = document.getElementById(targetId);
+                if (!input) return;
+                var isPassword = input.type === 'password';
+                input.type = isPassword ? 'text' : 'password';
+                button.textContent = isPassword ? 'Hide' : 'Show';
+                button.setAttribute('aria-label', isPassword ? 'Hide password' : 'Show password');
+            }
+
+            document.addEventListener('click', function (e) {
+                var btn = e.target && e.target.closest ? e.target.closest('[data-toggle-password]') : null;
+                if (!btn) return;
+                var id = btn.getAttribute('data-toggle-password');
+                togglePassword(id, btn);
+            });
+        })();
+    </script>
+</body>
+</html>
