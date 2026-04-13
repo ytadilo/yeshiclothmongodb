@@ -27,7 +27,8 @@ Set these in Render -> Environment.
 - FIREBASE_WEB_MESSAGING_SENDER_ID=<firebase sender id>
 - FIREBASE_WEB_MEASUREMENT_ID=<optional analytics id>
 - JWT_SECRET=0f9c3b8d7e2a41b6c5d9f1a8e7b3c2d4a6f9e1b7c8d2a3f5e6b1c9d4a7f2e8c1
-- CORS_ORIGINS=https://myclothefullstack.vercel.app
+- PUBLIC_BASE_URL=https://www.yeshiclothe.com.et
+- CORS_ORIGINS=https://www.yeshiclothe.com.et
 - NODE_ENV=production
 
 ## Notes

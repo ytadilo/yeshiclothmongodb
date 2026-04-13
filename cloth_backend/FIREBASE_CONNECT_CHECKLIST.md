@@ -13,7 +13,7 @@ Use this checklist to fully connect backend + frontend to Firebase.
    - FIREBASE_CLIENT_EMAIL
    - FIREBASE_PRIVATE_KEY
 4. Allowed frontend origin configured in backend CORS:
-   - https://myclothefullstack.vercel.app
+   - https://www.yeshiclothe.com.et
 
 ## What you should do now
 
@@ -22,7 +22,8 @@ Use this checklist to fully connect backend + frontend to Firebase.
    - FIREBASE_PROJECT_ID=clotheyeshi
    - FIREBASE_CLIENT_EMAIL=<from service account>
    - FIREBASE_PRIVATE_KEY=<from service account private key>
-   - CORS_ORIGINS=https://myclothefullstack.vercel.app
+   - PUBLIC_BASE_URL=https://www.yeshiclothe.com.et
+   - CORS_ORIGINS=https://www.yeshiclothe.com.et
    - JWT_SECRET=<strong-random-secret>
 2. Deploy backend.
 3. Update frontend proxy target:

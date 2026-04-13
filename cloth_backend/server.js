@@ -178,33 +178,33 @@ async function ensureAdminPageAccess(req, res, next) {
 
     const token = req.header('x-auth-token') || req.query.token || getCookieValue(req, 'yeshi_token');
     if (!token) {
-        return res.redirect(302, '/user/login.html');
+        return res.redirect(302, '/admin/login');
     }
 
     try {
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
         const userId = decoded && decoded.user && decoded.user.id;
         if (!userId) {
-            return res.redirect(302, '/user/login.html');
+            return res.redirect(302, '/admin/login');
         }
 
         const dbUser = await User.findById(userId).select('role status isBanned').lean();
         if (!dbUser) {
-            return res.redirect(302, '/user/login.html');
+            return res.redirect(302, '/admin/login');
         }
 
         const status = dbUser.status || (dbUser.isBanned ? 'banned' : 'active');
         if (status === 'banned' || status === 'inactive' || dbUser.isBanned) {
-            return res.redirect(302, '/user/login.html');
+            return res.redirect(302, '/admin/login');
         }
 
         if (String(dbUser.role || '').toLowerCase() !== 'admin') {
-            return res.redirect(302, '/user/login.html');
+            return res.redirect(302, '/admin/login');
         }
 
         return next();
     } catch (_) {
-        return res.redirect(302, '/user/login.html');
+        return res.redirect(302, '/admin/login');
     }
 }
 
@@ -233,9 +233,21 @@ app.use(
 
 // Optional frontend serving (local dev only). On Render this repo is API-only,
 // so avoid throwing ENOENT errors when frontend files are missing.
-const frontendRoot = path.join(__dirname, '../frontend');
+const frontendRootCandidates = [
+    path.join(__dirname, '../frontend'),
+    path.join(__dirname, '../cloth_frontend/frontend')
+];
+const frontendRoot = frontendRootCandidates.find((candidate) => fs.existsSync(path.join(candidate, 'user'))) || frontendRootCandidates[0];
 const userRoot = path.join(frontendRoot, 'user');
+const adminRoot = path.join(frontendRoot, 'admin');
 const hasFrontend = fs.existsSync(frontendRoot) && fs.existsSync(userRoot);
+
+function sendFrontendFile(res, filePath) {
+    if (!filePath || !fs.existsSync(filePath)) {
+        return res.status(404).type('text').send('Frontend page not found');
+    }
+    return res.sendFile(filePath);
+}
 
 if (hasFrontend) {
     app.use(express.static(frontendRoot));
@@ -250,8 +262,6 @@ app.use('/api/auth', require('./routes/auth'));
 app.use('/api/orders', require('./routes/orders'));
 app.use('/api/posts', require('./routes/posts'));
 app.use('/api/products', require('./routes/products'));
-app.use('/api/jobs', require('./routes/jobs'));
-app.use('/api/deliveries', require('./routes/deliveries'));
 app.use('/api/exchange', require('./routes/exchange'));
 app.use('/api/workflow', require('./routes/workflow'));
 app.use('/api/uploads', require('./routes/uploads'));
@@ -266,7 +276,7 @@ app.use('/api/backup', require('./routes/backup'));
 // We map /admin/* to the HTML files in frontend/admin/
 if (hasFrontend) {
     app.get('/admin/login', (req, res) => {
-        res.sendFile(path.join(__dirname, '../frontend/admin/login.html'));
+        return sendFrontendFile(res, path.join(adminRoot, 'login.html'));
     });
 
 // Backward-compatible admin login URLs
@@ -275,51 +285,43 @@ if (hasFrontend) {
     });
 
     app.get('/admin/forgot-password', (req, res) => {
-        res.sendFile(path.join(__dirname, '../frontend/admin/forgot-password.html'));
+        return sendFrontendFile(res, path.join(adminRoot, 'forgot-password.html'));
     });
 
     app.get('/admin/verify-otp', (req, res) => {
-        res.sendFile(path.join(__dirname, '../frontend/admin/verify-otp.html'));
+        return sendFrontendFile(res, path.join(adminRoot, 'verify-otp.html'));
     });
 
     app.get('/admin/reset-password', (req, res) => {
-        res.sendFile(path.join(__dirname, '../frontend/admin/reset-password.html'));
+        return sendFrontendFile(res, path.join(adminRoot, 'reset-password.html'));
     });
 
     app.get('/admin/users', (req, res) => {
-        res.sendFile(path.join(__dirname, '../frontend/admin/users.html'));
-    });
-
-    app.get('/admin/employee-management', (req, res) => {
-        res.redirect(302, '/admin/users?role=employee');
-    });
-
-    app.get('/admin/delivery-management', (req, res) => {
-        res.redirect(302, '/admin/users?role=driver');
+        return sendFrontendFile(res, path.join(adminRoot, 'users.html'));
     });
 
     app.get('/admin/orders', (req, res) => {
-        res.sendFile(path.join(__dirname, '../frontend/admin/orders.html'));
+        return sendFrontendFile(res, path.join(adminRoot, 'orders.html'));
     });
 
     app.get('/admin/order-stats', (req, res) => {
-        res.sendFile(path.join(__dirname, '../frontend/admin/order-stats.html'));
+        return sendFrontendFile(res, path.join(adminRoot, 'order-stats.html'));
     });
 
     app.get('/admin/links', (req, res) => {
-        res.sendFile(path.join(__dirname, '../frontend/admin/links.html'));
+        return sendFrontendFile(res, path.join(adminRoot, 'links.html'));
     });
 
     app.get('/admin/posts', (req, res) => {
-        res.sendFile(path.join(__dirname, '../frontend/admin/posts.html'));
+        return sendFrontendFile(res, path.join(adminRoot, 'posts.html'));
     });
 
     app.get('/admin/workflow', (req, res) => {
-        res.sendFile(path.join(__dirname, '../frontend/admin/workflow.html'));
+        return sendFrontendFile(res, path.join(adminRoot, 'workflow.html'));
     });
 
     app.get('/admin/products', (req, res) => {
-        res.sendFile(path.join(__dirname, '../frontend/admin/products.html'));
+        return sendFrontendFile(res, path.join(adminRoot, 'products.html'));
     });
 
 // Admin Dashboard - Generic catch for /admin that isn't login/recovery
@@ -330,80 +332,32 @@ if (hasFrontend) {
 
 // Auth pages (user)
     app.get('/auth/login', (req, res) => {
-        res.sendFile(path.join(userRoot, 'login.html'));
+        return sendFrontendFile(res, path.join(userRoot, 'login.html'));
     });
 
     app.get('/auth/forgot-password', (req, res) => {
-        res.sendFile(path.join(userRoot, 'forgot-password.html'));
+        return sendFrontendFile(res, path.join(userRoot, 'forgot-password.html'));
     });
 
     app.get('/auth/reset-password', (req, res) => {
-        res.sendFile(path.join(userRoot, 'reset-password.html'));
+        return sendFrontendFile(res, path.join(userRoot, 'reset-password.html'));
     });
 
     app.get(['/auth/register', '/auth/signup'], (req, res) => {
-        res.sendFile(path.join(userRoot, 'signup.html'));
+        return sendFrontendFile(res, path.join(userRoot, 'signup.html'));
     });
 
     app.get('/shop', (req, res) => {
-        res.sendFile(path.join(userRoot, 'shop.html'));
+        return sendFrontendFile(res, path.join(userRoot, 'shop.html'));
     });
 
     app.get('/checkout', (req, res) => {
-        res.sendFile(path.join(userRoot, 'checkout.html'));
+        return sendFrontendFile(res, path.join(userRoot, 'checkout.html'));
     });
 
 // Backward-compatible dashboard URLs
     app.get(['/dashboard', '/dashboard.html', '/frontend/dashboard.html'], (req, res) => {
         res.redirect(302, '/admin');
-    });
-
-    app.get('/employee', (req, res) => {
-        res.sendFile(path.join(__dirname, '../frontend/employee/dashboard.html'));
-    });
-
-    app.get('/employee/dashboard', (req, res) => {
-        res.sendFile(path.join(__dirname, '../frontend/employee/dashboard.html'));
-    });
-
-    app.get('/employee/jobs', (req, res) => {
-        res.sendFile(path.join(__dirname, '../frontend/employee/jobs.html'));
-    });
-
-    app.get('/employee/offers', (req, res) => {
-        res.sendFile(path.join(__dirname, '../frontend/employee/offers.html'));
-    });
-
-    app.get('/employee/chat', (req, res) => {
-        res.sendFile(path.join(__dirname, '../frontend/employee/chat.html'));
-    });
-
-    app.get('/employee/notifications', (req, res) => {
-        res.sendFile(path.join(__dirname, '../frontend/employee/notifications.html'));
-    });
-
-    app.get('/driver', (req, res) => {
-        res.sendFile(path.join(__dirname, '../frontend/driver/dashboard.html'));
-    });
-
-    app.get('/driver/dashboard', (req, res) => {
-        res.sendFile(path.join(__dirname, '../frontend/driver/dashboard.html'));
-    });
-
-    app.get('/driver/jobs', (req, res) => {
-        res.sendFile(path.join(__dirname, '../frontend/driver/jobs.html'));
-    });
-
-    app.get('/driver/offers', (req, res) => {
-        res.sendFile(path.join(__dirname, '../frontend/driver/offers.html'));
-    });
-
-    app.get('/driver/chat', (req, res) => {
-        res.sendFile(path.join(__dirname, '../frontend/driver/chat.html'));
-    });
-
-    app.get('/driver/notifications', (req, res) => {
-        res.sendFile(path.join(__dirname, '../frontend/driver/notifications.html'));
     });
 }
 

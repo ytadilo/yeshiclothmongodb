@@ -1015,7 +1015,7 @@ exports.getOrders = async (req, res) => {
             let profileByUserId = new Map();
             if (userIds.length) {
                 const users = await User.find({ _id: { $in: userIds } })
-                    .select('fullName fatherName email phone age sex profileImage role approval_status status')
+                    .select('fullName fatherName email phone age sex profileImage role status')
                     .lean();
                 profileByUserId = new Map(
                     users.map((u) => [String(u._id), {
@@ -1027,7 +1027,6 @@ exports.getOrders = async (req, res) => {
                         sex: u.sex || '',
                         profileImage: u.profileImage || '',
                         role: u.role || 'customer',
-                        approval_status: u.approval_status || 'APPROVED',
                         status: u.status || 'active'
                     }])
                 );
@@ -1078,12 +1077,6 @@ exports.updateOrder = async (req, res) => {
         }
 
         order.order_status = deriveOrderStatus(order.payment_status, order.sewing_status, order.order_status);
-
-        // Handle driver assignment
-        if (req.body.assigned_driver) {
-            order.assigned_driver = req.body.assigned_driver;
-            order.driver_assigned_at = new Date();
-        }
 
         // Handle estimated delivery
         if (req.body.estimated_delivery) {

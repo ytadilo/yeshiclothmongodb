@@ -150,7 +150,7 @@ const OrderSchema = new mongoose.Schema({
             'Payment Confirmed',      // Payment verified
             'Preparing',              // Being prepared/packed
             'Shipped',                // Shipped to carrier
-            'Out for Delivery',      // With driver
+            'Out for Delivery',       // In local transit
             'Delivered',              // Delivered to customer
             'Cancelled'               // Order cancelled
         ], 
@@ -163,16 +163,8 @@ const OrderSchema = new mongoose.Schema({
         days_min: Number,
         days_max: Number
     },
-    
-    // Driver assignment for delivery
-    assigned_driver: { 
-        type: mongoose.Schema.Types.ObjectId, 
-        ref: 'User' 
-    },
-    driver_assigned_at: Date,
-    picked_up_at: Date,
+
     delivered_at: Date,
-    delivery_proof_image: String,
     
     // Customer notes
     customer_notes: String,
@@ -189,7 +181,6 @@ const OrderSchema = new mongoose.Schema({
 OrderSchema.index({ user_id: 1, created_at: -1 });
 OrderSchema.index({ 'customer_info.phone': 1 });
 OrderSchema.index({ order_status: 1 });
-OrderSchema.index({ assigned_driver: 1 });
 OrderSchema.index({ order_type: 1 });
 
 // Pre-save middleware

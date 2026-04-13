@@ -28,6 +28,7 @@
         })();
     </script>
     <link rel="icon" type="image/png" href="/images/logo.png">
+    <script defer src="/js/adsense.js"></script>
     <script>window.__yeshiWarnPatch=window.__yeshiWarnPatch||(()=>{const w=console.warn;console.warn=function(...a){if(String(a[0]||'').includes('cdn.tailwindcss.com should not be used in production'))return;return w.apply(console,a);};return true;})();</script>
     <script src="https://cdn.tailwindcss.com?plugins=forms"></script>
     <script>
@@ -261,7 +262,7 @@
                     localStorage.removeItem('token');
                     localStorage.removeItem('role');
                     localStorage.removeItem('user');
-                    window.location.href = '/user/login.html';
+                        window.location.href = '/auth/login';
                 });
             });
         }
@@ -418,7 +419,7 @@
             const myId = getCurrentUserId();
             if (!token || !myId) {
                 subtitle.textContent = 'Login to see your liked products.';
-                grid.innerHTML = '<div class="empty"><p class="muted">You are not logged in.</p><p><a class="btn btn-primary" href="/user/login.html?next=' + encodeURIComponent('/user/favorites') + '">Login</a></p></div>';
+                grid.innerHTML = '<div class="empty"><p class="muted">You are not logged in.</p><p><a class="btn btn-primary" href="/auth/login?next=' + encodeURIComponent('/favorites') + '">Login</a></p></div>';
                 return;
             }
 

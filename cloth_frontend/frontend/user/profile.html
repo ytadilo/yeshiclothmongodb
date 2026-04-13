@@ -32,6 +32,7 @@
         })();
     </script>
     <link rel="icon" type="image/png" href="/images/logo.png">
+    <script defer src="/js/adsense.js"></script>
     <link rel="stylesheet" href="/css/style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
@@ -574,10 +575,13 @@
             const fullName = getDisplayName(user);
             const email = getDisplayEmail(user);
             const imageUrl = getProfileImage(user);
+            const statusLabel = user.role === 'admin'
+                ? 'ADMIN ACCOUNT'
+                : (String(user.status || '').toLowerCase() === 'inactive' ? 'INACTIVE ACCOUNT' : 'HERITAGE MEMBER');
 
             setText('profileName', fullName);
             setText('profileEmail', email);
-            setText('profileStatus', user.role === 'admin' ? 'ADMIN ACCOUNT' : (user.approval_status || 'HERITAGE MEMBER'));
+            setText('profileStatus', statusLabel);
 
             renderProfileDetails({
                 ...user,
@@ -695,7 +699,7 @@
         async function persistProfilePatch(patch, statusEl) {
             const token = localStorage.getItem('token');
             if (!token) {
-                window.location.href = '/user/login.html';
+                    window.location.href = '/auth/login';
                 return null;
             }
 

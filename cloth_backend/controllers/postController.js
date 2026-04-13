@@ -101,11 +101,6 @@ async function findPostByRequest(req) {
 }
 
 function ensureCanAccessPublicPosts(req, res) {
-    const role = req?.user?.role;
-    if (role === 'employee' || role === 'driver') {
-        res.status(403).json({ msg: 'Worker and delivery accounts cannot access customer product posts' });
-        return false;
-    }
     return true;
 }
 

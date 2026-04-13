@@ -6,7 +6,13 @@ Firebase migration is in progress for backend and frontend integration.
 
 - Backend API: `cloth_backend` (Node.js/Express + Firebase Admin)
 - Frontend app: `cloth_frontend` (deployed on Vercel)
-- Frontend URL: `https://myclothefullstack.vercel.app/`
+- Frontend URL: `https://www.yeshiclothe.com.et/`
+- Supported roles: `admin`, `customer`
+
+## Current product scope
+
+- High-level role and backend capability summary: `ADMIN_USER_FUNCTIONS.md`
+- Page-by-page admin and user interface inventory: `ADMIN_USER_INTERFACE_INVENTORY.md`
 
 ## Firebase connection quick start
 

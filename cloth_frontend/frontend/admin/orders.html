@@ -641,7 +641,7 @@
                 if ((err?.message || '').toLowerCase().includes('token')) {
                     localStorage.removeItem('token');
                     localStorage.removeItem('user');
-                    window.location.href = '/frontend/user/login.html';
+                        window.location.href = '/admin/login';
                 }
             }
         }

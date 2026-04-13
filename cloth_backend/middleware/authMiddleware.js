@@ -57,7 +57,7 @@ module.exports = async function (req, res, next) {
         req.user = decoded.user;
 
         // Enforce active account (blocks inactive/banned even if token is valid)
-        const dbUser = await User.findById(req.user.id).select('status isBanned role approval_status');
+        const dbUser = await User.findById(req.user.id).select('status isBanned role');
         if (!dbUser) {
             return res.status(401).json({ msg: 'User not found' });
         }
@@ -73,12 +73,8 @@ module.exports = async function (req, res, next) {
         // Keep role from DB authoritative
         req.user.role = dbUser.role;
 
-        // Approval gate for worker roles
-        if ((req.user.role === 'employee' || req.user.role === 'driver') && String(dbUser.approval_status || '').toUpperCase() !== 'APPROVED') {
-            const statusMsg = String(dbUser.approval_status || '').toUpperCase() === 'REJECTED'
-                ? 'Your account was rejected'
-                : 'Your account is pending approval';
-            return res.status(403).json({ msg: statusMsg });
+        if (req.user.role !== 'admin' && req.user.role !== 'customer') {
+            return res.status(403).json({ msg: 'This account type is no longer supported' });
         }
 
         if (req.user.role === 'admin' && !shouldSkipAdminDeviceCheck(req)) {

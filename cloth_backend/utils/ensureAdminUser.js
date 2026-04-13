@@ -24,10 +24,7 @@ async function ensureAdminUser() {
             role: 'admin',
             authProvider: 'local',
             status: 'active',
-            isBanned: false,
-            approval_status: 'APPROVED',
-            approved_by: null,
-            approval_date: new Date()
+            isBanned: false
         });
         console.log(`Admin bootstrap: created admin user ${adminEmail}`);
         return;
@@ -39,9 +36,6 @@ async function ensureAdminUser() {
     user.authProvider = 'local';
     user.status = 'active';
     user.isBanned = false;
-    user.approval_status = 'APPROVED';
-    user.approved_by = null;
-    user.approval_date = new Date();
 
     await user.save();
     console.log(`Admin bootstrap: updated admin user ${adminEmail}`);

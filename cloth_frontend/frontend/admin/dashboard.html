@@ -937,7 +937,7 @@
             const role = user?.role || localStorage.getItem('role');
 
             if (!token || role !== 'admin') {
-                window.location.href = '/frontend/user/login.html';
+                 window.location.href = '/admin/login';
                 return;
             }
 
@@ -1149,7 +1149,7 @@
                 if ((err?.message || '').toLowerCase().includes('token')) {
                     localStorage.removeItem('token');
                     localStorage.removeItem('user');
-                    window.location.href = '/frontend/user/login.html';
+                    window.location.href = '/admin/login';
                 }
             }
         }

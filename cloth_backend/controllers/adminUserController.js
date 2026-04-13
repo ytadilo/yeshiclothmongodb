@@ -32,18 +32,13 @@ exports.listUsers = async (req, res) => {
         }
 
         const roleFilter = String(req.query.role || '').trim().toLowerCase();
-        const approvalFilter = String(req.query.approval_status || '').trim().toUpperCase();
-
         const query = {};
-        if (roleFilter && ['admin', 'customer', 'employee', 'driver'].includes(roleFilter)) {
+        if (roleFilter && ['admin', 'customer'].includes(roleFilter)) {
             query.role = roleFilter;
-        }
-        if (approvalFilter && ['APPROVED', 'PENDING_APPROVAL', 'REJECTED'].includes(approvalFilter)) {
-            query.approval_status = approvalFilter;
         }
 
         const users = await User.find(query)
-            .select('fullName fatherName email phone age sex profileImage role status isBanned createdAt authProvider approval_status national_id national_id_image tin_number telebirr_account_number cbe_account_number legal_document_image has_required_tools approved_by approval_date blocked_status worker_rating')
+            .select('fullName fatherName email phone age sex profileImage role status isBanned createdAt authProvider')
             .sort({ createdAt: -1 });
 
         const result = users.map((u) => ({
@@ -58,18 +53,6 @@ exports.listUsers = async (req, res) => {
             role: u.role,
             authProvider: u.authProvider,
             status: getEffectiveStatus(u),
-            approval_status: u.approval_status || 'APPROVED',
-            national_id: u.national_id || '',
-            national_id_image: u.national_id_image || '',
-            tin_number: u.tin_number || '',
-            telebirr_account_number: u.telebirr_account_number || '',
-            cbe_account_number: u.cbe_account_number || '',
-            legal_document_image: u.legal_document_image || '',
-            has_required_tools: !!u.has_required_tools,
-            blocked_status: !!u.blocked_status,
-            worker_rating: Number(u.worker_rating || 0),
-            approved_by: u.approved_by || null,
-            approval_date: u.approval_date || null,
             createdAt: u.createdAt
         }));
 
@@ -92,19 +75,7 @@ exports.approveUser = async (req, res) => {
             return res.status(404).json({ msg: 'User not found' });
         }
 
-        if (!(user.role === 'employee' || user.role === 'driver')) {
-            return res.status(400).json({ msg: 'Only employee/driver accounts require approval' });
-        }
-
-        user.approval_status = 'APPROVED';
-        user.approved_by = req.user.id;
-        user.approval_date = new Date();
-        // Ensure active when approved
-        if (user.status !== 'active') user.status = 'active';
-
-        await user.save();
-        await writeAudit(req.user.id, 'USER_APPROVED', 'user', user._id, { role: user.role });
-        return res.json({ msg: 'Approved', user: { _id: user._id, approval_status: user.approval_status } });
+        return res.status(410).json({ msg: 'Account approval is no longer used.' });
     } catch (err) {
         console.error(err);
         return res.status(500).json({ msg: 'Server error' });
@@ -123,19 +94,7 @@ exports.rejectUser = async (req, res) => {
             return res.status(404).json({ msg: 'User not found' });
         }
 
-        if (!(user.role === 'employee' || user.role === 'driver')) {
-            return res.status(400).json({ msg: 'Only employee/driver accounts require approval' });
-        }
-
-        user.approval_status = 'REJECTED';
-        user.approved_by = req.user.id;
-        user.approval_date = new Date();
-        // Optionally inactivate on rejection
-        user.status = 'inactive';
-
-        await user.save();
-        await writeAudit(req.user.id, 'USER_REJECTED', 'user', user._id, { role: user.role });
-        return res.json({ msg: 'Rejected', user: { _id: user._id, approval_status: user.approval_status } });
+        return res.status(410).json({ msg: 'Account rejection is no longer used.' });
     } catch (err) {
         console.error(err);
         return res.status(500).json({ msg: 'Server error' });

@@ -7,7 +7,6 @@ const User = require('../models/User');
 const NotificationTypes = {
     ORDER: 'Order',
     DELIVERY: 'Delivery',
-    JOB: 'Job',
     SYSTEM: 'System',
     PAYMENT: 'Payment'
 };
@@ -31,18 +30,6 @@ const EmailTemplates = {
     PAYMENT_CONFIRMED: {
         subject: 'Payment Confirmed - Yeshi',
         getBody: (order) => `Payment for order #${order._id} has been confirmed.`
-    },
-    JOB_APPLICATION_RECEIVED: {
-        subject: 'Job Application Received - Yeshi',
-        getBody: (application) => `New application for ${application.job_id?.title || 'position'} received.`
-    },
-    JOB_APPLICATION_APPROVED: {
-        subject: 'Application Approved - Yeshi',
-        getBody: (application) => `Congratulations! Your application has been approved.`
-    },
-    JOB_APPLICATION_REJECTED: {
-        subject: 'Application Update - Yeshi',
-        getBody: (application) => `Your application status has been updated.`
     },
     ACCOUNT_CREATED: {
         subject: 'Welcome to Yeshi Traditional Clothes',
@@ -337,24 +324,13 @@ NotificationService.onPaymentConfirmed = async (order) => {
 /**
  * Handle order shipped event
  */
-NotificationService.onOrderShipped = async (order, driverId) => {
+NotificationService.onOrderShipped = async (order) => {
     // Notify customer
     if (order.user_id) {
         await NotificationService.notify(
             order.user_id,
             'Order Shipped',
             `Your order #${order._id} is on its way!`,
-            NotificationTypes.DELIVERY,
-            { orderId: order._id }
-        );
-    }
-
-    // Notify driver
-    if (driverId) {
-        await NotificationService.notify(
-            driverId,
-            'New Delivery Assigned',
-            `You have been assigned order #${order._id}.`,
             NotificationTypes.DELIVERY,
             { orderId: order._id }
         );
@@ -376,66 +352,6 @@ NotificationService.onOrderDelivered = async (order) => {
             { sendEmail: true, emailTemplate: 'ORDER_DELIVERED' }
         );
     }
-};
-
-/**
- * Handle job application submitted
- */
-NotificationService.onJobApplicationSubmitted = async (application) => {
-    // Notify admin
-    await NotificationService.notifyAdmin(
-        'New Job Application',
-        `New application for ${application.job_id?.title || 'position'} from ${application.full_name}`,
-        NotificationTypes.JOB,
-        { applicationId: application._id }
-    );
-
-    // Notify applicant
-    await NotificationService.notify(
-        application.applicant_id,
-        'Application Submitted',
-        'Your job application has been submitted successfully.',
-        NotificationTypes.JOB,
-        { applicationId: application._id },
-        { sendEmail: true, emailTemplate: 'JOB_APPLICATION_RECEIVED' }
-    );
-};
-
-/**
- * Handle job application status changed
- */
-NotificationService.onJobApplicationStatusChanged = async (application, oldStatus, newStatus) => {
-    const statusMessages = {
-        'Under Review': 'Your application is under review.',
-        'Approved': 'Congratulations! Your application has been approved.',
-        'Rejected': 'Your application has been reviewed. Unfortunately, we cannot proceed at this time.',
-        'Interview': 'You have been invited for an interview.'
-    };
-
-    const message = statusMessages[newStatus] || 'Your application status has been updated.';
-    
-    await NotificationService.notify(
-        application.applicant_id,
-        `Application ${newStatus}`,
-        message,
-        NotificationTypes.JOB,
-        { applicationId: application._id },
-        { sendEmail: ['Approved', 'Rejected'].includes(newStatus), emailTemplate: newStatus === 'Approved' ? 'JOB_APPLICATION_APPROVED' : 'JOB_APPLICATION_REJECTED' }
-    );
-};
-
-/**
- * Handle driver assigned
- */
-NotificationService.onDriverAssigned = async (order, driverId) => {
-    // Notify driver
-    await NotificationService.notify(
-        driverId,
-        'New Delivery Assignment',
-        `You have been assigned order #${order._id}. Please check your deliveries.`,
-        NotificationTypes.DELIVERY,
-        { orderId: order._id }
-    );
 };
 
 /**

@@ -2,11 +2,9 @@
 
 ## 1) Project Summary
 
-Yeshi is a multi-role tailoring and delivery web platform with:
+Yeshi is a tailoring and ordering web platform with:
 - **Customer/User** flows for browsing posts, placing orders, tracking orders, and chatting with admin.
-- **Admin** flows for managing users, posts, orders, workflow assignments, settings, notifications, and audit logs.
-- **Employee** flows for job offers and production-side communication.
-- **Driver** flows for delivery offers, delivery status updates, and communication.
+- **Admin** flows for managing users, posts, orders, settings, notifications, and audit logs.
 
 Current implementation uses:
 - Backend: **Node.js + Express + MongoDB (Mongoose)**
@@ -20,7 +18,7 @@ Current implementation uses:
 - `cloth_backend-/backend/`
   - API server, routes, controllers, middleware, models, utilities.
 - `cloth_frontend/frontend/`
-  - Static UI pages grouped by role (`admin/`, `user/`, `employee/`, `driver/`) and shared JS/CSS.
+  - Static UI pages grouped by active role areas (`admin/`, `user/`) and shared JS/CSS.
 - `netlify.toml` and `cloth_frontend/netlify.toml`
   - Deployment/proxy config for static frontend and API routing.
 
@@ -30,10 +28,8 @@ Current implementation uses:
 
 ### Backend responsibilities
 - Authentication and authorization (JWT + role checks)
-- User onboarding and approval process
 - Post management (catalog-like items)
 - Order creation and order lifecycle updates
-- Workflow orchestration (jobs, offers, assignment, production→delivery progression)
 - Chat, notifications, audit logs
 - File upload/download (documents, payment screenshots, reference images)
 - Site settings (branding/social links/content)
@@ -52,10 +48,9 @@ Current implementation uses:
 
 ## Admin
 Can:
-- Manage users: approve/reject worker/driver applications, update user status (`active`, `inactive`, `banned`), inspect devices, block/unblock devices.
+- Manage users: update user status (`active`, `inactive`, `banned`), inspect devices, block/unblock devices.
 - Manage posts (create/edit/delete).
 - View and update all orders and payment status.
-- Create and control workflow jobs; compare offers; assign employee/driver.
 - Manage chat, notifications, and audit logs.
 - Update site content/social settings.
 
@@ -66,24 +61,6 @@ Can:
 - Place orders with measurements, delivery method, payment screenshot, and reference images.
 - View own orders.
 - Chat with admin and receive notifications.
-
-## Employee
-Can:
-- View visible employee jobs.
-- Submit offers to jobs.
-- View own offer history.
-- Chat with admin only.
-- Receive notifications.
-
-## Driver
-Can:
-- View visible delivery jobs.
-- Submit offers to delivery jobs.
-- Update delivery status on assigned jobs.
-- Chat with admin only.
-- Receive notifications.
-
----
 
 ## 5) Authentication & Security Model
 
@@ -106,24 +83,14 @@ Can:
 - Blocked devices cannot login.
 - Admin can list and block/unblock devices.
 
-## Worker approval gate
-- Employee/driver accounts require approval (`PENDING_APPROVAL` → `APPROVED` or `REJECTED`).
-- Unapproved workers cannot login to worker flows.
-
----
-
 ## 6) Core Domain Models (MongoDB)
 
 - `User`
-  - Identity, role (`admin`, `customer`, `employee`, `driver`), auth provider, status, approval fields, worker compliance fields.
+  - Identity, role (`admin`, `customer`), auth provider, status, and profile fields.
 - `Post`
   - Catalog/content item with media, price, engagement (views/shares/likes/comments).
 - `Order`
   - Customer info, cloth details, measurements, reference images, payment info, order status.
-- `Job`
-  - Admin-controlled unit of work tied to order/post, assignment fields, workflow status, snapshots.
-- `Offer`
-  - Employee/driver proposals for a job (price/message/metadata).
 - `ChatMessage`
   - Direct messages (with optional job/delivery references).
 - `Notification`
@@ -137,32 +104,7 @@ Can:
 
 ---
 
-## 7) Workflow Lifecycle
-
-Primary job status values (`Job.status`):
-1. `EMPLOYEE_NEGOTIATION`
-2. `EMPLOYEE_ASSIGNED`
-3. `PRODUCTION_READY`
-4. `DRIVER_NEGOTIATION`
-5. `DRIVER_ASSIGNED`
-6. `DELIVERY_IN_PROGRESS`
-7. `COMPLETED`
-8. `CANCELLED`
-
-Delivery state (`Job.delivery_status`) is separate:
-- `NOT_STARTED`, `IN_PROGRESS`, `COMPLETED`, `DELAYED`
-
-Typical lifecycle:
-1. Admin creates job (employee or delivery type).
-2. Workers/drivers submit offers.
-3. Admin compares offers and assigns the best candidate.
-4. Admin marks production ready to move to delivery negotiation.
-5. Admin assigns driver.
-6. Driver updates delivery status until completion.
-
----
-
-## 8) Backend API Modules
+## 7) Backend API Modules
 
 All APIs are mounted under `/api/*` in `server.js`.
 
@@ -186,18 +128,12 @@ All APIs are mounted under `/api/*` in `server.js`.
 - Admin CRUD for posts
 
 ### `workflow` (`/api/workflow`)
-- Jobs CRUD-ish (admin create/update/list)
-- Offer submit/list/compare
-- Assign employee/driver
-- Production-ready transition
-- Delivery status updates
-- Production image uploads
 - Chat messages + block messaging
 - Notifications (list/unread/read/read-all/stream)
 - Audit logs (admin)
 
 ### `admin/users`, `admin/devices`, `admin/uploads`
-- User moderation/approval/status/device inspection
+- User moderation/status/device inspection
 - Device block/unblock
 - Admin upload endpoints
 
@@ -210,7 +146,7 @@ All APIs are mounted under `/api/*` in `server.js`.
 
 ---
 
-## 9) Frontend Pages and Role Areas
+## 8) Frontend Pages and Role Areas
 
 ## Public/User pages
 - Home, about, contact, how-it-works, size-guide, auth pages, order forms, my-orders, single post view.
@@ -238,7 +174,7 @@ All APIs are mounted under `/api/*` in `server.js`.
 
 ---
 
-## 10) Notification and Realtime Design
+## 9) Notification and Realtime Design
 
 - Notifications are persisted in DB (`Notification`).
 - Realtime pushes use SSE endpoint: `/api/workflow/notifications/stream?token=...`.
@@ -246,7 +182,7 @@ All APIs are mounted under `/api/*` in `server.js`.
 
 ---
 
-## 11) File Upload & Access Rules
+## 10) File Upload & Access Rules
 
 Uploads endpoint: `/api/uploads/:id`
 - Public uploads can be accessed directly.

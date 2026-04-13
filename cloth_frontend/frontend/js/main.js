@@ -365,7 +365,7 @@ function checkSessionExpiry() {
 
     if (isProtectedUserPath(window.location.pathname)) {
         const next = encodeURIComponent(window.location.pathname + window.location.search + window.location.hash);
-        window.location.replace('/user/login.html?next=' + next);
+            window.location.replace('/auth/login?next=' + next);
         return true;
     }
 
@@ -592,7 +592,7 @@ function enforceUserGuestAccessPolicy() {
         localStorage.removeItem('user');
         localStorage.removeItem('loginTime');
     }
-    window.location.replace('/user/login.html?next=' + next);
+    window.location.replace('/auth/login?next=' + next);
     return true;
 }
 

@@ -11,6 +11,7 @@ const Upload = require('../models/Upload');
 const { getFirebaseAdmin } = require('../utils/firebase');
 
 const ALLOWED_SEXES = new Set(['male', 'female', 'other', 'prefer_not_to_say']);
+const DEFAULT_PUBLIC_BASE_URL = 'https://www.yeshiclothe.com.et';
 
 function getDeviceHashFromReq(req) {
     const rawId = String(req.header('x-device-id') || '').trim();
@@ -76,6 +77,21 @@ function issueJwt(res, user) {
 
 function normalizeEmail(email) {
     return String(email || '').trim().toLowerCase();
+}
+
+function normalizeBaseUrl(value) {
+    const raw = String(value || '').trim();
+    if (!/^https?:\/\//i.test(raw)) return '';
+    return raw.replace(/\/+$/, '');
+}
+
+function escapeHtml(value) {
+    return String(value || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
 }
 
 const RESERVED_ADMIN_EMAIL = normalizeEmail(process.env.ADMIN_EMAIL || 'hailetadilo@gmail.com');
@@ -223,9 +239,6 @@ function applyFirebaseProfileToUser(user, userRecord, providerIds) {
     if (!user.status) {
         user.status = 'active';
     }
-    if (!user.approval_status) {
-        user.approval_status = 'APPROVED';
-    }
     if (!user.createdAt) {
         user.createdAt = parseMaybeDate(userRecord?.metadata?.creationTime) || new Date();
     }
@@ -319,7 +332,6 @@ function serializeUser(user) {
         firebaseUid: user.firebaseUid || '',
         status: user.status || 'active',
         isBanned: !!user.isBanned,
-        approval_status: user.approval_status || 'APPROVED',
         shipping_addresses: shippingAddresses,
         measurement_profiles: measurementProfiles,
         default_shipping_address_id: user.default_shipping_address_id || '',
@@ -408,12 +420,7 @@ exports.register = async (req, res) => {
         password,
         age,
         sex,
-        phone,
-        role,
-        tin_number,
-        telebirr_account_number,
-        cbe_account_number,
-        has_required_tools
+        phone
     } = req.body;
     try {
         const normalizedEmail = normalizeEmail(email);
@@ -457,106 +464,11 @@ exports.register = async (req, res) => {
         const salt = await bcrypt.genSalt(10);
         const passwordHash = await bcrypt.hash(password, salt);
 
-        const requestedRoleRaw = String(role || '').trim().toLowerCase();
-        const requestedRole = (requestedRoleRaw === 'employee' || requestedRoleRaw === 'driver')
-            ? requestedRoleRaw
-            : 'customer';
-
-        const isWorker = requestedRole === 'employee' || requestedRole === 'driver';
-        const toolsConfirmed = String(has_required_tools || '').toLowerCase();
-        const hasTools = toolsConfirmed === 'true' || toolsConfirmed === '1' || has_required_tools === true;
-
-        // Worker registration requires extra fields + document
-        let legalDocUrl = '';
-        let nationalIdImageUrl = '';
         let profileImageUrl = '';
         const profileImageFile = req.files?.profileImage?.[0];
         const profileImageUpload = await storeUpload(profileImageFile, null, 'profile_image', 'public');
         if (profileImageUpload) {
             profileImageUrl = profileImageUpload.url;
-        }
-        if (isWorker) {
-            if (!String(tin_number || '').trim()) {
-                return res.status(400).json({ msg: 'TIN number is required' });
-            }
-            if (!String(telebirr_account_number || '').trim()) {
-                return res.status(400).json({ msg: 'Telebirr account number is required' });
-            }
-            if (!String(cbe_account_number || '').trim()) {
-                return res.status(400).json({ msg: 'CBE account number is required' });
-            }
-            if (!hasTools) {
-                return res.status(400).json({ msg: 'You must confirm you have the required tools' });
-            }
-
-            const legalFile = req.files?.legalDocument?.[0];
-            const nationalFile = req.files?.nationalIdPhoto?.[0];
-
-            if (!nationalFile || !nationalFile.buffer) {
-                return res.status(400).json({ msg: 'National ID photo is required' });
-            }
-            if (!legalFile || !legalFile.buffer) {
-                return res.status(400).json({ msg: 'Legal document photo is required' });
-            }
-
-            const nationalUpload = await Upload.create({
-                originalName: nationalFile.originalname,
-                mimeType: nationalFile.mimetype,
-                size: nationalFile.size,
-                data: nationalFile.buffer,
-                visibility: 'private',
-                owner_user_id: null,
-                purpose: 'national_id_document'
-            });
-            nationalIdImageUrl = '/api/uploads/' + nationalUpload._id;
-
-            const legalUpload = await Upload.create({
-                originalName: legalFile.originalname,
-                mimeType: legalFile.mimetype,
-                size: legalFile.size,
-                data: legalFile.buffer,
-                visibility: 'private',
-                owner_user_id: null, // fill after user creation
-                purpose: 'legal_document'
-            });
-            legalDocUrl = '/api/uploads/' + legalUpload._id;
-
-            user = new User({
-                fullName: displayName,
-                fatherName,
-                email: normalizedEmail,
-                passwordHash,
-                phone,
-                age: parsedAge,
-                sex: normalizedSex,
-                profileImage: profileImageUrl,
-                role: requestedRole,
-                authProvider: 'local',
-                national_id: '',
-                national_id_image: nationalIdImageUrl,
-                tin_number: String(tin_number).trim(),
-                telebirr_account_number: String(telebirr_account_number).trim(),
-                cbe_account_number: String(cbe_account_number).trim(),
-                legal_document_image: legalDocUrl,
-                has_required_tools: true,
-                approval_status: 'PENDING_APPROVAL',
-                approved_by: null,
-                approval_date: null
-            });
-
-            await user.save();
-            // Now that we have user id, attach ownership to upload
-            await Upload.findByIdAndUpdate(nationalUpload._id, { $set: { owner_user_id: user._id } }).catch(() => {});
-            await Upload.findByIdAndUpdate(legalUpload._id, { $set: { owner_user_id: user._id } }).catch(() => {});
-            if (profileImageUpload?.uploadDoc) {
-                await Upload.findByIdAndUpdate(profileImageUpload.uploadDoc._id, { $set: { owner_user_id: user._id } }).catch(() => {});
-            }
-
-            return res.status(201).json({
-                msg: 'Registration submitted. Please wait for admin approval before logging in.',
-                approval_status: 'PENDING_APPROVAL',
-                role: requestedRole
-            });
         }
 
         user = new User({
@@ -572,11 +484,6 @@ exports.register = async (req, res) => {
             role: 'customer',
             authProvider: 'local'
         });
-
-        // Customers are approved by default
-        user.approval_status = 'APPROVED';
-        user.approved_by = null;
-        user.approval_date = new Date();
 
         await user.save();
 
@@ -618,12 +525,8 @@ exports.login = async (req, res) => {
             return res.status(403).json({ msg: 'User is inactive' });
         }
 
-        const approval = String(user.approval_status || 'APPROVED').toUpperCase();
-        if ((user.role === 'employee' || user.role === 'driver') && approval !== 'APPROVED') {
-            if (approval === 'REJECTED') {
-                return res.status(403).json({ msg: 'Your account was rejected. Please contact admin.' });
-            }
-            return res.status(403).json({ msg: 'Your account is pending approval. Please wait for admin approval.' });
+        if (user.role !== 'admin' && user.role !== 'customer') {
+            return res.status(403).json({ msg: 'This account type is no longer supported.' });
         }
 
         if (!user.passwordHash) {
@@ -713,9 +616,6 @@ exports.firebaseSession = async (req, res) => {
                 role: isReservedAdminEmail(normalizedEmail) ? 'admin' : 'customer',
                 status: 'active',
                 isBanned: false,
-                approval_status: 'APPROVED',
-                approved_by: null,
-                approval_date: createdAt,
                 createdAt,
                 lastLoginAt: parseMaybeDate(userRecord?.metadata?.lastSignInTime) || new Date()
             });
@@ -832,7 +732,7 @@ exports.googleLogin = async (req, res) => {
 exports.me = async (req, res) => {
     try {
         const user = await User.findById(req.user.id)
-            .select('_id fullName fatherName email pendingEmail emailVerified phone age sex profileImage role approval_status status isBanned authProvider providerIds firebaseUid shipping_addresses measurement_profiles default_shipping_address_id default_measurement_profile_id createdAt lastLoginAt');
+            .select('_id fullName fatherName email pendingEmail emailVerified phone age sex profileImage role status isBanned authProvider providerIds firebaseUid shipping_addresses measurement_profiles default_shipping_address_id default_measurement_profile_id createdAt lastLoginAt');
 
         if (!user) {
             return res.status(404).json({ msg: 'User not found' });
@@ -1145,16 +1045,38 @@ exports.forgotPasswordLink = async (req, res) => {
         const origin = String(req.get('origin') || '').trim();
         // When Netlify proxies /api/* to Render, req.get('host') can become the Render host.
         // The browser still sends Origin as the Netlify site; prefer that for reset links.
-        const originBase = /^https?:\/\//i.test(origin) ? origin : '';
-        const baseUrl = configuredBase || originBase || `${req.protocol}://${req.get('host')}`;
+        const originBase = normalizeBaseUrl(origin);
+        const requestBase = normalizeBaseUrl(`${req.protocol}://${req.get('host')}`);
+        const baseUrl = normalizeBaseUrl(configuredBase) || originBase || requestBase || DEFAULT_PUBLIC_BASE_URL;
         const resetUrl = `${baseUrl}/auth/reset-password?token=${raw}`;
-        const message = `You requested a password reset for Yeshi.\n\nOpen this link to set a new password (valid for 30 minutes):\n${resetUrl}\n\nIf you did not request this, you can ignore this email.`;
+        const appName = 'Yeshi Clothe';
+        const message = [
+            'Hello,',
+            '',
+            `Follow this link to reset your ${appName} password for your ${user.email} account.`,
+            '',
+            resetUrl,
+            '',
+            'If you did not ask to reset your password, you can ignore this email.',
+            '',
+            'Thanks,',
+            `Your ${appName} team`
+        ].join('\n');
+        const html = [
+            '<p>Hello,</p>',
+            `<p>Follow this link to reset your ${escapeHtml(appName)} password for your ${escapeHtml(user.email)} account.</p>`,
+            `<p><a href="${escapeHtml(resetUrl)}">${escapeHtml(resetUrl)}</a></p>`,
+            '<p>If you didn\'t ask to reset your password, you can ignore this email.</p>',
+            '<p>Thanks,</p>',
+            `<p>Your ${escapeHtml(appName)} team</p>`
+        ].join('');
 
         try {
             await sendEmail({
                 email: user.email,
-                subject: 'Reset your Yeshi password',
-                message
+                subject: `Reset your ${appName} password`,
+                message,
+                html
             });
         } catch (err) {
             if (err && err.code === 'EMAIL_NOT_CONFIGURED') {
