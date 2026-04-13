@@ -6,6 +6,8 @@ const {
     me,
     updateMe,
     logout,
+    firebaseConfig,
+    firebaseSession,
     googleConfig,
     googleLogin,
     forgotPassword, 
@@ -31,6 +33,8 @@ router.post('/login', login);
 router.get('/me', auth, me);
 router.put('/me', auth, upload.single('profileImage'), updateMe);
 router.post('/logout', auth, logout);
+router.get('/firebase/config', firebaseConfig);
+router.post('/firebase/session', firebaseSession);
 
 // Google Sign-In
 router.get('/google/config', googleConfig);

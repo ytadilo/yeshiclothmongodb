@@ -8,6 +8,7 @@ const crypto = require('crypto'); // to generate OTP random number
 const BlockedDevice = require('../models/BlockedDevice');
 const { OAuth2Client } = require('google-auth-library');
 const Upload = require('../models/Upload');
+const { getFirebaseAdmin } = require('../utils/firebase');
 
 const ALLOWED_SEXES = new Set(['male', 'female', 'other', 'prefer_not_to_say']);
 
@@ -77,10 +78,129 @@ function normalizeEmail(email) {
     return String(email || '').trim().toLowerCase();
 }
 
+function splitFullNameParts(fullName) {
+    const parts = String(fullName || '').trim().split(/\s+/).filter(Boolean);
+    return {
+        firstName: parts[0] || '',
+        fatherName: parts[1] || ''
+    };
+}
+
 function getFirstNameFromProfile(profile) {
     const raw = String(profile || '').trim();
     if (!raw) return '';
     return raw.split(/\s+/)[0];
+}
+
+function normalizeProviderIds(providerIds) {
+    return Array.from(
+        new Set(
+            (Array.isArray(providerIds) ? providerIds : [])
+                .map((value) => String(value || '').trim())
+                .filter(Boolean)
+        )
+    );
+}
+
+function getPrimaryAuthProvider(providerIds) {
+    const list = normalizeProviderIds(providerIds);
+    if (list.includes('google.com') && !list.includes('password')) {
+        return 'google';
+    }
+    return 'local';
+}
+
+function parseMaybeDate(value) {
+    if (!value) return null;
+    const parsed = new Date(value);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+function buildFirebasePublicConfig() {
+    const projectId = String(process.env.FIREBASE_WEB_PROJECT_ID || process.env.FIREBASE_PROJECT_ID || 'clotheyeshi').trim();
+    const authDomain = String(process.env.FIREBASE_AUTH_DOMAIN || (projectId ? `${projectId}.firebaseapp.com` : '')).trim();
+    const storageBucket = String(
+        process.env.FIREBASE_WEB_STORAGE_BUCKET ||
+        process.env.FIREBASE_STORAGE_BUCKET ||
+        (projectId ? `${projectId}.firebasestorage.app` : '')
+    ).trim();
+
+    return {
+        apiKey: String(process.env.FIREBASE_WEB_API_KEY || process.env.FIREBASE_API_KEY || '').trim(),
+        authDomain,
+        projectId,
+        storageBucket,
+        messagingSenderId: String(process.env.FIREBASE_WEB_MESSAGING_SENDER_ID || process.env.FIREBASE_MESSAGING_SENDER_ID || '').trim(),
+        appId: String(process.env.FIREBASE_WEB_APP_ID || process.env.FIREBASE_APP_ID || '').trim(),
+        measurementId: String(process.env.FIREBASE_WEB_MEASUREMENT_ID || process.env.FIREBASE_MEASUREMENT_ID || '').trim()
+    };
+}
+
+async function findUserForFirebaseSession(firebaseUid, email) {
+    const normalizedEmail = normalizeEmail(email);
+    if (firebaseUid) {
+        const byUid = await User.findOne({ firebaseUid });
+        if (byUid) return byUid;
+    }
+
+    if (normalizedEmail) {
+        const byEmail = await User.findOne({ email: normalizedEmail });
+        if (byEmail) return byEmail;
+    }
+
+    return null;
+}
+
+function applyFirebaseProfileToUser(user, userRecord, providerIds) {
+    const normalizedEmail = normalizeEmail(userRecord?.email);
+    const displayName = String(userRecord?.displayName || '').trim();
+    const profileImage = String(userRecord?.photoURL || '').trim();
+    const phoneNumber = String(userRecord?.phoneNumber || '').trim();
+    const primaryProvider = getPrimaryAuthProvider(providerIds);
+    const googleProvider = (userRecord?.providerData || []).find((provider) => provider && provider.providerId === 'google.com');
+    const nameParts = splitFullNameParts(displayName);
+
+    if (normalizedEmail) user.email = normalizedEmail;
+    if (userRecord?.uid) user.firebaseUid = String(userRecord.uid);
+
+    user.authProvider = primaryProvider;
+    user.emailVerified = !!userRecord?.emailVerified;
+    user.pendingEmail = '';
+    user.providerIds = normalizeProviderIds(providerIds);
+    user.lastLoginAt = parseMaybeDate(userRecord?.metadata?.lastSignInTime) || new Date();
+
+    if (!user.fullName || user.authProvider === 'google') {
+        user.fullName = displayName || user.fullName || getFirstNameFromProfile(normalizedEmail) || 'User';
+    }
+
+    if (!user.fatherName || user.authProvider === 'google') {
+        user.fatherName = nameParts.fatherName || user.fatherName || '';
+    }
+
+    if (!user.phone && phoneNumber) {
+        user.phone = phoneNumber;
+    }
+
+    if (!user.profileImage && profileImage) {
+        user.profileImage = profileImage;
+    }
+
+    if (primaryProvider === 'google') {
+        user.googleSub = String((googleProvider && googleProvider.uid) || userRecord?.uid || user.googleSub || '');
+    }
+
+    if (!user.role) {
+        user.role = 'customer';
+    }
+    if (!user.status) {
+        user.status = 'active';
+    }
+    if (!user.approval_status) {
+        user.approval_status = 'APPROVED';
+    }
+    if (!user.createdAt) {
+        user.createdAt = parseMaybeDate(userRecord?.metadata?.creationTime) || new Date();
+    }
 }
 
 function getGoogleClient() {
@@ -159,18 +279,25 @@ function serializeUser(user) {
         fullName: user.fullName,
         fatherName: user.fatherName || '',
         email: user.email || '',
+        pendingEmail: user.pendingEmail || '',
+        emailVerified: !!user.emailVerified,
         phone: user.phone || '',
         age: user.age ?? null,
         sex: user.sex || '',
         profileImage: user.profileImage || '',
         role: user.role,
+        authProvider: user.authProvider || 'local',
+        providerIds: normalizeProviderIds(user.providerIds),
+        firebaseUid: user.firebaseUid || '',
         status: user.status || 'active',
         isBanned: !!user.isBanned,
         approval_status: user.approval_status || 'APPROVED',
         shipping_addresses: shippingAddresses,
         measurement_profiles: measurementProfiles,
         default_shipping_address_id: user.default_shipping_address_id || '',
-        default_measurement_profile_id: user.default_measurement_profile_id || ''
+        default_measurement_profile_id: user.default_measurement_profile_id || '',
+        createdAt: user.createdAt || null,
+        lastLoginAt: user.lastLoginAt || null
     };
 }
 
@@ -491,6 +618,95 @@ exports.login = async (req, res) => {
     }
 };
 
+exports.firebaseConfig = async (_req, res) => {
+    const config = buildFirebasePublicConfig();
+    const missing = ['apiKey', 'authDomain', 'projectId', 'appId'].filter((key) => !String(config[key] || '').trim());
+
+    if (missing.length) {
+        return res.status(503).json({
+            msg: `Firebase web config is incomplete. Missing: ${missing.join(', ')}`,
+            missing
+        });
+    }
+
+    return res.json(config);
+};
+
+exports.firebaseSession = async (req, res) => {
+    const idToken = String(req.body?.idToken || '').trim();
+    if (!idToken) {
+        return res.status(400).json({ msg: 'Missing Firebase ID token' });
+    }
+
+    try {
+        const admin = getFirebaseAdmin();
+        const decoded = await admin.auth().verifyIdToken(idToken, true);
+        const userRecord = await admin.auth().getUser(decoded.uid);
+        const normalizedEmail = normalizeEmail(userRecord?.email || decoded?.email);
+        const providerIds = normalizeProviderIds([
+            ...(Array.isArray(userRecord?.providerData) ? userRecord.providerData.map((provider) => provider?.providerId) : []),
+            decoded?.firebase?.sign_in_provider
+        ]);
+        const primaryProvider = getPrimaryAuthProvider(providerIds);
+
+        if (!normalizedEmail) {
+            return res.status(400).json({ msg: 'Firebase account has no email address' });
+        }
+
+        if (!providerIds.includes('google.com') && !userRecord.emailVerified) {
+            return res.status(403).json({ msg: 'Please verify your email first' });
+        }
+
+        if (userRecord.disabled) {
+            return res.status(403).json({ msg: 'User is inactive' });
+        }
+
+        let user = await findUserForFirebaseSession(decoded.uid, normalizedEmail);
+
+        if (!user) {
+            if (normalizedEmail === 'hailetadilo@gmail.com') {
+                return res.status(403).json({ msg: 'This account cannot be created here' });
+            }
+
+            const displayName = String(userRecord.displayName || '').trim();
+            const nameParts = splitFullNameParts(displayName);
+            const createdAt = parseMaybeDate(userRecord?.metadata?.creationTime) || new Date();
+
+            user = new User({
+                fullName: displayName || getFirstNameFromProfile(normalizedEmail) || 'User',
+                fatherName: nameParts.fatherName,
+                email: normalizedEmail,
+                phone: String(userRecord.phoneNumber || '').trim(),
+                profileImage: String(userRecord.photoURL || '').trim(),
+                authProvider: primaryProvider,
+                googleSub: providerIds.includes('google.com')
+                    ? String((userRecord.providerData || []).find((provider) => provider?.providerId === 'google.com')?.uid || decoded.uid || '')
+                    : '',
+                firebaseUid: decoded.uid,
+                emailVerified: !!userRecord.emailVerified,
+                pendingEmail: '',
+                providerIds,
+                role: 'customer',
+                status: 'active',
+                isBanned: false,
+                approval_status: 'APPROVED',
+                approved_by: null,
+                approval_date: createdAt,
+                createdAt,
+                lastLoginAt: parseMaybeDate(userRecord?.metadata?.lastSignInTime) || new Date()
+            });
+        }
+
+        applyFirebaseProfileToUser(user, userRecord, providerIds);
+        await user.save();
+
+        return issueJwt(res, user);
+    } catch (err) {
+        console.error('firebaseSession error:', err?.message || err);
+        return res.status(401).json({ msg: 'Invalid Firebase session' });
+    }
+};
+
 // Google Sign-In config (client id)
 exports.googleConfig = async (req, res) => {
     const clientId = process.env.GOOGLE_CLIENT_ID || '';
@@ -592,7 +808,7 @@ exports.googleLogin = async (req, res) => {
 exports.me = async (req, res) => {
     try {
         const user = await User.findById(req.user.id)
-            .select('_id fullName fatherName email phone age sex profileImage role approval_status status isBanned authProvider shipping_addresses measurement_profiles default_shipping_address_id default_measurement_profile_id');
+            .select('_id fullName fatherName email pendingEmail emailVerified phone age sex profileImage role approval_status status isBanned authProvider providerIds firebaseUid shipping_addresses measurement_profiles default_shipping_address_id default_measurement_profile_id createdAt lastLoginAt');
 
         if (!user) {
             return res.status(404).json({ msg: 'User not found' });

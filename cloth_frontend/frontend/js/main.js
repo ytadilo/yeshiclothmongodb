@@ -7,9 +7,348 @@
     window.location.replace('/user/');
 })();
 
-document.addEventListener('DOMContentLoaded', () => {
+const YESHI_AUTH_STATE = {
+    ready: false,
+    token: '',
+    user: null,
+    resolving: null
+};
+
+let yeshiFirebaseBridgePromise = null;
+
+function ensureFirebaseAuthBridge() {
+    if (window.YeshiFirebaseAuth) {
+        return Promise.resolve(window.YeshiFirebaseAuth.whenReady()).then(() => window.YeshiFirebaseAuth);
+    }
+
+    if (yeshiFirebaseBridgePromise) {
+        return yeshiFirebaseBridgePromise;
+    }
+
+    yeshiFirebaseBridgePromise = new Promise((resolve, reject) => {
+        const existingScript = document.querySelector('script[data-yeshi-firebase-auth="1"]');
+        if (existingScript) {
+            const waitForBridge = () => {
+                if (window.YeshiFirebaseAuth) {
+                    window.YeshiFirebaseAuth.whenReady().then(() => resolve(window.YeshiFirebaseAuth)).catch(reject);
+                    return;
+                }
+                window.setTimeout(waitForBridge, 50);
+            };
+            waitForBridge();
+            return;
+        }
+
+        const script = document.createElement('script');
+        script.src = '/js/firebase-auth.js?v=20260413';
+        script.async = true;
+        script.setAttribute('data-yeshi-firebase-auth', '1');
+        script.onload = () => {
+            if (!window.YeshiFirebaseAuth) {
+                reject(new Error('Firebase auth bridge failed to initialize'));
+                return;
+            }
+            window.YeshiFirebaseAuth.whenReady().then(() => resolve(window.YeshiFirebaseAuth)).catch(reject);
+        };
+        script.onerror = () => reject(new Error('Failed to load Firebase auth bridge'));
+        document.head.appendChild(script);
+    });
+
+    return yeshiFirebaseBridgePromise;
+}
+
+function getProtectedUserPaths() {
+    return new Set([
+        '/my-orders',
+        '/user/my-orders.html',
+        '/mychat',
+        '/user/mychat.html',
+        '/order',
+        '/user/order.html',
+        '/profile',
+        '/user/profile.html',
+        '/favorites',
+        '/user/favorites.html',
+        '/cart',
+        '/user/cart.html'
+    ]);
+}
+
+function isProtectedUserPath(pathname) {
+    const path = String(pathname || window.location.pathname || '')
+        .toLowerCase()
+        .replace(/\/+/g, '/')
+        .replace(/\/+$/, '') || '/';
+    return getProtectedUserPaths().has(path);
+}
+
+function getStoredAuthUser() {
+    const parsed = safeParseJson(localStorage.getItem('user'));
+    return parsed && typeof parsed === 'object' ? parsed : null;
+}
+
+function getCurrentAuthSnapshot() {
+    const token = String(YESHI_AUTH_STATE.token || localStorage.getItem('token') || '').trim();
+    const user = YESHI_AUTH_STATE.user || getStoredAuthUser();
+    const role = String((user && user.role) || localStorage.getItem('role') || '').trim();
+    const status = String((user && user.status) || '').toLowerCase();
+    const blocked = !!(user && (user.isBanned || status === 'banned' || status === 'inactive'));
+    const hasFirebaseHint = !!String(localStorage.getItem('yeshi_firebase_uid') || '').trim();
+    const hasRestorableFirebaseSession = hasFirebaseHint && !blocked;
+
+    return {
+        ready: !!YESHI_AUTH_STATE.ready,
+        token,
+        user,
+        role,
+        blocked,
+        isLoggedIn: (!!token && !!user && !blocked) || (!token && hasRestorableFirebaseSession && !YESHI_AUTH_STATE.ready)
+    };
+}
+
+function emitAuthStateChanged() {
+    const detail = getCurrentAuthSnapshot();
+    try {
+        window.dispatchEvent(new CustomEvent('yeshi:auth-state-changed', { detail }));
+    } catch (_) {
+        // Ignore environments without CustomEvent support.
+    }
+    return detail;
+}
+
+function clearStoredAuthSession(options = {}) {
+    YESHI_AUTH_STATE.token = '';
+    YESHI_AUTH_STATE.user = null;
+    YESHI_AUTH_STATE.ready = options.preserveReady ? true : YESHI_AUTH_STATE.ready;
+
+    try {
+        localStorage.removeItem('token');
+        localStorage.removeItem('role');
+        localStorage.removeItem('user');
+        localStorage.removeItem('loginTime');
+    } catch (_) {
+        // Ignore storage cleanup errors.
+    }
+
+    if (!options.silent) {
+        emitAuthStateChanged();
+    }
+
+    return getCurrentAuthSnapshot();
+}
+
+function setStoredAuthSession(token, user, options = {}) {
+    const safeToken = String(token || '').trim();
+    const safeUser = user && typeof user === 'object' ? user : null;
+
+    if (!safeToken || !safeUser) {
+        return clearStoredAuthSession({ ...options, preserveReady: true });
+    }
+
+    YESHI_AUTH_STATE.ready = true;
+    YESHI_AUTH_STATE.token = safeToken;
+    YESHI_AUTH_STATE.user = safeUser;
+
+    try {
+        localStorage.setItem('token', safeToken);
+        localStorage.setItem('role', String(safeUser.role || '').trim());
+        localStorage.setItem('user', JSON.stringify(safeUser));
+        if (!localStorage.getItem('loginTime')) {
+            localStorage.setItem('loginTime', Date.now().toString());
+        }
+    } catch (_) {
+        // Ignore storage errors and keep the in-memory state.
+    }
+
+    if (!options.silent) {
+        emitAuthStateChanged();
+    }
+
+    return getCurrentAuthSnapshot();
+}
+
+async function resolveAuthSession(options = {}) {
+    if (YESHI_AUTH_STATE.resolving && !options.force) {
+        return YESHI_AUTH_STATE.resolving;
+    }
+
+    YESHI_AUTH_STATE.resolving = (async () => {
+        const storedToken = String(localStorage.getItem('token') || '').trim();
+        let firebaseBridge = null;
+
+        try {
+            firebaseBridge = await ensureFirebaseAuthBridge().catch(() => null);
+        } catch (_) {
+            firebaseBridge = null;
+        }
+
+        try {
+            if (!storedToken && firebaseBridge && typeof firebaseBridge.ensureAppSession === 'function') {
+                const restored = await firebaseBridge.ensureAppSession({ force: !!options.force }).catch(() => null);
+                if (restored && restored.ok) {
+                    YESHI_AUTH_STATE.ready = true;
+                    return getCurrentAuthSnapshot();
+                }
+            }
+
+            if (!storedToken) {
+                YESHI_AUTH_STATE.ready = true;
+                YESHI_AUTH_STATE.token = '';
+                YESHI_AUTH_STATE.user = null;
+                emitAuthStateChanged();
+                return getCurrentAuthSnapshot();
+            }
+
+            const res = await fetch('/api/auth/me', {
+                method: 'GET',
+                credentials: 'same-origin',
+                headers: { 'x-auth-token': storedToken }
+            });
+
+            if (!res.ok) {
+                clearStoredAuthSession({ preserveReady: true });
+
+                if (firebaseBridge && typeof firebaseBridge.ensureAppSession === 'function') {
+                    const restored = await firebaseBridge.ensureAppSession({ force: true }).catch(() => null);
+                    if (restored && restored.ok) {
+                        YESHI_AUTH_STATE.ready = true;
+                        return getCurrentAuthSnapshot();
+                    }
+                }
+
+                return getCurrentAuthSnapshot();
+            }
+
+            const raw = await res.text();
+            const payload = safeParseJson(raw) || {};
+            const user = payload && typeof payload.user === 'object' ? payload.user : null;
+
+            if (!user) {
+                clearStoredAuthSession({ preserveReady: true });
+                return getCurrentAuthSnapshot();
+            }
+
+            return setStoredAuthSession(storedToken, user);
+        } catch (_) {
+            YESHI_AUTH_STATE.ready = true;
+            YESHI_AUTH_STATE.token = storedToken;
+            YESHI_AUTH_STATE.user = getStoredAuthUser();
+            emitAuthStateChanged();
+            return getCurrentAuthSnapshot();
+        } finally {
+            YESHI_AUTH_STATE.resolving = null;
+        }
+    })();
+
+    return YESHI_AUTH_STATE.resolving;
+}
+
+async function performLogout(redirectTo) {
+    const snapshot = getCurrentAuthSnapshot();
+    try {
+        await fetch('/api/auth/logout', {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: snapshot.token ? { 'x-auth-token': snapshot.token } : {}
+        });
+    } catch (_) {
+        // Local logout should still work if the API call fails.
+    }
+
+    try {
+        const firebaseBridge = await ensureFirebaseAuthBridge().catch(() => null);
+        if (firebaseBridge && typeof firebaseBridge.signOutUser === 'function') {
+            await firebaseBridge.signOutUser();
+        } else {
+            clearStoredAuthSession({ preserveReady: true });
+        }
+    } catch (_) {
+        clearStoredAuthSession({ preserveReady: true });
+    }
+
+    const destination = redirectTo || (snapshot.role === 'admin' ? '/admin/login' : '/auth/login');
+    window.location.href = destination;
+}
+
+window.YeshiAuth = {
+    getSnapshot: getCurrentAuthSnapshot,
+    resolveSession: resolveAuthSession,
+    setSession: setStoredAuthSession,
+    clearSession: clearStoredAuthSession,
+    performLogout
+};
+
+function bindGlobalLogoutDelegation() {
+    if (document.body && document.body.dataset.yeshiLogoutBound === '1') return;
+    if (document.body) {
+        document.body.dataset.yeshiLogoutBound = '1';
+    }
+
+    document.addEventListener('click', (event) => {
+        const logoutTrigger = event.target && event.target.closest ? event.target.closest('[data-action="logout"]') : null;
+        if (!logoutTrigger) return;
+
+        event.preventDefault();
+        event.stopPropagation();
+        if (typeof event.stopImmediatePropagation === 'function') {
+            event.stopImmediatePropagation();
+        }
+
+        performLogout();
+    }, true);
+}
+
+window.addEventListener('storage', (event) => {
+    if (!event || !['token', 'role', 'user', 'loginTime', 'yeshi_firebase_uid', 'yeshi_firebase_email', 'yeshi_firebase_provider'].includes(String(event.key || ''))) return;
+
+    const snapshot = getCurrentAuthSnapshot();
+    YESHI_AUTH_STATE.ready = true;
+    YESHI_AUTH_STATE.token = snapshot.token;
+    YESHI_AUTH_STATE.user = snapshot.user;
+    emitAuthStateChanged();
+});
+
+window.addEventListener('yeshi:auth-state-changed', () => {
+    try { applyAuthVisibility(); } catch (_) {}
+    try { applyGlobalMenuAuthState(); } catch (_) {}
+    try { enforceMobileMenuLinkPolicy(); } catch (_) {}
+    try { ensureProfileAvatarEverywhere(); } catch (_) {}
+});
+
+// Auto-logout after 2 weeks (1209600000 ms)
+function checkSessionExpiry() {
+    const token = String(localStorage.getItem('token') || '').trim();
+    const loginTime = parseInt(localStorage.getItem('loginTime'), 10);
+    if (!token || !loginTime) return false;
+
+    const now = Date.now();
+    const twoWeeks = 14 * 24 * 60 * 60 * 1000;
+    if (now - loginTime <= twoWeeks) return false;
+
+    clearStoredAuthSession({ preserveReady: true });
+
+    if (isProtectedUserPath(window.location.pathname)) {
+        const next = encodeURIComponent(window.location.pathname + window.location.search + window.location.hash);
+        window.location.replace('/user/login.html?next=' + next);
+        return true;
+    }
+
+    return true;
+}
+
+document.addEventListener('DOMContentLoaded', async () => {
+    bindGlobalLogoutDelegation();
+    checkSessionExpiry();
+    try {
+        await ensureFirebaseAuthBridge().catch(() => null);
+    } catch (_) {
+        // Continue gracefully when Firebase is not configured yet.
+    }
+    await resolveAuthSession();
+
     if (enforceUserGuestAccessPolicy()) return;
     if (enforceFooterMobileOnlyView()) return;
+
     enforceLoginForBagAndOrderActions();
     ensureHomepageNavForListedPages();
     ensureMobileFooterShortcutIcon();
@@ -28,30 +367,10 @@ document.addEventListener('DOMContentLoaded', () => {
     applyActiveNavAndFooterColors();
     showFirstVisitSplash();
 
-    checkSessionExpiry();
     applyAuthVisibility();
     applyGlobalMenuAuthState();
     enforceMobileMenuLinkPolicy();
-// Auto-logout after 2 weeks (1209600000 ms)
-function checkSessionExpiry() {
-    const token = localStorage.getItem('token');
-    const loginTime = parseInt(localStorage.getItem('loginTime'), 10);
-    if (!token || !loginTime) return;
-    const now = Date.now();
-    const twoWeeks = 14 * 24 * 60 * 60 * 1000;
-    if (now - loginTime > twoWeeks) {
-        // Session expired
-        localStorage.removeItem('token');
-        localStorage.removeItem('role');
-        localStorage.removeItem('user');
-        localStorage.removeItem('loginTime');
-        alert('Your session has expired. Please log in again.');
-        window.location.href = '/user/login.html';
-    }
-}
-
     applySocialLinks();
-
     applySiteContent();
     initAnalyticsTracking();
     initUnifiedLayoutInjection();
@@ -925,6 +1244,8 @@ function ensureHomepageNavForListedPages() {
                 <ul class="yeshi-desktop-nav nav-links no-scrollbar hidden items-center gap-5 overflow-x-auto text-xs font-semibold uppercase tracking-wider lg:flex">
                     <li><a class="active text-brand-primary" href="/user/">Home</a></li>
                     <li><a href="/my-orders" class="hover:text-brand-primary">My Orders</a></li>
+                    <li id="desktopLoginItem"><a href="/auth/login" class="hover:text-brand-primary">Login</a></li>
+                    <li id="desktopSignupItem"><a href="/auth/register" class="hover:text-brand-primary">Sign Up</a></li>
                     <li id="desktopLogoutItem" class="hidden"><a href="#" data-action="logout" class="hover:text-brand-primary">Logout</a></li>
                 </ul>
 
@@ -955,6 +1276,8 @@ function ensureHomepageNavForListedPages() {
                 <div class="yeshi-mobile-inner space-y-1 p-4 text-sm font-semibold uppercase tracking-wide">
                     <a class="active block rounded-md bg-amber-50 px-3 py-2 text-brand-primary" href="/user/">Home</a>
                     <a href="/my-orders" class="block rounded-md px-3 py-2 hover:bg-amber-50">My Orders</a>
+                    <a id="mobileMenuLoginBtn" href="/auth/login" class="block rounded-md px-3 py-2 hover:bg-amber-50">Login</a>
+                    <a id="mobileMenuSignupBtn" href="/auth/register" class="block rounded-md px-3 py-2 hover:bg-amber-50">Sign Up</a>
                     <a id="mobileMenuLogoutBtn" href="#" data-action="logout" class="hidden rounded-md px-3 py-2 hover:bg-amber-50">Logout</a>
                 </div>
             </div>
@@ -996,7 +1319,7 @@ function ensureHomepageNavForListedPages() {
         const desktopLogin = document.getElementById('desktopLoginItem');
         const desktopSignup = document.getElementById('desktopSignupItem');
         const desktopLogout = document.getElementById('desktopLogoutItem');
-        const loggedIn = !!localStorage.getItem('token');
+        const loggedIn = getCurrentAuthSnapshot().isLoggedIn;
         if (loginBtn) loginBtn.classList.toggle('hidden', loggedIn);
         if (signupBtn) signupBtn.classList.toggle('hidden', loggedIn);
         if (logoutBtn) logoutBtn.classList.toggle('hidden', !loggedIn);
@@ -1004,17 +1327,6 @@ function ensureHomepageNavForListedPages() {
         if (desktopSignup) desktopSignup.classList.toggle('hidden', loggedIn);
         if (desktopLogout) desktopLogout.classList.toggle('hidden', !loggedIn);
     };
-
-    document.querySelectorAll('#yeshiHomeLikeNav [data-action="logout"]').forEach((el) => {
-        el.addEventListener('click', (e) => {
-            e.preventDefault();
-            localStorage.removeItem('token');
-            localStorage.removeItem('role');
-            localStorage.removeItem('user');
-            localStorage.removeItem('loginTime');
-            window.location.href = '/user/login.html';
-        });
-    });
 
     applyMenuAuthState();
     updateBagBadge();
@@ -3074,11 +3386,10 @@ function hideLink(linkEl) {
 }
 
 function applyAuthVisibility() {
-    const token = localStorage.getItem('token');
-    const user = safeParseJson(localStorage.getItem('user'));
-    const role = (user && user.role) || localStorage.getItem('role');
-
-    const isLoggedIn = !!token;
+    const snapshot = getCurrentAuthSnapshot();
+    const user = snapshot.user;
+    const role = snapshot.role;
+    const isLoggedIn = snapshot.isLoggedIn;
     const isAdmin = role === 'admin';
 
     const nav = document.querySelector('ul.nav-links');
@@ -3133,7 +3444,7 @@ function applyAuthVisibility() {
 }
 
 function applyGlobalMenuAuthState() {
-    const isLoggedIn = !!localStorage.getItem('token');
+    const isLoggedIn = getCurrentAuthSnapshot().isLoggedIn;
 
     const loginBtn = document.getElementById('mobileMenuLoginBtn');
     const signupBtn = document.getElementById('mobileMenuSignupBtn');
@@ -3201,8 +3512,7 @@ function enforceMobileMenuLinkPolicy() {
     const isMobile = window.matchMedia('(max-width: 900px)').matches;
     if (!isMobile) return;
 
-    const token = localStorage.getItem('token');
-    const isLoggedIn = !!token;
+    const isLoggedIn = getCurrentAuthSnapshot().isLoggedIn;
     const menuRoots = Array.from(document.querySelectorAll('#mobile-menu, .mobile-menu, [data-mobile-menu]'));
 
     const ensureMenuLink = (root, { id, href, label, action }) => {

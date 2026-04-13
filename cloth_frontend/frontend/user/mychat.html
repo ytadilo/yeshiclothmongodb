@@ -7,17 +7,21 @@
     <script>
         (function () {
             var token = localStorage.getItem('token');
+            var firebaseUid = localStorage.getItem('yeshi_firebase_uid');
             var user = {};
             try { user = JSON.parse(localStorage.getItem('user') || '{}') || {}; } catch (_) { user = {}; }
             var status = String(user.status || '').toLowerCase();
             var blocked = !!user.isBanned || status === 'banned' || status === 'inactive';
-            if (token && !blocked) return;
+            if ((token || firebaseUid) && !blocked) return;
             var next = encodeURIComponent(window.location.pathname + window.location.search + window.location.hash);
             if (blocked) {
                 localStorage.removeItem('token');
                 localStorage.removeItem('role');
                 localStorage.removeItem('user');
                 localStorage.removeItem('loginTime');
+                localStorage.removeItem('yeshi_firebase_uid');
+                localStorage.removeItem('yeshi_firebase_email');
+                localStorage.removeItem('yeshi_firebase_provider');
             }
             document.documentElement.style.visibility = 'hidden';
             window.location.replace('/user/login.html?next=' + next);
@@ -1388,6 +1392,9 @@
 
             (async function init() {
                 if (sendBtn) sendBtn.disabled = true;
+                if (window.YeshiAuth && typeof window.YeshiAuth.resolveSession === 'function') {
+                    await window.YeshiAuth.resolveSession().catch(() => null);
+                }
                 await hydrateProductContextFromPost();
                 renderProductContext();
                 loadRelated();

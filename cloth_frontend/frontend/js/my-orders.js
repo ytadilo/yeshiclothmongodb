@@ -1,14 +1,20 @@
 document.addEventListener('DOMContentLoaded', () => {
-    const token = localStorage.getItem('token');
-    if (!token) {
-        const next = encodeURIComponent('/my-orders');
-        window.location.href = `/auth/login?next=${next}`;
-        return;
-    }
+    (async () => {
+        if (window.YeshiAuth && typeof window.YeshiAuth.resolveSession === 'function') {
+            await window.YeshiAuth.resolveSession().catch(() => null);
+        }
 
-    loadMyOrders();
-    // Poll for updates every 10 seconds
-    setInterval(() => loadMyOrders({ skipDuringPaymentInteraction: true, skipDuringNegotiationInteraction: true }), 10000);
+        const token = localStorage.getItem('token');
+        if (!token) {
+            const next = encodeURIComponent('/my-orders');
+            window.location.href = `/auth/login?next=${next}`;
+            return;
+        }
+
+        loadMyOrders();
+        // Poll for updates every 10 seconds
+        setInterval(() => loadMyOrders({ skipDuringPaymentInteraction: true, skipDuringNegotiationInteraction: true }), 10000);
+    })();
 });
 
 let lastAppliedHighlightKey = '';

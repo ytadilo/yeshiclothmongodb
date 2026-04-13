@@ -254,6 +254,10 @@ class FirebaseUser {
             passwordHash: '',
             authProvider: 'local',
             googleSub: '',
+            firebaseUid: '',
+            emailVerified: false,
+            pendingEmail: '',
+            providerIds: [],
             role: 'customer',
             national_id: '',
             national_id_image: '',
@@ -272,6 +276,7 @@ class FirebaseUser {
             resetPasswordTokenHash: '',
             resetPasswordExpiresAt: null,
             createdAt: current,
+            lastLoginAt: null,
             updatedAt: current,
             ...clone(data)
         };

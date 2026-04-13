@@ -46,6 +46,10 @@ const UserSchema = new mongoose.Schema({
     passwordHash: { type: String },
     authProvider: { type: String, enum: ['local', 'google'], default: 'local' },
     googleSub: { type: String },
+    firebaseUid: { type: String, default: '' },
+    emailVerified: { type: Boolean, default: false },
+    pendingEmail: { type: String, default: '' },
+    providerIds: { type: [String], default: [] },
     role: { type: String, enum: ['admin', 'customer', 'employee', 'driver'], default: 'customer' },
 
     // Worker onboarding + approval workflow
@@ -66,7 +70,8 @@ const UserSchema = new mongoose.Schema({
     isBanned: { type: Boolean, default: false },
     resetPasswordTokenHash: { type: String },
     resetPasswordExpiresAt: { type: Date },
-    createdAt: { type: Date, default: Date.now }
+    createdAt: { type: Date, default: Date.now },
+    lastLoginAt: { type: Date, default: null }
 });
 
 module.exports = mongoose.model('User', UserSchema);

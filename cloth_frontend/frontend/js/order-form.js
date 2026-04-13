@@ -1,5 +1,9 @@
 // Initialize form on load
 document.addEventListener('DOMContentLoaded', async () => {
+    if (window.YeshiAuth && typeof window.YeshiAuth.resolveSession === 'function') {
+        await window.YeshiAuth.resolveSession().catch(() => null);
+    }
+
     const token = localStorage.getItem('token');
     if (!token) {
         const next = encodeURIComponent(window.location.pathname + window.location.search);

@@ -7,17 +7,21 @@
     <script>
         (function () {
             var token = localStorage.getItem('token');
+            var firebaseUid = localStorage.getItem('yeshi_firebase_uid');
             var user = {};
             try { user = JSON.parse(localStorage.getItem('user') || '{}') || {}; } catch (_) { user = {}; }
             var status = String(user.status || '').toLowerCase();
             var blocked = !!user.isBanned || status === 'banned' || status === 'inactive';
-            if (token && !blocked) return;
+            if ((token || firebaseUid) && !blocked) return;
             var next = encodeURIComponent(window.location.pathname + window.location.search + window.location.hash);
             if (blocked) {
                 localStorage.removeItem('token');
                 localStorage.removeItem('role');
                 localStorage.removeItem('user');
                 localStorage.removeItem('loginTime');
+                localStorage.removeItem('yeshi_firebase_uid');
+                localStorage.removeItem('yeshi_firebase_email');
+                localStorage.removeItem('yeshi_firebase_provider');
             }
             window.location.replace('/user/login.html?next=' + next);
             document.documentElement.innerHTML = '';
@@ -267,6 +271,24 @@
                         <label for="settingsEmail" style="display:block; font-size:0.8rem; margin-bottom:4px;">Email (Read-only)</label>
                         <input id="settingsEmail" type="email" class="form-control" readonly>
                     </div>
+                    <div style="grid-column: 1 / -1; border:1px solid rgba(116,91,24,0.16); border-radius:12px; padding:12px; background:#fffdf8;">
+                        <div style="font-weight:800; color:#2d2410; margin-bottom:4px;">Change Sign-In Email</div>
+                        <div id="emailChangeProviderHint" style="font-size:0.82rem; color:var(--light-text); margin-bottom:10px;">Verify your new email before it becomes active.</div>
+                        <div style="display:grid; gap:10px; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));">
+                            <div>
+                                <label for="settingsNewEmail" style="display:block; font-size:0.8rem; margin-bottom:4px;">New Email</label>
+                                <input id="settingsNewEmail" type="email" class="form-control" autocomplete="email">
+                            </div>
+                            <div id="settingsCurrentPasswordWrap">
+                                <label for="settingsCurrentPassword" style="display:block; font-size:0.8rem; margin-bottom:4px;">Current Password</label>
+                                <input id="settingsCurrentPassword" type="password" class="form-control" autocomplete="current-password">
+                            </div>
+                        </div>
+                        <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-top:10px;">
+                            <button type="button" class="btn btn-outline" id="changeEmailBtn">Send Verification</button>
+                            <span id="changeEmailStatus" style="font-size:0.85rem; color:var(--light-text);"></span>
+                        </div>
+                    </div>
                     <div style="grid-column: 1 / -1; display:flex; gap:8px; align-items:center;">
                         <button type="submit" class="btn">Save Personal Details</button>
                         <span id="settingsPersonalStatus" style="font-size:0.85rem; color:var(--light-text);"></span>
@@ -443,6 +465,57 @@
             return user.profileImage || localStorage.getItem('yeshi_profile_avatar') || user.avatar || user.image || user.picture || '';
         }
 
+        function isValidEmailAddress(value) {
+            return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value || '').trim());
+        }
+
+        function getProviderIds(user) {
+            if (Array.isArray(user?.providerIds) && user.providerIds.length) {
+                return user.providerIds.map((value) => String(value || '').trim()).filter(Boolean);
+            }
+            if (String(user?.authProvider || '').trim().toLowerCase() === 'google') {
+                return ['google.com'];
+            }
+            return ['password'];
+        }
+
+        function updateEmailChangePanel(user) {
+            const providerHint = document.getElementById('emailChangeProviderHint');
+            const passwordWrap = document.getElementById('settingsCurrentPasswordWrap');
+            const passwordInput = document.getElementById('settingsCurrentPassword');
+            const newEmailInput = document.getElementById('settingsNewEmail');
+            const statusEl = document.getElementById('changeEmailStatus');
+            const providerIds = getProviderIds(user);
+            const googleOnly = providerIds.includes('google.com') && !providerIds.includes('password');
+            const pendingEmail = String(user?.pendingEmail || '').trim();
+
+            if (providerHint) {
+                if (googleOnly) {
+                    providerHint.textContent = 'Google accounts need a quick Google re-check before sending the email change verification.';
+                } else {
+                    providerHint.textContent = pendingEmail
+                        ? `Pending verification for ${pendingEmail}. Verify it to finish the email change.`
+                        : 'Verify your new email before it becomes active.';
+                }
+            }
+
+            if (passwordWrap) {
+                passwordWrap.style.display = googleOnly ? 'none' : '';
+            }
+            if (passwordInput) {
+                passwordInput.value = '';
+                passwordInput.required = !googleOnly;
+            }
+            if (newEmailInput) {
+                newEmailInput.value = pendingEmail;
+                newEmailInput.placeholder = String(user?.email || '').trim();
+            }
+            if (statusEl) {
+                statusEl.textContent = '';
+                statusEl.style.color = 'var(--light-text)';
+            }
+        }
+
         function populateEditForm(user) {
             const firstNameInput = document.getElementById('settingsFirstName');
             const fatherNameInput = document.getElementById('settingsFatherName');
@@ -477,6 +550,7 @@
                 profileImage: imageUrl
             });
             populateEditForm({ ...user, fullName });
+            updateEmailChangePanel(user);
             renderShippingAddressList();
             renderMeasurementProfileList();
 
@@ -794,6 +868,64 @@
                 });
             }
 
+            const changeEmailBtn = document.getElementById('changeEmailBtn');
+            const changeEmailStatus = document.getElementById('changeEmailStatus');
+            if (changeEmailBtn) {
+                changeEmailBtn.addEventListener('click', async () => {
+                    const newEmail = String(document.getElementById('settingsNewEmail')?.value || '').replace(/\s+/g, '').trim().toLowerCase();
+                    const currentEmail = String(document.getElementById('settingsEmail')?.value || '').replace(/\s+/g, '').trim().toLowerCase();
+                    const currentPassword = String(document.getElementById('settingsCurrentPassword')?.value || '');
+
+                    if (!isValidEmailAddress(newEmail)) {
+                        changeEmailStatus.textContent = 'Enter a valid email address';
+                        changeEmailStatus.style.color = '#ba1a1a';
+                        return;
+                    }
+
+                    if (newEmail === currentEmail) {
+                        changeEmailStatus.textContent = 'Enter a different email address.';
+                        changeEmailStatus.style.color = '#ba1a1a';
+                        return;
+                    }
+
+                    const originalLabel = changeEmailBtn.textContent;
+                    changeEmailBtn.disabled = true;
+                    changeEmailBtn.textContent = 'Sending...';
+                    changeEmailStatus.textContent = 'Preparing verification...';
+                    changeEmailStatus.style.color = 'var(--light-text)';
+
+                    try {
+                        if (!window.YeshiFirebaseAuth || typeof window.YeshiFirebaseAuth.updateEmailAddress !== 'function') {
+                            throw new Error('Email updates are not ready yet. Please refresh and try again.');
+                        }
+
+                        const result = await window.YeshiFirebaseAuth.updateEmailAddress({
+                            newEmail,
+                            currentPassword
+                        });
+
+                        const storedUser = safeParseJson(localStorage.getItem('user')) || {};
+                        storedUser.pendingEmail = newEmail;
+                        localStorage.setItem('user', JSON.stringify(storedUser));
+                        applyUserProfileHeader(storedUser);
+
+                        changeEmailStatus.textContent = result && result.message
+                            ? result.message
+                            : 'Verification email sent to your new address. Your email will update after verification.';
+                        changeEmailStatus.style.color = '#1aad19';
+                    } catch (err) {
+                        const message = window.YeshiFirebaseAuth && typeof window.YeshiFirebaseAuth.getFriendlyError === 'function'
+                            ? window.YeshiFirebaseAuth.getFriendlyError(err)
+                            : (err && err.message) || 'Failed to update email.';
+                        changeEmailStatus.textContent = message;
+                        changeEmailStatus.style.color = '#ba1a1a';
+                    } finally {
+                        changeEmailBtn.disabled = false;
+                        changeEmailBtn.textContent = originalLabel;
+                    }
+                });
+            }
+
             const shippingForm = document.getElementById('shippingAddressForm');
             const shippingStatus = document.getElementById('shippingStatus');
             const shippingResetBtn = document.getElementById('shippingResetBtn');
@@ -1028,7 +1160,10 @@
             }
         }
 
-        document.addEventListener('DOMContentLoaded', function () {
+        document.addEventListener('DOMContentLoaded', async function () {
+            if (window.YeshiAuth && typeof window.YeshiAuth.resolveSession === 'function') {
+                await window.YeshiAuth.resolveSession().catch(() => null);
+            }
             initShippingCountrySelect();
             loadProfileFromServer();
             bindAvatarUpload();

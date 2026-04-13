@@ -193,6 +193,43 @@
     border-radius: 12px;
 }
 
+.auth-actions .btn[disabled],
+.google-auth-btn[disabled] {
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
+.form-status {
+    min-height: 1.25rem;
+    margin-top: 10px;
+    font-size: 0.92rem;
+    color: var(--light-text);
+}
+
+.form-status.error {
+    color: #ba1a1a;
+}
+
+.form-status.success {
+    color: #147d35;
+}
+
+.form-status.info {
+    color: var(--accent-color);
+}
+
+.field-message {
+    min-height: 1rem;
+    margin-top: 6px;
+    font-size: 0.85rem;
+    color: #ba1a1a;
+}
+
+.auth-form .form-control.is-invalid {
+    border-color: #ba1a1a;
+    box-shadow: 0 0 0 3px rgba(186, 26, 26, 0.12);
+}
+
 .auth-links {
     margin-top: 16px;
     display: grid;
@@ -238,6 +275,41 @@
 .google-signin {
     display: flex;
     justify-content: center;
+}
+
+.google-auth-btn {
+    width: 100%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 0.85rem 1rem;
+    border-radius: 12px;
+    border: 1px solid rgba(30, 75, 53, 0.14);
+    background: #fff;
+    color: var(--accent-color);
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+}
+
+.google-auth-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 10px 22px rgba(0, 0, 0, 0.08);
+    border-color: rgba(30, 75, 53, 0.28);
+}
+
+.google-auth-icon {
+    width: 28px;
+    height: 28px;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #ffffff, #f5ede0);
+    color: #d54b3d;
+    font-weight: 800;
+    border: 1px solid rgba(212, 175, 55, 0.25);
 }
 
 @media (max-width: 860px) {
