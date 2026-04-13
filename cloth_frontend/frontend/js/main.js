@@ -40,7 +40,7 @@ function ensureFirebaseAuthBridge() {
         }
 
         const script = document.createElement('script');
-        script.src = '/js/firebase-auth.js?v=20260413';
+        script.src = '/js/firebase-auth.js?v=20260414';
         script.async = true;
         script.setAttribute('data-yeshi-firebase-auth', '1');
         script.onload = () => {
@@ -161,6 +161,16 @@ function clearStoredAuthSession(options = {}) {
     }
 
     return getCurrentAuthSnapshot();
+}
+
+function removeLegacyDesktopProfileIcons() {
+    document.querySelectorAll('#desktopProfileIcon').forEach((icon) => {
+        try {
+            icon.remove();
+        } catch (_) {
+            // Ignore stale DOM cleanup failures.
+        }
+    });
 }
 
 function setStoredAuthSession(token, user, options = {}) {
@@ -1269,6 +1279,7 @@ function ensureHomepageNavForListedPages() {
 
                 <ul class="yeshi-desktop-nav nav-links no-scrollbar hidden items-center gap-5 overflow-x-auto text-xs font-semibold uppercase tracking-wider lg:flex">
                     <li><a class="active text-brand-primary" href="/user/">Home</a></li>
+                    <li><a href="https://yeshiclothe.com.et" target="_blank" rel="noopener noreferrer" class="hover:text-brand-primary">Website</a></li>
                     <li><a href="/my-orders" class="hover:text-brand-primary">My Orders</a></li>
                     <li id="desktopLoginItem"><a href="/auth/login" class="hover:text-brand-primary">Login</a></li>
                     <li id="desktopSignupItem"><a href="/auth/register" class="hover:text-brand-primary">Sign Up</a></li>
@@ -1293,9 +1304,6 @@ function ensureHomepageNavForListedPages() {
                     <a aria-label="Open MyChat" class="yeshi-icon-btn rounded-full p-2 text-brand-muted hover:text-brand-primary" href="/user/mychat" style="position: relative;">
                         <span class="material-symbols-outlined">chat</span>
                     </a>
-                    <a id="desktopProfileIcon" href="/profile" class="yeshi-icon-btn hidden rounded-full p-2 text-brand-muted hover:text-brand-primary" aria-label="Profile">
-                        <span class="material-symbols-outlined">person</span>
-                    </a>
                 </div>
             </div>
 
@@ -1313,6 +1321,7 @@ function ensureHomepageNavForListedPages() {
     `;
     const nav = navShell.firstElementChild;
     if (nav) document.body.prepend(nav);
+    removeLegacyDesktopProfileIcons();
     document.body.classList.add('yeshi-home-nav-active');
 
     const getBagItems = () => {
@@ -3454,6 +3463,7 @@ function applyAuthVisibility() {
 }
 
 function applyGlobalMenuAuthState() {
+    removeLegacyDesktopProfileIcons();
     const isLoggedIn = getCurrentAuthSnapshot().isLoggedIn;
 
     const loginBtn = document.getElementById('mobileMenuLoginBtn');
@@ -3464,7 +3474,6 @@ function applyGlobalMenuAuthState() {
     const desktopSignup = document.getElementById('desktopSignupItem');
     const desktopProfile = document.getElementById('desktopProfileItem');
     const desktopLogout = document.getElementById('desktopLogoutItem');
-    const desktopProfileIcon = document.getElementById('desktopProfileIcon');
 
     if (loginBtn) loginBtn.classList.toggle('hidden', isLoggedIn);
     if (signupBtn) signupBtn.classList.toggle('hidden', isLoggedIn);
@@ -3474,7 +3483,6 @@ function applyGlobalMenuAuthState() {
     if (desktopSignup) desktopSignup.classList.toggle('hidden', isLoggedIn);
     if (desktopProfile) desktopProfile.classList.toggle('hidden', !isLoggedIn);
     if (desktopLogout) desktopLogout.classList.toggle('hidden', !isLoggedIn);
-    if (desktopProfileIcon) desktopProfileIcon.classList.toggle('hidden', !isLoggedIn);
 }
 
 function wireGenericMobileMenuToggle() {

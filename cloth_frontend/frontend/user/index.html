@@ -519,7 +519,6 @@
             const desktopSignup = document.getElementById('desktopSignupItem');
             const desktopProfile = document.getElementById('desktopProfileItem');
             const desktopLogout = document.getElementById('desktopLogoutItem');
-            const desktopProfileIcon = document.getElementById('desktopProfileIcon');
             const shoppingBagLink = document.getElementById('shoppingBagLink');
             const loggedIn = isUserLoggedIn();
             if (loginBtn) loginBtn.classList.toggle('hidden', loggedIn);
@@ -530,7 +529,6 @@
             if (desktopSignup) desktopSignup.classList.toggle('hidden', loggedIn);
             if (desktopProfile) desktopProfile.classList.toggle('hidden', !loggedIn);
             if (desktopLogout) desktopLogout.classList.toggle('hidden', !loggedIn);
-            if (desktopProfileIcon) desktopProfileIcon.classList.toggle('hidden', !loggedIn);
             if (shoppingBagLink) shoppingBagLink.classList.toggle('hidden', !loggedIn);
         }
 

@@ -1,3 +1,9 @@
+(() => {
+if (window.__yeshiAuthRuntimeInitialized) {
+    return;
+}
+window.__yeshiAuthRuntimeInitialized = true;
+
 const YESHI_AUTH_FLASH_KEY = 'yeshi_auth_flash';
 const YESHI_PENDING_SIGNUP_PROFILE_KEY = 'yeshi_pending_signup_profile';
 let yeshiFirebaseBridgePromise = null;
@@ -127,6 +133,74 @@ function isValidEmail(value) {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value || '').trim());
 }
 
+function createError(message, code) {
+    const error = new Error(String(message || '').trim() || 'Something went wrong');
+    if (code) error.code = code;
+    return error;
+}
+
+function readJsonSafe(raw) {
+    const parsed = safeParseJson(raw);
+    if (parsed && typeof parsed === 'object') return parsed;
+    const text = String(raw || '').trim();
+    return text ? { msg: text } : {};
+}
+
+async function readApiPayload(response) {
+    return readJsonSafe(await response.text());
+}
+
+function persistSessionFromApi(payload) {
+    if (!payload || !payload.token || !payload.user) {
+        throw createError('Incomplete login response from server');
+    }
+
+    if (window.YeshiAuth && typeof window.YeshiAuth.setSession === 'function') {
+        window.YeshiAuth.setSession(payload.token, payload.user);
+        return payload;
+    }
+
+    localStorage.setItem('token', String(payload.token || '').trim());
+    localStorage.setItem('role', String(payload.user && payload.user.role || '').trim());
+    localStorage.setItem('user', JSON.stringify(payload.user || {}));
+    if (!localStorage.getItem('loginTime')) {
+        localStorage.setItem('loginTime', Date.now().toString());
+    }
+
+    try {
+        window.dispatchEvent(new CustomEvent('yeshi:auth-state-changed'));
+    } catch (_) {
+        // Ignore CustomEvent failures.
+    }
+
+    return payload;
+}
+
+async function loginWithBackendCredentials(email, password) {
+    const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            email: String(email || '').trim(),
+            password: String(password || '')
+        })
+    });
+    const payload = await readApiPayload(response);
+    if (!response.ok) {
+        const rawMessage = String((payload && payload.msg) || '').trim();
+        if (/invalid credentials/i.test(rawMessage)) {
+            throw createError('Invalid email or password', 'auth/invalid-credential');
+        }
+        if (/google sign-in/i.test(rawMessage)) {
+            throw createError(rawMessage, 'auth/account-exists-with-different-credential');
+        }
+        throw createError(rawMessage || 'Login failed');
+    }
+    return persistSessionFromApi(payload);
+}
+
 function ensureFieldMessage(input) {
     if (!input || !input.id) return null;
     let fieldMessage = input.parentElement && input.parentElement.querySelector(`.field-message[data-field-for="${input.id}"]`);
@@ -211,7 +285,7 @@ function getFirebaseBridge() {
         }
 
         const script = document.createElement('script');
-        script.src = '/js/firebase-auth.js?v=20260413';
+        script.src = '/js/firebase-auth.js?v=20260414';
         script.async = true;
         script.setAttribute('data-yeshi-firebase-auth', '1');
         script.onload = () => {
@@ -401,10 +475,23 @@ function initLoginForm() {
                 throw new Error('This email uses Google Sign-In. Please continue with Google.');
             }
 
-            const session = await bridge.loginWithEmail({
-                email,
-                password: passwordInput.value
-            });
+            let session = null;
+            const password = passwordInput.value;
+            if (methods.includes('password')) {
+                session = await bridge.loginWithEmail({
+                    email,
+                    password
+                });
+            } else {
+                try {
+                    session = await bridge.loginWithEmail({
+                        email,
+                        password
+                    });
+                } catch (_) {
+                    session = await loginWithBackendCredentials(email, password);
+                }
+            }
 
             const enrichedUser = await flushPendingSignupProfile(session && session.user);
             setFormStatus(form, 'success', 'Login successful');
@@ -633,17 +720,7 @@ function initForgotPasswordForm() {
         try {
             const bridge = await getFirebaseBridge();
             const email = sanitizeEmailInput(emailInput);
-            const methods = await bridge.detectSignInMethods(email);
-            if (!methods.length) {
-                const notFoundError = new Error('No account was found for that email');
-                notFoundError.code = 'yeshi/user-not-found';
-                throw notFoundError;
-            }
-            if (methods.includes('google.com') && !methods.includes('password')) {
-                throw new Error('This account uses Google Sign-In. Please continue with Google.');
-            }
-
-            const result = await bridge.sendPasswordReset({ email, knownMethods: methods });
+            const result = await bridge.sendPasswordReset({ email });
             setFormStatus(form, 'success', result.message);
         } catch (error) {
             const bridge = window.YeshiFirebaseAuth;
@@ -700,3 +777,4 @@ document.addEventListener('DOMContentLoaded', async function () {
     initForgotPasswordForm();
     await redirectIfAlreadyLoggedIn();
 });
+})();

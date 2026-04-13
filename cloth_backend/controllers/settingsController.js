@@ -1,5 +1,62 @@
 const SiteSettings = require('../models/SiteSettings');
 
+function getFallbackSocial() {
+    return {
+        tiktok: 'https://www.tiktok.com/@yeshi_traditional',
+        telegram: 'https://t.me/Gondarkemisdress',
+        facebook: '',
+        instagram: '',
+        whatsapp: 'https://wa.me/251933797981',
+        phone: '+251933797981'
+    };
+}
+
+function getFallbackContent() {
+    return {
+        siteTitle: 'Yeshi',
+        headerLogoUrl: '/images/logo.png',
+        faviconUrl: '/images/logo.png',
+        authBadge: 'Secure login - Fast checkout',
+        authTitle: 'Welcome back',
+        authSubtitle: 'Order modern Ethiopian cultural dresses, custom-made for your event.',
+        authFeature1Title: 'New cultural designs',
+        authFeature1Text: 'for wedding, holiday, and daily wear.',
+        authFeature2Title: 'Custom sizing',
+        authFeature2Text: '(standard or measurements) for the perfect fit.',
+        authFeature3Title: 'Easy order',
+        authFeature3Text: 'with delivery choice and payment screenshot upload.',
+        footerBrand: 'Yeshi',
+        footerTagline: 'Bringing elegance and culture to your wardrobe.',
+        footerContactHeader: 'Contact',
+        footerFollowHeader: 'Follow Us',
+        footerLocation: 'Gondar, Ethiopia',
+        footerEmailText: 'yeshiclothe@gmail.com',
+        workshopHeader: 'Our Workshop',
+        workshopAddress: 'Piazza Street, Near Fasil Ghebbi Castle',
+        footerWhatsAppText: 'WhatsApp',
+        footerPhoneText: 'Call: +251 933 797 981',
+        footerTelegramText: 'Telegram Group',
+        quickLink1Text: 'How It Works',
+        quickLink1Url: '/how-it-works',
+        quickLink2Text: 'About',
+        quickLink2Url: '/about',
+        quickLink3Text: 'Contact',
+        quickLink3Url: '/contact',
+        quickLink4Text: 'Website',
+        quickLink4Url: 'https://yeshiclothe.com.et',
+        footerCopyright: 'Copyright 2024 Yeshi Traditional Clothes. Crafted with pride in Gondar.'
+    };
+}
+
+function getFallbackDelivery() {
+    return {
+        default_mode: 'ethiopia_only',
+        default_country: 'Ethiopia',
+        default_country_code: '+251',
+        allow_all_country_codes: true
+    };
+}
+
 function normalizeUrl(url) {
     const value = String(url || '').trim();
     return value;
@@ -126,8 +183,8 @@ async function getOrCreateSettings() {
                 quickLink2Url: '/about',
                 quickLink3Text: 'Contact',
                 quickLink3Url: '/contact',
-                quickLink4Text: 'Our Story',
-                quickLink4Url: '/about',
+                quickLink4Text: 'Website',
+                quickLink4Url: 'https://yeshiclothe.com.et',
                 footerCopyright: '© 2024 Yeshi Traditional Clothes. Crafted with pride in Gondar.'
             },
             delivery: {
@@ -171,8 +228,8 @@ exports.getSocialLinks = async (req, res) => {
         const doc = await getOrCreateSettings();
         res.json({ social: doc.social || {} });
     } catch (err) {
-        console.error(err);
-        res.status(500).json({ msg: 'Server error' });
+        console.error('getSocialLinks error:', err?.message || err);
+        res.json({ social: getFallbackSocial() });
     }
 };
 
@@ -206,8 +263,8 @@ exports.getContent = async (req, res) => {
         const doc = await getOrCreateSettings();
         res.json({ content: doc.content || {} });
     } catch (err) {
-        console.error(err);
-        res.status(500).json({ msg: 'Server error' });
+        console.error('getContent error:', err?.message || err);
+        res.json({ content: getFallbackContent() });
     }
 };
 
@@ -240,16 +297,11 @@ exports.getDeliverySettings = async (req, res) => {
     try {
         const doc = await getOrCreateSettings();
         res.json({
-            delivery: doc.delivery || {
-                default_mode: 'ethiopia_only',
-                default_country: 'Ethiopia',
-                default_country_code: '+251',
-                allow_all_country_codes: true
-            }
+            delivery: doc.delivery || getFallbackDelivery()
         });
     } catch (err) {
-        console.error(err);
-        res.status(500).json({ msg: 'Server error' });
+        console.error('getDeliverySettings error:', err?.message || err);
+        res.json({ delivery: getFallbackDelivery() });
     }
 };
 

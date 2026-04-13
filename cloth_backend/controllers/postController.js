@@ -320,7 +320,7 @@ exports.createPost = async (req, res) => {
         res.json(post);
     } catch (err) {
         console.error(err.message);
-        res.status(500).send('Server Error');
+        return res.status(500).json({ msg: 'Server error' });
     }
 };
 
@@ -484,7 +484,7 @@ exports.updatePost = async (req, res) => {
         res.json(post);
     } catch (err) {
         console.error(err.message);
-        res.status(500).send('Server Error');
+        return res.status(500).json({ msg: 'Server error' });
     }
 };
 
@@ -555,7 +555,7 @@ exports.incrementView = async (req, res) => {
         res.json({ viewCount: post.viewCount });
     } catch (err) {
         console.error(err.message);
-        res.status(500).send('Server Error');
+        return res.status(500).json({ msg: 'Server error' });
     }
 };
 
@@ -573,7 +573,7 @@ exports.incrementShare = async (req, res) => {
         res.json({ shareCount: post.shareCount });
     } catch (err) {
         console.error(err.message);
-        res.status(500).send('Server Error');
+        return res.status(500).json({ msg: 'Server error' });
     }
 };
 
@@ -591,7 +591,7 @@ exports.incrementBag = async (req, res) => {
         res.json({ bagCount: post.bagCount });
     } catch (err) {
         console.error(err.message);
-        res.status(500).send('Server Error');
+        return res.status(500).json({ msg: 'Server error' });
     }
 };
 
@@ -615,7 +615,7 @@ exports.updateOrderCountVisibility = async (req, res) => {
         res.json({ msg: 'Updated', postId: String(post._id), orderCountVisible: post.orderCountVisible });
     } catch (err) {
         console.error(err.message);
-        res.status(500).send('Server Error');
+        return res.status(500).json({ msg: 'Server error' });
     }
 };
 
@@ -638,7 +638,7 @@ exports.updateAllOrderCountVisibility = async (req, res) => {
         });
     } catch (err) {
         console.error(err.message);
-        res.status(500).send('Server Error');
+        return res.status(500).json({ msg: 'Server error' });
     }
 };
 
@@ -664,7 +664,7 @@ exports.likePost = async (req, res) => {
         res.json(post.likes);
     } catch (err) {
         console.error(err.message);
-        res.status(500).send('Server Error');
+        return res.status(500).json({ msg: 'Server error' });
     }
 };
 
@@ -720,7 +720,7 @@ exports.commentPost = async (req, res) => {
         res.json(post.comments);
     } catch (err) {
         console.error(err.message);
-        res.status(500).send('Server Error');
+        return res.status(500).json({ msg: 'Server error' });
     }
 };
 
@@ -746,7 +746,7 @@ exports.likeComment = async (req, res) => {
         res.json(post.comments);
     } catch (err) {
         console.error(err.message);
-        res.status(500).send('Server Error');
+        return res.status(500).json({ msg: 'Server error' });
     }
 };
 
@@ -798,7 +798,7 @@ exports.replyComment = async (req, res) => {
         res.json(post.comments);
     } catch (err) {
         console.error(err.message);
-        res.status(500).send('Server Error');
+        return res.status(500).json({ msg: 'Server error' });
     }
 };
 
@@ -824,7 +824,7 @@ exports.favoriteComment = async (req, res) => {
         res.json(post.comments);
     } catch (err) {
         console.error(err.message);
-        res.status(500).send('Server Error');
+        return res.status(500).json({ msg: 'Server error' });
     }
 };
 
@@ -845,7 +845,7 @@ exports.deletePost = async (req, res) => {
         res.json({ msg: 'Post removed' });
     } catch (err) {
         console.error(err.message);
-        res.status(500).send('Server Error');
+        return res.status(500).json({ msg: 'Server error' });
     }
 };
 
@@ -869,7 +869,7 @@ exports.deleteComment = async (req, res) => {
         res.json(post.comments);
     } catch (err) {
         console.error(err.message);
-        res.status(500).send('Server Error');
+        return res.status(500).json({ msg: 'Server error' });
     }
 };
 
@@ -930,6 +930,6 @@ exports.editComment = async (req, res) => {
         res.json(post.comments);
     } catch (err) {
         console.error(err.message);
-        res.status(500).send('Server Error');
+        return res.status(500).json({ msg: 'Server error' });
     }
 };

@@ -87,6 +87,21 @@ function getValueByPath(obj, path) {
 function matches(doc, query) {
     const keys = Object.keys(query || {});
     for (const key of keys) {
+        if (key === '$or') {
+            const clauses = Array.isArray(query[key]) ? query[key] : [];
+            if (!clauses.length) return false;
+            const anyMatch = clauses.some((clause) => matches(doc, clause || {}));
+            if (!anyMatch) return false;
+            continue;
+        }
+
+        if (key === '$and') {
+            const clauses = Array.isArray(query[key]) ? query[key] : [];
+            const allMatch = clauses.every((clause) => matches(doc, clause || {}));
+            if (!allMatch) return false;
+            continue;
+        }
+
         const expected = query[key];
         const actual = getValueByPath(doc, key);
 
@@ -654,8 +669,133 @@ class FirebaseOrder {
 }
 
 class FirebasePost {
+    constructor(data = {}) {
+        Object.assign(this, data);
+    }
+
     static collection() {
         return getFirestore().collection('posts');
+    }
+
+    static normalizeReply(reply) {
+        const src = reply && typeof reply === 'object' ? clone(reply) : {};
+        const id = String(src._id || src.id || randomId());
+        return {
+            _id: id,
+            id,
+            user: src.user ? String(src.user) : '',
+            name: String(src.name || '').trim(),
+            text: String(src.text || '').trim(),
+            image_url: String(src.image_url || '').trim(),
+            likes: Array.isArray(src.likes) ? src.likes.map((row) => String(row)) : [],
+            date: src.date || nowIso()
+        };
+    }
+
+    static normalizeComment(comment) {
+        const src = comment && typeof comment === 'object' ? clone(comment) : {};
+        const id = String(src._id || src.id || randomId());
+        const ratingRaw = Number(src.rating);
+        const rating = Number.isFinite(ratingRaw) ? Math.max(1, Math.min(5, Math.round(ratingRaw))) : 5;
+        return {
+            _id: id,
+            id,
+            user: src.user ? String(src.user) : '',
+            name: String(src.name || '').trim(),
+            text: String(src.text || '').trim(),
+            image_url: String(src.image_url || '').trim(),
+            rating,
+            likes: Array.isArray(src.likes) ? src.likes.map((row) => String(row)) : [],
+            favorites: Array.isArray(src.favorites) ? src.favorites.map((row) => String(row)) : [],
+            replies: Array.isArray(src.replies) ? src.replies.map((row) => FirebasePost.normalizeReply(row)) : [],
+            date: src.date || nowIso()
+        };
+    }
+
+    static makeDocument(data) {
+        const src = data && typeof data === 'object' ? clone(data) : {};
+        const current = nowIso();
+        const hasDeliveryScope = ['ethiopia_only', 'selected_countries', 'all_countries'].includes(String(src.delivery_scope || '').trim());
+        const normalizedDeliveryScope = hasDeliveryScope ? String(src.delivery_scope || '').trim() : 'ethiopia_only';
+
+        const doc = {
+            title: String(src.title || '').trim(),
+            description: String(src.description || '').trim(),
+            category: String(src.category || 'Women').trim() || 'Women',
+            images: Array.isArray(src.images) ? src.images.map((row) => String(row || '').trim()).filter(Boolean) : [],
+            videoUrl: String(src.videoUrl || '').trim(),
+            videoUrls: Array.isArray(src.videoUrls)
+                ? src.videoUrls.map((row) => String(row || '').trim()).filter(Boolean)
+                : (src.videoUrl ? [String(src.videoUrl).trim()] : []),
+            priceETB: src.priceETB === null || src.priceETB === '' || src.priceETB === undefined
+                ? null
+                : Number(src.priceETB),
+            oldPriceETB: src.oldPriceETB === null || src.oldPriceETB === '' || src.oldPriceETB === undefined
+                ? null
+                : Number(src.oldPriceETB),
+            shippingPriceETB: src.shippingPriceETB === null || src.shippingPriceETB === '' || src.shippingPriceETB === undefined
+                ? null
+                : Number(src.shippingPriceETB),
+            freeShipping: src.freeShipping === true || String(src.freeShipping || '').toLowerCase() === 'true' || String(src.freeShipping || '') === '1',
+            delivery_scope: normalizedDeliveryScope,
+            delivery_countries: normalizedDeliveryScope === 'selected_countries'
+                ? (Array.isArray(src.delivery_countries) ? src.delivery_countries.map((row) => String(row || '').trim()).filter(Boolean) : [])
+                : [],
+            stock_quantity: Number.isFinite(Number(src.stock_quantity)) ? Math.max(0, Math.floor(Number(src.stock_quantity))) : 0,
+            unlimited_stock: src.unlimited_stock === true || String(src.unlimited_stock || '').toLowerCase() === 'true' || String(src.unlimited_stock || '') === '1',
+            viewCount: Number.isFinite(Number(src.viewCount)) ? Number(src.viewCount) : 0,
+            shareCount: Number.isFinite(Number(src.shareCount)) ? Number(src.shareCount) : 0,
+            bagCount: Number.isFinite(Number(src.bagCount)) ? Number(src.bagCount) : 0,
+            orderCountVisible: src.orderCountVisible === undefined ? true : !!src.orderCountVisible,
+            created_by: src.created_by ? String(src.created_by) : '',
+            likes: Array.isArray(src.likes)
+                ? src.likes
+                    .map((row) => {
+                        if (row && typeof row === 'object' && row.user !== undefined) {
+                            return { user: String(row.user) };
+                        }
+                        if (row !== undefined && row !== null) {
+                            return { user: String(row) };
+                        }
+                        return null;
+                    })
+                    .filter(Boolean)
+                : [],
+            comments: Array.isArray(src.comments) ? src.comments.map((row) => FirebasePost.normalizeComment(row)) : [],
+            created_at: src.created_at || src.createdAt || current,
+            createdAt: src.createdAt || src.created_at || current,
+            updated_at: current,
+            updatedAt: current
+        };
+
+        if (doc.unlimited_stock) {
+            doc.stock_quantity = 0;
+        }
+
+        return doc;
+    }
+
+    static hydrate(doc, state) {
+        if (!doc) return null;
+        const normalized = normalizeId(FirebasePost.makeDocument(doc));
+        const projected = applySelect(normalized, state && state.select);
+        return state && state.lean ? clone(projected) : new FirebasePost(projected);
+    }
+
+    static find(query) {
+        return queryBuilder(async (state) => {
+            const snap = await FirebasePost.collection().get();
+            let list = snap.docs
+                .map((d) => ({ _id: d.id, ...d.data() }))
+                .filter((doc) => matches(doc, query || {}));
+
+            list = applySortToArray(list, state && state.sort);
+            if (state && Number.isFinite(state.limit) && state.limit > 0) {
+                list = list.slice(0, state.limit);
+            }
+
+            return list.map((doc) => FirebasePost.hydrate(doc, state));
+        });
     }
 
     static findById(id) {
@@ -663,10 +803,14 @@ class FirebasePost {
             if (!id) return null;
             const snap = await FirebasePost.collection().doc(String(id)).get();
             if (!snap.exists) return null;
-            const doc = normalizeId({ _id: snap.id, ...snap.data() });
-            const projected = applySelect(doc, state && state.select);
-            return state && state.lean ? clone(projected) : projected;
+            return FirebasePost.hydrate({ _id: snap.id, ...snap.data() }, state);
         });
+    }
+
+    static async create(data) {
+        const payload = FirebasePost.makeDocument(data);
+        const ref = await FirebasePost.collection().add(payload);
+        return new FirebasePost({ _id: ref.id, id: ref.id, ...payload });
     }
 
     static async updateOne(filter, update) {
@@ -676,26 +820,65 @@ class FirebasePost {
         const ref = FirebasePost.collection().doc(id);
         const snap = await ref.get();
         if (!snap.exists) return { modifiedCount: 0 };
-        const current = snap.data() || {};
 
-        if (filter && filter.stock_quantity && Object.prototype.hasOwnProperty.call(filter.stock_quantity, '$gte')) {
-            const minRequired = Number(filter.stock_quantity.$gte || 0);
-            const currentStock = Number(current.stock_quantity || 0);
-            if (!(Number.isFinite(currentStock) && currentStock >= minRequired)) {
-                return { modifiedCount: 0 };
-            }
+        const current = FirebasePost.makeDocument({ _id: snap.id, ...snap.data() });
+        if (!matches(current, filter || {})) {
+            return { modifiedCount: 0 };
         }
 
         const setValues = clone((update && update.$set) || {});
         const incValues = clone((update && update.$inc) || {});
-        const payload = { ...setValues };
+        const next = { ...current, ...setValues };
         Object.entries(incValues).forEach(([key, value]) => {
-            const next = Number(current[key] || 0) + Number(value || 0);
-            payload[key] = next;
+            next[key] = Number(next[key] || 0) + Number(value || 0);
         });
 
+        const payload = FirebasePost.makeDocument(next);
         await ref.set(payload, { merge: true });
         return { modifiedCount: 1 };
+    }
+
+    static async updateMany(filter, update) {
+        const setValues = clone((update && update.$set) || {});
+        const incValues = clone((update && update.$inc) || {});
+        const snap = await FirebasePost.collection().get();
+        let modifiedCount = 0;
+
+        for (const docSnap of snap.docs) {
+            const current = FirebasePost.makeDocument({ _id: docSnap.id, ...docSnap.data() });
+            if (!matches(current, filter || {})) continue;
+
+            const next = { ...current, ...setValues };
+            Object.entries(incValues).forEach(([key, value]) => {
+                next[key] = Number(next[key] || 0) + Number(value || 0);
+            });
+
+            const payload = FirebasePost.makeDocument(next);
+            await FirebasePost.collection().doc(String(docSnap.id)).set(payload, { merge: true });
+            modifiedCount += 1;
+        }
+
+        return { modifiedCount };
+    }
+
+    async save() {
+        const payload = FirebasePost.makeDocument(this);
+        if (this._id || this.id) {
+            const id = String(this._id || this.id);
+            await FirebasePost.collection().doc(id).set(payload, { merge: true });
+            Object.assign(this, { _id: id, id, ...payload });
+            return this;
+        }
+        const ref = await FirebasePost.collection().add(payload);
+        Object.assign(this, { _id: ref.id, id: ref.id, ...payload });
+        return this;
+    }
+
+    async deleteOne() {
+        const id = String(this._id || this.id || '');
+        if (!id) return { deletedCount: 0 };
+        await FirebasePost.collection().doc(id).delete();
+        return { deletedCount: 1 };
     }
 }
 
@@ -726,17 +909,38 @@ class FirebaseProduct {
 }
 
 class FirebaseNotification {
+    constructor(data = {}) {
+        Object.assign(this, data);
+    }
+
     static collection() {
         return getFirestore().collection('notifications');
     }
 
-    static async create(data) {
-        const payload = {
-            ...clone(data || {}),
-            timestamp: data && data.timestamp ? data.timestamp : nowIso()
+    static makeDocument(data) {
+        const src = data && typeof data === 'object' ? clone(data) : {};
+        return {
+            user_id: src.user_id ? String(src.user_id) : '',
+            type: String(src.type || '').trim(),
+            title: String(src.title || '').trim(),
+            body: String(src.body || '').trim(),
+            reference_id: src.reference_id ? String(src.reference_id) : '',
+            is_read: src.is_read === true,
+            timestamp: src.timestamp || nowIso()
         };
+    }
+
+    static hydrate(doc, state) {
+        if (!doc) return null;
+        const normalized = normalizeId(FirebaseNotification.makeDocument(doc));
+        const projected = applySelect(normalized, state && state.select);
+        return state && state.lean ? clone(projected) : new FirebaseNotification(projected);
+    }
+
+    static async create(data) {
+        const payload = FirebaseNotification.makeDocument(data);
         const ref = await FirebaseNotification.collection().add(payload);
-        return normalizeId({ _id: ref.id, ...payload });
+        return normalizeId({ _id: ref.id, id: ref.id, ...payload });
     }
 
     static async insertMany(list) {
@@ -747,11 +951,171 @@ class FirebaseNotification {
         }
         return out;
     }
+
+    static find(query) {
+        return queryBuilder(async (state) => {
+            const snap = await FirebaseNotification.collection().get();
+            let list = snap.docs
+                .map((d) => ({ _id: d.id, ...d.data() }))
+                .filter((doc) => matches(doc, query || {}));
+
+            list = applySortToArray(list, state && state.sort);
+            if (state && Number.isFinite(state.limit) && state.limit > 0) {
+                list = list.slice(0, state.limit);
+            }
+
+            return list.map((doc) => FirebaseNotification.hydrate(doc, state));
+        });
+    }
+
+    static async countDocuments(query) {
+        const list = await FirebaseNotification.find(query || {}).lean();
+        return Array.isArray(list) ? list.length : 0;
+    }
+
+    static async findOneAndUpdate(filter, update, options = {}) {
+        const query = filter && typeof filter === 'object' ? filter : {};
+        const setValues = clone((update && update.$set) || {});
+
+        if (query._id) {
+            const id = String(query._id);
+            const ref = FirebaseNotification.collection().doc(id);
+            const snap = await ref.get();
+            if (!snap.exists) return null;
+            const current = { _id: snap.id, ...snap.data() };
+            if (!matches(current, query)) return null;
+            const next = FirebaseNotification.makeDocument({ ...current, ...setValues });
+            await ref.set(next, { merge: true });
+            return options && options.new
+                ? normalizeId({ _id: id, id, ...next })
+                : normalizeId(current);
+        }
+
+        const snap = await FirebaseNotification.collection().get();
+        const hit = snap.docs
+            .map((docSnap) => ({ _id: docSnap.id, ...docSnap.data() }))
+            .find((doc) => matches(doc, query));
+
+        if (!hit || !hit._id) return null;
+        const id = String(hit._id);
+        const ref = FirebaseNotification.collection().doc(id);
+        const next = FirebaseNotification.makeDocument({ ...hit, ...setValues });
+        await ref.set(next, { merge: true });
+        return options && options.new
+            ? normalizeId({ _id: id, id, ...next })
+            : normalizeId(hit);
+    }
+
+    static async updateMany(filter, update) {
+        const query = filter && typeof filter === 'object' ? filter : {};
+        const setValues = clone((update && update.$set) || {});
+        const snap = await FirebaseNotification.collection().get();
+        let modifiedCount = 0;
+
+        for (const docSnap of snap.docs) {
+            const current = { _id: docSnap.id, ...docSnap.data() };
+            if (!matches(current, query)) continue;
+
+            const next = FirebaseNotification.makeDocument({ ...current, ...setValues });
+            await FirebaseNotification.collection().doc(String(docSnap.id)).set(next, { merge: true });
+            modifiedCount += 1;
+        }
+
+        return { modifiedCount };
+    }
 }
 
 class FirebaseSiteSettings {
+    constructor(data = {}) {
+        Object.assign(this, data);
+    }
+
     static collection() {
         return getFirestore().collection('site_settings');
+    }
+
+    static defaultSocial() {
+        return {
+            tiktok: '',
+            telegram: '',
+            facebook: '',
+            instagram: '',
+            whatsapp: '',
+            phone: ''
+        };
+    }
+
+    static defaultContent() {
+        return {
+            siteTitle: '',
+            headerLogoUrl: '',
+            faviconUrl: '',
+            authBadge: '',
+            authTitle: '',
+            authSubtitle: '',
+            authFeature1Title: '',
+            authFeature1Text: '',
+            authFeature2Title: '',
+            authFeature2Text: '',
+            authFeature3Title: '',
+            authFeature3Text: '',
+            footerBrand: '',
+            footerTagline: '',
+            footerContactHeader: '',
+            footerFollowHeader: '',
+            footerLocation: '',
+            footerEmailText: '',
+            workshopHeader: '',
+            workshopAddress: '',
+            footerWhatsAppText: '',
+            footerPhoneText: '',
+            footerTelegramText: '',
+            quickLink1Text: '',
+            quickLink1Url: '',
+            quickLink2Text: '',
+            quickLink2Url: '',
+            quickLink3Text: '',
+            quickLink3Url: '',
+            quickLink4Text: '',
+            quickLink4Url: '',
+            footerCopyright: ''
+        };
+    }
+
+    static defaultDelivery() {
+        return {
+            default_mode: 'ethiopia_only',
+            default_country: 'Ethiopia',
+            default_country_code: '+251',
+            allow_all_country_codes: true
+        };
+    }
+
+    static makeDocument(data) {
+        const src = data && typeof data === 'object' ? clone(data) : {};
+        return {
+            key: String(src.key || 'default').trim() || 'default',
+            social: {
+                ...FirebaseSiteSettings.defaultSocial(),
+                ...(src.social && typeof src.social === 'object' ? src.social : {})
+            },
+            content: {
+                ...FirebaseSiteSettings.defaultContent(),
+                ...(src.content && typeof src.content === 'object' ? src.content : {})
+            },
+            delivery: {
+                ...FirebaseSiteSettings.defaultDelivery(),
+                ...(src.delivery && typeof src.delivery === 'object' ? src.delivery : {})
+            },
+            updatedAt: src.updatedAt || nowIso()
+        };
+    }
+
+    static hydrate(doc, state) {
+        if (!doc) return null;
+        const normalized = normalizeId(FirebaseSiteSettings.makeDocument(doc));
+        const projected = applySelect(normalized, state && state.select);
+        return state && state.lean ? clone(projected) : new FirebaseSiteSettings(projected);
     }
 
     static findOne(query) {
@@ -760,18 +1124,45 @@ class FirebaseSiteSettings {
             if (key) {
                 const snap = await FirebaseSiteSettings.collection().doc(key).get();
                 if (!snap.exists) return null;
-                const doc = normalizeId({ _id: snap.id, ...snap.data() });
-                const projected = applySelect(doc, state && state.select);
-                return state && state.lean ? clone(projected) : projected;
+                return FirebaseSiteSettings.hydrate({ _id: snap.id, ...snap.data() }, state);
             }
 
             const all = await FirebaseSiteSettings.collection().get();
             const first = all.docs[0];
             if (!first) return null;
-            const doc = normalizeId({ _id: first.id, ...first.data() });
-            const projected = applySelect(doc, state && state.select);
-            return state && state.lean ? clone(projected) : projected;
+            return FirebaseSiteSettings.hydrate({ _id: first.id, ...first.data() }, state);
         });
+    }
+
+    static find(query) {
+        return queryBuilder(async (state) => {
+            const snap = await FirebaseSiteSettings.collection().get();
+            let list = snap.docs
+                .map((d) => ({ _id: d.id, ...d.data() }))
+                .filter((doc) => matches(doc, query || {}));
+
+            list = applySortToArray(list, state && state.sort);
+            if (state && Number.isFinite(state.limit) && state.limit > 0) {
+                list = list.slice(0, state.limit);
+            }
+
+            return list.map((doc) => FirebaseSiteSettings.hydrate(doc, state));
+        });
+    }
+
+    static async create(data) {
+        const payload = FirebaseSiteSettings.makeDocument(data);
+        const id = String(payload.key || 'default');
+        await FirebaseSiteSettings.collection().doc(id).set(payload, { merge: true });
+        return new FirebaseSiteSettings({ _id: id, id, ...payload });
+    }
+
+    async save() {
+        const payload = FirebaseSiteSettings.makeDocument(this);
+        const id = String(this._id || this.id || payload.key || 'default');
+        await FirebaseSiteSettings.collection().doc(id).set(payload, { merge: true });
+        Object.assign(this, { _id: id, id, ...payload });
+        return this;
     }
 }
 

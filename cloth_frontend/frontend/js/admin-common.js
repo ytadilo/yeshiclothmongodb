@@ -103,7 +103,8 @@
         const status = String(storedUser.status || '').toLowerCase();
         const blocked = !!storedUser.isBanned || status === 'banned' || status === 'inactive';
         if (!token || role !== 'admin' || blocked) {
-            window.location.replace('/user/login.html');
+            const next = encodeURIComponent(window.location.pathname + window.location.search);
+            window.location.replace('/auth/login?next=' + next);
             return false;
         }
         return true;

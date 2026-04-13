@@ -1121,8 +1121,10 @@ exports.forgotPasswordLink = async (req, res) => {
 
         const user = await User.findOne({ email: normalizedEmail });
         if (!user) {
-            // Avoid account enumeration
-            return res.json({ msg: 'If that email exists, a reset link has been sent.' });
+            return res.status(404).json({
+                msg: 'No account was found for that email',
+                code: 'yeshi/user-not-found'
+            });
         }
 
         if (user.role === 'admin') {
@@ -1160,7 +1162,7 @@ exports.forgotPasswordLink = async (req, res) => {
                     return res.status(500).json({ msg: 'Email is not configured on the server' });
                 }
                 console.log(`[DEV MODE] Password reset link for ${user.email}: ${resetUrl}`);
-                return res.json({ msg: 'If that email exists, a reset link has been sent.' });
+                return res.json({ msg: 'Password reset email sent' });
             }
             console.error(err);
             const msg = getEmailSendErrorMessage(err);
@@ -1168,7 +1170,7 @@ exports.forgotPasswordLink = async (req, res) => {
             return res.status(status).json({ msg });
         }
 
-        return res.json({ msg: 'If that email exists, a reset link has been sent.' });
+        return res.json({ msg: 'Password reset email sent' });
     } catch (err) {
         console.error(err);
         return res.status(500).json({ msg: 'Server error' });

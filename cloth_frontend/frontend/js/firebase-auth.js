@@ -483,15 +483,14 @@
     async function sendPasswordReset(payload) {
         await whenReady();
         const email = String(payload && payload.email || '').trim();
+        if (!email) {
+            const missingEmailError = new Error('Enter a valid email address');
+            missingEmailError.code = 'auth/invalid-email';
+            throw missingEmailError;
+        }
         const knownMethods = Array.isArray(payload && payload.knownMethods)
             ? payload.knownMethods
             : await detectSignInMethods(email);
-
-        if (!knownMethods.length) {
-            const notFoundError = new Error('No account was found for that email');
-            notFoundError.code = 'yeshi/user-not-found';
-            throw notFoundError;
-        }
 
         if (knownMethods.includes('google.com') && !knownMethods.includes('password')) {
             const providerError = new Error('This account uses Google Sign-In. Please continue with Google.');
@@ -499,10 +498,32 @@
             throw providerError;
         }
 
-        await state.authModule.sendPasswordResetEmail(state.auth, email);
+        if (knownMethods.includes('password')) {
+            await state.authModule.sendPasswordResetEmail(state.auth, email);
+            return {
+                ok: true,
+                message: 'Password reset email sent'
+            };
+        }
+
+        const fallbackResponse = await fetch('/api/auth/forgot-password-link', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ email })
+        });
+        const fallbackPayload = await readResponsePayload(fallbackResponse);
+
+        if (!fallbackResponse.ok) {
+            const fallbackError = new Error((fallbackPayload && fallbackPayload.msg) || 'Failed to send reset email');
+            fallbackError.code = (fallbackPayload && fallbackPayload.code) || '';
+            throw fallbackError;
+        }
+
         return {
             ok: true,
-            message: 'Password reset email sent'
+            message: String((fallbackPayload && fallbackPayload.msg) || 'Password reset email sent').trim() || 'Password reset email sent'
         };
     }
 
