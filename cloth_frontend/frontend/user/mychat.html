@@ -19,9 +19,8 @@
                 localStorage.removeItem('user');
                 localStorage.removeItem('loginTime');
             }
+            document.documentElement.style.visibility = 'hidden';
             window.location.replace('/user/login.html?next=' + next);
-            document.documentElement.innerHTML = '';
-            throw new Error('AUTH_REQUIRED');
         })();
     </script>
     <link rel="icon" type="image/png" href="/images/logo.png">

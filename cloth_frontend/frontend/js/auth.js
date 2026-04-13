@@ -252,8 +252,8 @@ async function initGoogleSignIn() {
 
     try {
         const configRes = await fetch(`${API_URL}/google/config`);
-        const config = await configRes.json();
-        if (!config || !config.clientId) {
+        const config = await readResponsePayload(configRes);
+        if (!configRes.ok || !config || !config.clientId) {
             // Not configured on server; silently skip rendering the button
             return;
         }
