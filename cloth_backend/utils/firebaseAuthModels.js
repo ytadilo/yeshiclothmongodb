@@ -766,7 +766,12 @@ class FirebasePost {
 
     static hydrate(doc, state) {
         if (!doc) return null;
-        const normalized = normalizeId(FirebasePost.makeDocument(doc));
+        const docId = String(doc._id || doc.id || '');
+        const normalized = normalizeId({
+            ...FirebasePost.makeDocument(doc),
+            _id: docId,
+            id: docId
+        });
         const projected = applySelect(normalized, state && state.select);
         return state && state.lean ? clone(projected) : new FirebasePost(projected);
     }
