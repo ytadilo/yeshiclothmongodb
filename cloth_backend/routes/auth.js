@@ -32,7 +32,7 @@ router.post(
 router.post('/login', login);
 router.get('/me', auth, me);
 router.put('/me', auth, upload.single('profileImage'), updateMe);
-router.post('/logout', auth, logout);
+router.post('/logout', logout);
 router.get('/firebase/config', firebaseConfig);
 router.post('/firebase/session', firebaseSession);
 

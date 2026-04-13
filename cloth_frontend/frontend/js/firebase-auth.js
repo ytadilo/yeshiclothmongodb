@@ -4,6 +4,23 @@
     const FIREBASE_UID_KEY = 'yeshi_firebase_uid';
     const FIREBASE_EMAIL_KEY = 'yeshi_firebase_email';
     const FIREBASE_PROVIDER_KEY = 'yeshi_firebase_provider';
+    const USER_SCOPED_LOCAL_STORAGE_KEYS = [
+        'token',
+        'role',
+        'user',
+        'loginTime',
+        FIREBASE_UID_KEY,
+        FIREBASE_EMAIL_KEY,
+        FIREBASE_PROVIDER_KEY,
+        'yeshi_profile_avatar',
+        'yeshi_profile_shipping',
+        'yeshi_saved_shipping_addresses',
+        'yeshi_saved_measurements',
+        'yeshi_pending_signup_profile'
+    ];
+    const USER_SCOPED_SESSION_STORAGE_KEYS = [
+        'yeshi_auth_flash'
+    ];
 
     const state = {
         readyPromise: null,
@@ -47,6 +64,20 @@
         }
     }
 
+    function clearUserScopedStorage() {
+        try {
+            USER_SCOPED_LOCAL_STORAGE_KEYS.forEach((key) => localStorage.removeItem(key));
+        } catch (_) {
+            // Ignore localStorage cleanup errors.
+        }
+
+        try {
+            USER_SCOPED_SESSION_STORAGE_KEYS.forEach((key) => sessionStorage.removeItem(key));
+        } catch (_) {
+            // Ignore sessionStorage cleanup errors.
+        }
+    }
+
     function setFirebaseHint(user) {
         if (!user) {
             setStorageValue(FIREBASE_UID_KEY, '');
@@ -69,14 +100,7 @@
     }
 
     function clearLocalSessionOnly() {
-        try {
-            localStorage.removeItem('token');
-            localStorage.removeItem('role');
-            localStorage.removeItem('user');
-            localStorage.removeItem('loginTime');
-        } catch (_) {
-            // Ignore storage cleanup errors.
-        }
+        clearUserScopedStorage();
 
         try {
             window.dispatchEvent(new CustomEvent('yeshi:auth-state-changed'));
@@ -147,6 +171,9 @@
 
         if (code === 'auth/email-not-verified') {
             return 'Please verify your email first';
+        }
+        if (code === 'yeshi/user-not-found') {
+            return 'No account was found for that email';
         }
         if (code === 'auth/email-change-password-required') {
             return 'Enter your current password to change your email';
@@ -395,6 +422,11 @@
                 ok: true,
                 message: 'Verification email sent. Please verify your email before login'
             };
+        } catch (error) {
+            await state.authModule.signOut(state.auth).catch(() => {});
+            setFirebaseHint(null);
+            clearAppSession();
+            throw error;
         } finally {
             state.manualAction = false;
         }
@@ -451,6 +483,22 @@
     async function sendPasswordReset(payload) {
         await whenReady();
         const email = String(payload && payload.email || '').trim();
+        const knownMethods = Array.isArray(payload && payload.knownMethods)
+            ? payload.knownMethods
+            : await detectSignInMethods(email);
+
+        if (!knownMethods.length) {
+            const notFoundError = new Error('No account was found for that email');
+            notFoundError.code = 'yeshi/user-not-found';
+            throw notFoundError;
+        }
+
+        if (knownMethods.includes('google.com') && !knownMethods.includes('password')) {
+            const providerError = new Error('This account uses Google Sign-In. Please continue with Google.');
+            providerError.code = 'auth/account-exists-with-different-credential';
+            throw providerError;
+        }
+
         await state.authModule.sendPasswordResetEmail(state.auth, email);
         return {
             ok: true,

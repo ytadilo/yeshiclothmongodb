@@ -116,19 +116,45 @@ function emitAuthStateChanged() {
     return detail;
 }
 
+const USER_SCOPED_LOCAL_STORAGE_KEYS = [
+    'token',
+    'role',
+    'user',
+    'loginTime',
+    'yeshi_firebase_uid',
+    'yeshi_firebase_email',
+    'yeshi_firebase_provider',
+    'yeshi_profile_avatar',
+    'yeshi_profile_shipping',
+    'yeshi_saved_shipping_addresses',
+    'yeshi_saved_measurements',
+    'yeshi_pending_signup_profile'
+];
+
+const USER_SCOPED_SESSION_STORAGE_KEYS = [
+    'yeshi_auth_flash'
+];
+
+function clearUserScopedBrowserState() {
+    try {
+        USER_SCOPED_LOCAL_STORAGE_KEYS.forEach((key) => localStorage.removeItem(key));
+    } catch (_) {
+        // Ignore localStorage cleanup errors.
+    }
+
+    try {
+        USER_SCOPED_SESSION_STORAGE_KEYS.forEach((key) => sessionStorage.removeItem(key));
+    } catch (_) {
+        // Ignore sessionStorage cleanup errors.
+    }
+}
+
 function clearStoredAuthSession(options = {}) {
     YESHI_AUTH_STATE.token = '';
     YESHI_AUTH_STATE.user = null;
     YESHI_AUTH_STATE.ready = options.preserveReady ? true : YESHI_AUTH_STATE.ready;
 
-    try {
-        localStorage.removeItem('token');
-        localStorage.removeItem('role');
-        localStorage.removeItem('user');
-        localStorage.removeItem('loginTime');
-    } catch (_) {
-        // Ignore storage cleanup errors.
-    }
+    clearUserScopedBrowserState();
 
     if (!options.silent) {
         emitAuthStateChanged();
@@ -267,7 +293,7 @@ async function performLogout(redirectTo) {
     }
 
     const destination = redirectTo || (snapshot.role === 'admin' ? '/admin/login' : '/auth/login');
-    window.location.href = destination;
+    window.location.replace(destination);
 }
 
 window.YeshiAuth = {
@@ -1246,6 +1272,7 @@ function ensureHomepageNavForListedPages() {
                     <li><a href="/my-orders" class="hover:text-brand-primary">My Orders</a></li>
                     <li id="desktopLoginItem"><a href="/auth/login" class="hover:text-brand-primary">Login</a></li>
                     <li id="desktopSignupItem"><a href="/auth/register" class="hover:text-brand-primary">Sign Up</a></li>
+                    <li id="desktopProfileItem" class="hidden"><a href="/profile" class="hover:text-brand-primary">Profile</a></li>
                     <li id="desktopLogoutItem" class="hidden"><a href="#" data-action="logout" class="hover:text-brand-primary">Logout</a></li>
                 </ul>
 
@@ -1266,7 +1293,7 @@ function ensureHomepageNavForListedPages() {
                     <a aria-label="Open MyChat" class="yeshi-icon-btn rounded-full p-2 text-brand-muted hover:text-brand-primary" href="/user/mychat" style="position: relative;">
                         <span class="material-symbols-outlined">chat</span>
                     </a>
-                    <a href="/profile" class="yeshi-icon-btn rounded-full p-2 text-brand-muted hover:text-brand-primary" aria-label="Profile">
+                    <a id="desktopProfileIcon" href="/profile" class="yeshi-icon-btn hidden rounded-full p-2 text-brand-muted hover:text-brand-primary" aria-label="Profile">
                         <span class="material-symbols-outlined">person</span>
                     </a>
                 </div>
@@ -1278,6 +1305,7 @@ function ensureHomepageNavForListedPages() {
                     <a href="/my-orders" class="block rounded-md px-3 py-2 hover:bg-amber-50">My Orders</a>
                     <a id="mobileMenuLoginBtn" href="/auth/login" class="block rounded-md px-3 py-2 hover:bg-amber-50">Login</a>
                     <a id="mobileMenuSignupBtn" href="/auth/register" class="block rounded-md px-3 py-2 hover:bg-amber-50">Sign Up</a>
+                    <a id="mobileMenuProfileBtn" href="/profile" class="hidden rounded-md px-3 py-2 hover:bg-amber-50">Profile</a>
                     <a id="mobileMenuLogoutBtn" href="#" data-action="logout" class="hidden rounded-md px-3 py-2 hover:bg-amber-50">Logout</a>
                 </div>
             </div>
@@ -3387,59 +3415,41 @@ function hideLink(linkEl) {
 
 function applyAuthVisibility() {
     const snapshot = getCurrentAuthSnapshot();
-    const user = snapshot.user;
     const role = snapshot.role;
     const isLoggedIn = snapshot.isLoggedIn;
     const isAdmin = role === 'admin';
 
     const nav = document.querySelector('ul.nav-links');
-    // Always show Login and Sign Up if not logged in
+    if (!nav) return;
+
+    const toggleNavLink = (selectors, visible) => {
+        nav.querySelectorAll(selectors).forEach((el) => {
+            const li = el.closest('li');
+            if (li) li.style.display = visible ? '' : 'none';
+            el.style.display = visible ? '' : 'none';
+            if (el.classList) {
+                el.classList.toggle('hidden', !visible);
+            }
+        });
+    };
+
     if (!isLoggedIn) {
-        // Remove any existing Logout link
-        if (nav) {
-            nav.querySelectorAll('[data-action="logout"]').forEach((el) => el.parentNode.removeChild(el));
-            // Ensure Login and Sign Up links are visible
-            nav.querySelectorAll('a[href="/auth/login"], a[href="/auth/register"]').forEach((a) => {
-                const li = a.closest('li');
-                if (li) li.style.display = '';
-                a.style.display = '';
-            });
-        }
+        toggleNavLink('a[href="/auth/login"], a[href="/auth/register"]', true);
+        toggleNavLink('[data-action="logout"]', false);
         return;
     }
 
-    // Hide login/register when already logged in
-    nav && nav.querySelectorAll('a[href="/auth/login"], a[href="/auth/register"]').forEach(hideLink);
+    toggleNavLink('a[href="/auth/login"], a[href="/auth/register"]', false);
+    toggleNavLink('[data-action="logout"]', true);
 
-    // Hide admin links for non-admin users
     if (!isAdmin) {
-        nav && nav.querySelectorAll('a[href^="/admin"]').forEach(hideLink);
-        nav && nav.querySelectorAll('a').forEach((a) => {
+        nav.querySelectorAll('a[href^="/admin"]').forEach(hideLink);
+        nav.querySelectorAll('a').forEach((a) => {
             const text = (a.textContent || '').trim().toLowerCase();
             if (text === 'admin' || text === 'admin login') {
                 hideLink(a);
             }
         });
-    }
-
-    // Add a simple logout link if the navbar exists and doesn't already have one
-    if (nav && !nav.querySelector('[data-action="logout"]')) {
-        const li = document.createElement('li');
-        const a = document.createElement('a');
-        a.href = '#';
-        a.textContent = 'Logout';
-        a.setAttribute('data-action', 'logout');
-        a.style.color = '#525454';
-        a.addEventListener('click', (e) => {
-            e.preventDefault();
-            localStorage.removeItem('token');
-            localStorage.removeItem('role');
-            localStorage.removeItem('user');
-            localStorage.removeItem('loginTime');
-            window.location.href = '/index.html';
-        });
-        li.appendChild(a);
-        nav.appendChild(li);
     }
 }
 
@@ -3448,17 +3458,23 @@ function applyGlobalMenuAuthState() {
 
     const loginBtn = document.getElementById('mobileMenuLoginBtn');
     const signupBtn = document.getElementById('mobileMenuSignupBtn');
+    const mobileProfileBtn = document.getElementById('mobileMenuProfileBtn');
     const logoutBtn = document.getElementById('mobileMenuLogoutBtn');
     const desktopLogin = document.getElementById('desktopLoginItem');
     const desktopSignup = document.getElementById('desktopSignupItem');
+    const desktopProfile = document.getElementById('desktopProfileItem');
     const desktopLogout = document.getElementById('desktopLogoutItem');
+    const desktopProfileIcon = document.getElementById('desktopProfileIcon');
 
     if (loginBtn) loginBtn.classList.toggle('hidden', isLoggedIn);
     if (signupBtn) signupBtn.classList.toggle('hidden', isLoggedIn);
+    if (mobileProfileBtn) mobileProfileBtn.classList.toggle('hidden', !isLoggedIn);
     if (logoutBtn) logoutBtn.classList.toggle('hidden', !isLoggedIn);
     if (desktopLogin) desktopLogin.classList.toggle('hidden', isLoggedIn);
     if (desktopSignup) desktopSignup.classList.toggle('hidden', isLoggedIn);
+    if (desktopProfile) desktopProfile.classList.toggle('hidden', !isLoggedIn);
     if (desktopLogout) desktopLogout.classList.toggle('hidden', !isLoggedIn);
+    if (desktopProfileIcon) desktopProfileIcon.classList.toggle('hidden', !isLoggedIn);
 }
 
 function wireGenericMobileMenuToggle() {
@@ -3543,6 +3559,7 @@ function enforceMobileMenuLinkPolicy() {
         ensureMenuLink(root, { id: 'mobileMenuMyOrdersBtn', href: '/my-orders', label: 'My Orders' });
         ensureMenuLink(root, { id: 'mobileMenuLoginBtn', href: '/auth/login', label: 'Login' });
         ensureMenuLink(root, { id: 'mobileMenuSignupBtn', href: '/auth/register', label: 'Sign Up' });
+        ensureMenuLink(root, { id: 'mobileMenuProfileBtn', href: '/profile', label: 'Profile' });
         ensureMenuLink(root, { id: 'mobileMenuLogoutBtn', href: '#', label: 'Logout', action: 'logout' });
     });
 
@@ -3577,17 +3594,20 @@ function enforceMobileMenuLinkPolicy() {
 
     const loginLinks = 'a[href="/auth/login"], a[href="/user/login.html"]';
     const signupLinks = 'a[href="/auth/register"], a[href="/user/signup.html"]';
+    const profileLinks = 'a[href="/profile"], a[href="/user/profile.html"], #mobileMenuProfileBtn';
     const logoutLinks = 'a[data-action="logout"]';
     const myOrdersLinks = 'a[href="/my-orders"], a[href="/my-orders/"], a[href="/user/my-orders.html"], #mobileMenuMyOrdersBtn';
 
     if (isLoggedIn) {
         toggleInMobileMenu(loginLinks, false);
         toggleInMobileMenu(signupLinks, false);
+        toggleInMobileMenu(profileLinks, true);
         toggleInMobileMenu(logoutLinks, true);
         toggleInMobileMenu(myOrdersLinks, true);
     } else {
         toggleInMobileMenu(loginLinks, true);
         toggleInMobileMenu(signupLinks, true);
+        toggleInMobileMenu(profileLinks, false);
         toggleInMobileMenu(logoutLinks, false);
         toggleInMobileMenu(myOrdersLinks, false);
     }

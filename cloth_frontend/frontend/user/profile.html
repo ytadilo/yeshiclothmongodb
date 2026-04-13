@@ -22,10 +22,13 @@
                 localStorage.removeItem('yeshi_firebase_uid');
                 localStorage.removeItem('yeshi_firebase_email');
                 localStorage.removeItem('yeshi_firebase_provider');
+                localStorage.removeItem('yeshi_profile_avatar');
+                localStorage.removeItem('yeshi_profile_shipping');
+                localStorage.removeItem('yeshi_saved_shipping_addresses');
+                localStorage.removeItem('yeshi_saved_measurements');
             }
-            window.location.replace('/user/login.html?next=' + next);
-            document.documentElement.innerHTML = '';
-            throw new Error('AUTH_REQUIRED');
+            window.location.replace('/auth/login?next=' + next);
+            return;
         })();
     </script>
     <link rel="icon" type="image/png" href="/images/logo.png">
@@ -381,7 +384,22 @@
     <script>
         const API_URL = '/api/auth';
         let currentProfileUser = null;
+        let profileLoadPromise = null;
         let countryRows = [];
+        const PROFILE_SESSION_STORAGE_KEYS = [
+            'token',
+            'role',
+            'user',
+            'loginTime',
+            'yeshi_firebase_uid',
+            'yeshi_firebase_email',
+            'yeshi_firebase_provider',
+            'yeshi_profile_avatar',
+            'yeshi_profile_shipping',
+            'yeshi_saved_shipping_addresses',
+            'yeshi_saved_measurements',
+            'yeshi_pending_signup_profile'
+        ];
 
         function splitNameParts(fullName) {
             const parts = String(fullName || '').trim().split(/\s+/).filter(Boolean);
@@ -401,6 +419,24 @@
             } catch (_) {
                 return null;
             }
+        }
+
+        function clearProfileSessionState() {
+            if (window.YeshiAuth && typeof window.YeshiAuth.clearSession === 'function') {
+                window.YeshiAuth.clearSession({ preserveReady: true });
+                return;
+            }
+
+            try {
+                PROFILE_SESSION_STORAGE_KEYS.forEach((key) => localStorage.removeItem(key));
+            } catch (_) {
+                // Ignore storage cleanup errors.
+            }
+        }
+
+        function redirectToLoginPage() {
+            const next = encodeURIComponent(window.location.pathname + window.location.search + window.location.hash);
+            window.location.replace('/auth/login?next=' + next);
         }
 
         function escapeHtml(value) {
@@ -589,44 +625,71 @@
 
         }
 
-        async function loadProfileFromServer() {
-            const token = localStorage.getItem('token');
-            if (!token) {
-                applyUserProfileHeader();
-                return;
+        async function loadProfileFromServer(options) {
+            if (profileLoadPromise && !(options && options.force)) {
+                return profileLoadPromise;
             }
 
-            try {
-                const response = await fetch(`${API_URL}/me`, {
-                    headers: { 'x-auth-token': token }
-                });
-
-                if (!response.ok) {
-                    if (response.status === 401) {
-                        localStorage.removeItem('token');
-                        localStorage.removeItem('role');
-                    }
-                    applyUserProfileHeader();
-                    return;
+            profileLoadPromise = (async function () {
+                if (window.YeshiAuth && typeof window.YeshiAuth.resolveSession === 'function') {
+                    await window.YeshiAuth.resolveSession({ force: !!(options && options.force) }).catch(() => null);
                 }
 
-                const data = await response.json();
-                const serverUser = data && data.user ? data.user : null;
-                if (serverUser) {
+                const token = String(localStorage.getItem('token') || '').trim();
+                if (!token) {
+                    clearProfileSessionState();
+                    redirectToLoginPage();
+                    return null;
+                }
+
+                try {
+                    const response = await fetch(`${API_URL}/me`, {
+                        headers: { 'x-auth-token': token }
+                    });
+
+                    if (!response.ok) {
+                        if (response.status === 401 || response.status === 403) {
+                            clearProfileSessionState();
+                            redirectToLoginPage();
+                            return null;
+                        }
+                        const fallbackUser = safeParseJson(localStorage.getItem('user')) || null;
+                        if (fallbackUser) {
+                            applyUserProfileHeader(fallbackUser);
+                        }
+                        return fallbackUser;
+                    }
+
+                    const data = await response.json();
+                    const serverUser = data && data.user ? data.user : null;
+                    if (!serverUser) {
+                        clearProfileSessionState();
+                        redirectToLoginPage();
+                        return null;
+                    }
+
                     const stored = safeParseJson(localStorage.getItem('user')) || {};
                     const merged = { ...stored, ...serverUser };
                     localStorage.setItem('user', JSON.stringify(merged));
                     if (merged.profileImage) {
                         localStorage.setItem('yeshi_profile_avatar', merged.profileImage);
+                    } else {
+                        localStorage.removeItem('yeshi_profile_avatar');
                     }
                     applyUserProfileHeader(merged);
-                    return;
+                    return merged;
+                } catch (_) {
+                    const fallbackUser = safeParseJson(localStorage.getItem('user')) || null;
+                    if (fallbackUser) {
+                        applyUserProfileHeader(fallbackUser);
+                    }
+                    return fallbackUser;
+                } finally {
+                    profileLoadPromise = null;
                 }
-            } catch (_) {
-                // fall back to local state
-            }
+            })();
 
-            applyUserProfileHeader();
+            return profileLoadPromise;
         }
 
         async function persistProfilePatch(patch, statusEl) {
@@ -647,6 +710,11 @@
                 });
                 const data = await response.json().catch(() => null);
                 if (!response.ok) {
+                    if (response.status === 401 || response.status === 403) {
+                        clearProfileSessionState();
+                        redirectToLoginPage();
+                        return null;
+                    }
                     if (statusEl) {
                         statusEl.textContent = (data && data.msg) || 'Failed to save settings.';
                         statusEl.style.color = '#ba1a1a';
@@ -1160,16 +1228,34 @@
             }
         }
 
-        document.addEventListener('DOMContentLoaded', async function () {
+        async function initializeProfilePage() {
             if (window.YeshiAuth && typeof window.YeshiAuth.resolveSession === 'function') {
                 await window.YeshiAuth.resolveSession().catch(() => null);
             }
+            if (!window.__yeshiProfileAuthListenerBound) {
+                window.__yeshiProfileAuthListenerBound = true;
+                window.addEventListener('yeshi:auth-state-changed', function (event) {
+                    var detail = event && event.detail ? event.detail : (window.YeshiAuth && typeof window.YeshiAuth.getSnapshot === 'function' ? window.YeshiAuth.getSnapshot() : null);
+                    if (!detail || !detail.isLoggedIn || !detail.token) {
+                        clearProfileSessionState();
+                        redirectToLoginPage();
+                        return;
+                    }
+                    loadProfileFromServer({ force: true });
+                });
+            }
             initShippingCountrySelect();
-            loadProfileFromServer();
+            await loadProfileFromServer({ force: true });
             bindAvatarUpload();
             bindSettingsPanel();
             loadCuratedRecommendations();
-        });
+        }
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initializeProfilePage);
+        } else {
+            initializeProfilePage();
+        }
     </script>
 </body>
 </html>

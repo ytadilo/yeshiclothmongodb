@@ -78,6 +78,34 @@ function normalizeEmail(email) {
     return String(email || '').trim().toLowerCase();
 }
 
+const RESERVED_ADMIN_EMAIL = normalizeEmail(process.env.ADMIN_EMAIL || 'hailetadilo@gmail.com');
+
+function isReservedAdminEmail(email) {
+    return normalizeEmail(email) === RESERVED_ADMIN_EMAIL;
+}
+
+function applyReservedRoleRules(user, email) {
+    if (!user) return false;
+
+    const normalizedEmail = normalizeEmail(email || user.email);
+    const currentRole = String(user.role || '').trim().toLowerCase();
+
+    if (isReservedAdminEmail(normalizedEmail)) {
+        if (currentRole !== 'admin') {
+            user.role = 'admin';
+            return true;
+        }
+        return false;
+    }
+
+    if (!currentRole) {
+        user.role = 'customer';
+        return true;
+    }
+
+    return false;
+}
+
 function splitFullNameParts(fullName) {
     const parts = String(fullName || '').trim().split(/\s+/).filter(Boolean);
     return {
@@ -394,7 +422,7 @@ exports.register = async (req, res) => {
         }
 
         // Reserve the seeded admin email so nobody can register it
-        if (normalizedEmail === 'hailetadilo@gmail.com') {
+        if (isReservedAdminEmail(normalizedEmail)) {
             return res.status(400).json({ msg: 'This email is not allowed to register' });
         }
 
@@ -664,10 +692,6 @@ exports.firebaseSession = async (req, res) => {
         let user = await findUserForFirebaseSession(decoded.uid, normalizedEmail);
 
         if (!user) {
-            if (normalizedEmail === 'hailetadilo@gmail.com') {
-                return res.status(403).json({ msg: 'This account cannot be created here' });
-            }
-
             const displayName = String(userRecord.displayName || '').trim();
             const nameParts = splitFullNameParts(displayName);
             const createdAt = parseMaybeDate(userRecord?.metadata?.creationTime) || new Date();
@@ -686,7 +710,7 @@ exports.firebaseSession = async (req, res) => {
                 emailVerified: !!userRecord.emailVerified,
                 pendingEmail: '',
                 providerIds,
-                role: 'customer',
+                role: isReservedAdminEmail(normalizedEmail) ? 'admin' : 'customer',
                 status: 'active',
                 isBanned: false,
                 approval_status: 'APPROVED',
@@ -698,6 +722,7 @@ exports.firebaseSession = async (req, res) => {
         }
 
         applyFirebaseProfileToUser(user, userRecord, providerIds);
+        applyReservedRoleRules(user, normalizedEmail);
         await user.save();
 
         return issueJwt(res, user);
@@ -738,17 +763,13 @@ exports.googleLogin = async (req, res) => {
 
         if (!user) {
             // Do not allow creating the reserved admin email via Google
-            if (normalizedEmail === 'hailetadilo@gmail.com') {
-                return res.status(403).json({ msg: 'This account cannot be created with Google Sign-In' });
-            }
-
             const googleName = (payload && (payload.given_name || payload.name)) || '';
             const first = getFirstNameFromProfile(googleName) || 'User';
 
             user = new User({
                 fullName: first,
                 email: normalizedEmail,
-                role: 'customer',
+                role: isReservedAdminEmail(normalizedEmail) ? 'admin' : 'customer',
                 authProvider: 'google',
                 googleSub: payload && payload.sub,
                 age: null,
@@ -768,6 +789,9 @@ exports.googleLogin = async (req, res) => {
             }
             if (!user.authProvider) {
                 user.authProvider = 'local';
+                changed = true;
+            }
+            if (applyReservedRoleRules(user, normalizedEmail)) {
                 changed = true;
             }
             if (changed) {
@@ -913,7 +937,12 @@ exports.updateMe = async (req, res) => {
 
 // Stateless logout (client should clear local auth state)
 exports.logout = async (_req, res) => {
-    res.clearCookie('yeshi_token', { path: '/' });
+    res.clearCookie('yeshi_token', {
+        httpOnly: true,
+        sameSite: 'lax',
+        secure: process.env.NODE_ENV === 'production',
+        path: '/'
+    });
     return res.json({ msg: 'Logged out' });
 };
 

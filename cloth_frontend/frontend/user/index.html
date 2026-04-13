@@ -513,18 +513,24 @@
         function applyMenuAuthState() {
             const loginBtn = document.getElementById('mobileMenuLoginBtn');
             const signupBtn = document.getElementById('mobileMenuSignupBtn');
+            const mobileProfileBtn = document.getElementById('mobileMenuProfileBtn');
             const logoutBtn = document.getElementById('mobileMenuLogoutBtn');
             const desktopLogin = document.getElementById('desktopLoginItem');
             const desktopSignup = document.getElementById('desktopSignupItem');
+            const desktopProfile = document.getElementById('desktopProfileItem');
             const desktopLogout = document.getElementById('desktopLogoutItem');
+            const desktopProfileIcon = document.getElementById('desktopProfileIcon');
             const shoppingBagLink = document.getElementById('shoppingBagLink');
             const loggedIn = isUserLoggedIn();
             if (loginBtn) loginBtn.classList.toggle('hidden', loggedIn);
             if (signupBtn) signupBtn.classList.toggle('hidden', loggedIn);
+            if (mobileProfileBtn) mobileProfileBtn.classList.toggle('hidden', !loggedIn);
             if (logoutBtn) logoutBtn.classList.toggle('hidden', !loggedIn);
             if (desktopLogin) desktopLogin.classList.toggle('hidden', loggedIn);
             if (desktopSignup) desktopSignup.classList.toggle('hidden', loggedIn);
+            if (desktopProfile) desktopProfile.classList.toggle('hidden', !loggedIn);
             if (desktopLogout) desktopLogout.classList.toggle('hidden', !loggedIn);
+            if (desktopProfileIcon) desktopProfileIcon.classList.toggle('hidden', !loggedIn);
             if (shoppingBagLink) shoppingBagLink.classList.toggle('hidden', !loggedIn);
         }
 
@@ -532,6 +538,10 @@
             document.querySelectorAll('[data-action="logout"]').forEach((el) => {
                 el.addEventListener('click', function (e) {
                     e.preventDefault();
+                    if (window.YeshiAuth && typeof window.YeshiAuth.performLogout === 'function') {
+                        window.YeshiAuth.performLogout('/auth/login');
+                        return;
+                    }
                     localStorage.removeItem('token');
                     localStorage.removeItem('role');
                     localStorage.removeItem('user');
@@ -792,6 +802,10 @@
             info.classList.remove('hidden');
         }
 
+        function renderFeedMessage(message, toneClass) {
+            return '<div class="w-full min-h-[220px] py-12 flex items-center justify-center text-center ' + (toneClass || 'text-brand-muted') + '"><p class="text-base font-semibold">' + escapeHtml(message) + '</p></div>';
+        }
+
         function renderFeeds() {
             const filtered = filterPosts(state.posts);
             const superDealsContainer = document.getElementById('superdeals-feed');
@@ -799,8 +813,16 @@
             const nextPageButton = document.getElementById('nextPageButton');
             updateSearchResultsInfo(filtered.length);
 
+            if (!state.posts.length) {
+                const emptyState = renderFeedMessage('No products available', 'text-brand-muted');
+                superDealsContainer.innerHTML = emptyState;
+                newDesignContainer.innerHTML = emptyState;
+                if (nextPageButton) nextPageButton.classList.add('hidden');
+                return;
+            }
+
             if (!filtered.length) {
-                const empty = '<p class="col-span-full py-10 text-center text-brand-muted">No matching products found.</p>';
+                const empty = renderFeedMessage('No matching products found.', 'text-brand-muted');
                 superDealsContainer.innerHTML = empty;
                 newDesignContainer.innerHTML = empty;
                 if (nextPageButton) nextPageButton.classList.add('hidden');
@@ -973,14 +995,18 @@
         async function loadPosts() {
             try {
                 const response = await fetch('/api/posts');
-                const posts = await response.json();
-                state.posts = Array.isArray(posts) ? posts : [];
-                renderFeeds();
-            } catch (err) {
-                const message = '<p class="col-span-full py-10 text-center text-brand-danger">Error loading feed.</p>';
-                document.getElementById('superdeals-feed').innerHTML = message;
-                document.getElementById('newdesign-feed').innerHTML = message;
+                const raw = await response.text();
+                let posts = [];
+                try {
+                    posts = raw ? JSON.parse(raw) : [];
+                } catch (_) {
+                    posts = [];
+                }
+                state.posts = response.ok && Array.isArray(posts) ? posts : [];
+            } catch (_) {
+                state.posts = [];
             }
+            renderFeeds();
         }
 
         document.addEventListener('DOMContentLoaded', function () {

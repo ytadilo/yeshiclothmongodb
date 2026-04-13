@@ -8,76 +8,168 @@ const User = require('../models/User');
 const Order = require('../models/Order');
 const Post = require('../models/Post');
 
+const TRACKABLE_EVENT_TYPES = new Set([
+  'page_view',
+  'product_view',
+  'add_to_cart',
+  'click',
+  'share',
+  'like',
+  'video_view',
+  'image_download'
+]);
+
+const TRACKABLE_DEVICE_TYPES = new Set(['mobile', 'desktop', 'tablet']);
+
 function parseGrouping(groupBy) {
   if (groupBy === 'month') return '%Y-%m';
   if (groupBy === 'year') return '%Y';
   return '%Y-%m-%d';
 }
 
+function isModelReady(model) {
+  const readyState = model && model.db && typeof model.db.readyState === 'number'
+    ? Number(model.db.readyState)
+    : null;
+  return readyState === null || readyState === 1;
+}
+
+function toSafeString(value, maxLength = 255) {
+  return String(value || '').trim().slice(0, maxLength);
+}
+
+function toSafeUserId(req) {
+  const raw = String(req?.user?._id || req?.user?.id || '').trim();
+  return /^[a-f0-9]{24}$/i.test(raw) ? raw : null;
+}
+
+function sanitizeEventData(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return {};
+  }
+
+  try {
+    return JSON.parse(JSON.stringify(value));
+  } catch (_) {
+    return {};
+  }
+}
+
+function logAnalyticsError(context, error) {
+  console.error(`analytics ${context}:`, error?.message || error);
+}
+
+function buildEmptyAnalyticsResponse() {
+  return {
+    success: true,
+    userActivity: [],
+    orderedProducts: [],
+    productViews: [],
+    addToCart: [],
+    likes: [],
+    shares: [],
+    clicks: [],
+    clicksEnriched: [],
+    videoViews: [],
+    imageDownloads: [],
+    visitsOverTime: [],
+    deviceUsage: [],
+    productPerformance: []
+  };
+}
+
 // Track an event (page_view, product_view, etc.)
 exports.trackEvent = async (req, res) => {
+  const rawEventType = toSafeString(req.body?.eventType, 64).toLowerCase();
+  const eventType = TRACKABLE_EVENT_TYPES.has(rawEventType) ? rawEventType : 'page_view';
+  const eventData = sanitizeEventData(req.body?.eventData);
+  const deviceId = toSafeString(req.body?.deviceId, 128);
+  const rawDeviceType = toSafeString(req.body?.deviceType, 32).toLowerCase();
+  const deviceType = TRACKABLE_DEVICE_TYPES.has(rawDeviceType) ? rawDeviceType : 'desktop';
+  const sessionId = toSafeString(req.body?.sessionId, 128);
+  const userId = toSafeUserId(req);
+  const now = new Date();
+  let stored = false;
+
   try {
-    const { eventType, eventData, deviceId, deviceType, sessionId } = req.body;
-    const userId = req.user ? (req.user._id || req.user.id || null) : null;
-    const now = new Date();
+    if (AnalyticsEvent && typeof AnalyticsEvent.create === 'function' && isModelReady(AnalyticsEvent)) {
+      await AnalyticsEvent.create({
+        userId,
+        deviceId,
+        deviceType,
+        eventType,
+        eventData,
+        sessionId,
+        timestamp: now
+      });
+      stored = true;
+    }
+  } catch (err) {
+    logAnalyticsError('trackEvent.save', err);
+  }
 
-    // Save event
-    const event = await AnalyticsEvent.create({
-      userId,
-      deviceId,
-      deviceType,
-      eventType,
-      eventData,
-      sessionId,
-      timestamp: now
-    });
+  try {
+    if (
+      AnalyticsUserSummary &&
+      typeof AnalyticsUserSummary.findOne === 'function' &&
+      typeof AnalyticsUserSummary.findOneAndUpdate === 'function' &&
+      isModelReady(AnalyticsUserSummary) &&
+      (userId || deviceId)
+    ) {
+      const summaryFilter = {
+        userId: userId || null,
+        deviceId
+      };
 
-    const summaryFilter = {
-      userId: userId || null,
-      deviceId: String(deviceId || '')
-    };
-    const existingSummary = await AnalyticsUserSummary.findOne(summaryFilter).lean();
-    const lastActiveAt = existingSummary?.lastActiveAt ? new Date(existingSummary.lastActiveAt) : now;
-    const deltaSeconds = Math.max(0, Math.min(1800, Math.floor((now.getTime() - lastActiveAt.getTime()) / 1000)));
-    const safeSessionId = String(sessionId || '').trim();
-    const hadSession = safeSessionId && Array.isArray(existingSummary?.sessionIds) && existingSummary.sessionIds.includes(safeSessionId);
+      const existingSummary = await AnalyticsUserSummary.findOne(summaryFilter).lean();
+      const lastActiveAt = existingSummary?.lastActiveAt ? new Date(existingSummary.lastActiveAt) : now;
+      const deltaSeconds = Math.max(0, Math.min(1800, Math.floor((now.getTime() - lastActiveAt.getTime()) / 1000)));
+      const hadSession = sessionId && Array.isArray(existingSummary?.sessionIds) && existingSummary.sessionIds.includes(sessionId);
 
-    await AnalyticsUserSummary.findOneAndUpdate(
-      summaryFilter,
-      {
-        $setOnInsert: {
-          firstVisitAt: now,
-          userId: userId || null,
-          deviceId: String(deviceId || '')
+      await AnalyticsUserSummary.findOneAndUpdate(
+        summaryFilter,
+        {
+          $setOnInsert: {
+            firstVisitAt: now,
+            userId: userId || null,
+            deviceId
+          },
+          $set: {
+            lastActiveAt: now,
+            updatedAt: now,
+            deviceType
+          },
+          $inc: {
+            totalTimeSpentSeconds: existingSummary ? deltaSeconds : 0,
+            sessionCount: sessionId && !hadSession ? 1 : 0
+          },
+          ...(sessionId ? { $addToSet: { sessionIds: sessionId } } : {})
         },
-        $set: {
-          lastActiveAt: now,
-          updatedAt: now,
-          deviceType: String(deviceType || 'desktop')
-        },
-        $inc: {
-          totalTimeSpentSeconds: existingSummary ? deltaSeconds : 0,
-          sessionCount: safeSessionId && !hadSession ? 1 : 0
-        },
-        ...(safeSessionId ? { $addToSet: { sessionIds: safeSessionId } } : {})
-      },
-      { upsert: true, new: true }
-    );
+        { upsert: true, new: true }
+      );
+    }
+  } catch (err) {
+    logAnalyticsError('trackEvent.summary', err);
+  }
 
-    // Update UserDevice info for guests
-    if (!userId && deviceId) {
+  try {
+    if (!userId && deviceId && UserDevice && typeof UserDevice.findOneAndUpdate === 'function' && isModelReady(UserDevice)) {
       await UserDevice.findOneAndUpdate(
         { deviceHash: deviceId },
-        { lastSeenAt: new Date() },
+        { lastSeenAt: now },
         { upsert: true, setDefaultsOnInsert: true }
       );
     }
-
-    res.json({ success: true, event });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ success: false, error: err.message });
+    logAnalyticsError('trackEvent.device', err);
   }
+
+  return res.json({
+    success: true,
+    accepted: true,
+    stored,
+    eventType
+  });
 };
 
 
@@ -90,9 +182,15 @@ exports.getUserActivity = async (req, res) => {
 
     // Date filtering
     const { startDate, endDate, groupBy } = req.query;
-    const start = startDate ? new Date(startDate) : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-    const end = endDate ? new Date(endDate) : new Date();
+    const parsedStart = startDate ? new Date(startDate) : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const parsedEnd = endDate ? new Date(endDate) : new Date();
+    const start = Number.isNaN(parsedStart.getTime()) ? new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) : parsedStart;
+    const end = Number.isNaN(parsedEnd.getTime()) ? new Date() : parsedEnd;
     const groupDateFormat = parseGrouping(String(groupBy || 'day').toLowerCase());
+
+    if (!AnalyticsEvent || typeof AnalyticsEvent.aggregate !== 'function' || !isModelReady(AnalyticsEvent)) {
+      return res.json(buildEmptyAnalyticsResponse());
+    }
 
     // User Activity Aggregation
     const userActivity = await AnalyticsEvent.aggregate([
@@ -373,7 +471,7 @@ exports.getUserActivity = async (req, res) => {
       productPerformance
     });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ success: false, error: err.message });
+    logAnalyticsError('getUserActivity', err);
+    return res.json(buildEmptyAnalyticsResponse());
   }
 };

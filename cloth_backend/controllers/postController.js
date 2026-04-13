@@ -69,6 +69,13 @@ function parseCountryList(rawValue) {
     );
 }
 
+function isModelQueryReady(model) {
+    const readyState = model && model.db && typeof model.db.readyState === 'number'
+        ? Number(model.db.readyState)
+        : null;
+    return readyState === null || readyState === 1;
+}
+
 function ensureCanAccessPublicPosts(req, res) {
     const role = req?.user?.role;
     if (role === 'employee' || role === 'driver') {
@@ -121,9 +128,16 @@ async function getOrderCountMapByPostIds(postIds) {
     const ids = (Array.isArray(postIds) ? postIds : []).filter(Boolean);
     if (!ids.length) return new Map();
 
+    const objectIdCtor = Post && Post.base && Post.base.Types && typeof Post.base.Types.ObjectId === 'function'
+        ? Post.base.Types.ObjectId
+        : null;
+    if (!objectIdCtor || !Order || typeof Order.aggregate !== 'function' || !isModelQueryReady(Order)) {
+        return new Map();
+    }
+
     const toObjectId = (value) => {
         try {
-            return new Post.base.Types.ObjectId(String(value));
+            return new objectIdCtor(String(value));
         } catch (_) {
             return null;
         }
@@ -132,16 +146,23 @@ async function getOrderCountMapByPostIds(postIds) {
     const objectIds = ids.map(toObjectId).filter(Boolean);
     if (!objectIds.length) return new Map();
 
-    const [productCounts, customCounts] = await Promise.all([
-        Order.aggregate([
-            { $match: { productId: { $in: objectIds } } },
-            { $group: { _id: '$productId', count: { $sum: 1 } } }
-        ]),
-        Order.aggregate([
-            { $match: { post_id: { $in: objectIds } } },
-            { $group: { _id: '$post_id', count: { $sum: 1 } } }
-        ])
-    ]);
+    let productCounts = [];
+    let customCounts = [];
+    try {
+        [productCounts, customCounts] = await Promise.all([
+            Order.aggregate([
+                { $match: { productId: { $in: objectIds } } },
+                { $group: { _id: '$productId', count: { $sum: 1 } } }
+            ]),
+            Order.aggregate([
+                { $match: { post_id: { $in: objectIds } } },
+                { $group: { _id: '$post_id', count: { $sum: 1 } } }
+            ])
+        ]);
+    } catch (error) {
+        console.error('getOrderCountMapByPostIds error:', error?.message || error);
+        return new Map();
+    }
 
     const map = new Map();
     const addCount = (row) => {
@@ -473,6 +494,9 @@ exports.updatePost = async (req, res) => {
 exports.getPosts = async (req, res) => {
     try {
         if (!ensureCanAccessPublicPosts(req, res)) return;
+        if (!Post || typeof Post.find !== 'function' || !isModelQueryReady(Post)) {
+            return res.json([]);
+        }
         const isAdmin = req.user && req.user.role === 'admin';
         const query = isAdmin
             ? {}
@@ -484,11 +508,12 @@ exports.getPosts = async (req, res) => {
                 ]
             };
         const posts = await Post.find(query).sort({ created_at: -1 });
-        const orderCountMap = await getOrderCountMapByPostIds(posts.map((post) => post && post._id));
-        res.json(posts.map((post) => attachOrderCount(post, orderCountMap)));
+        const safePosts = Array.isArray(posts) ? posts : [];
+        const orderCountMap = await getOrderCountMapByPostIds(safePosts.map((post) => post && post._id));
+        return res.json(safePosts.map((post) => attachOrderCount(post, orderCountMap)));
     } catch (err) {
-        console.error(err.message);
-        res.status(500).send('Server Error');
+        console.error('getPosts error:', err?.message || err);
+        return res.json([]);
     }
 };
 
@@ -498,6 +523,9 @@ exports.getPosts = async (req, res) => {
 exports.getPostById = async (req, res) => {
     try {
         if (!ensureCanAccessPublicPosts(req, res)) return;
+        if (!Post || typeof Post.findById !== 'function' || !isModelQueryReady(Post)) {
+            return res.status(404).json({ msg: 'Post not found' });
+        }
         const post = await Post.findById(req.params.id);
         if (!post) {
             return res.status(404).json({ msg: 'Post not found' });
@@ -508,8 +536,8 @@ exports.getPostById = async (req, res) => {
         if(err.kind === 'ObjectId') {
              return res.status(404).json({ msg: 'Post not found' });
         }
-        console.error(err.message);
-        res.status(500).send('Server Error');
+        console.error('getPostById error:', err?.message || err);
+        return res.status(404).json({ msg: 'Post not found' });
     }
 };
 

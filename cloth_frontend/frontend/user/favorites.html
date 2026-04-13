@@ -23,9 +23,8 @@
                 localStorage.removeItem('yeshi_firebase_email');
                 localStorage.removeItem('yeshi_firebase_provider');
             }
-            window.location.replace('/user/login.html?next=' + next);
-            document.documentElement.innerHTML = '';
-            throw new Error('AUTH_REQUIRED');
+            window.location.replace('/auth/login?next=' + next);
+            return;
         })();
     </script>
     <link rel="icon" type="image/png" href="/images/logo.png">

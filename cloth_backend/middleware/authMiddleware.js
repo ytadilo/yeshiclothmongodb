@@ -14,6 +14,12 @@ function getDeviceHashFromReq(req) {
     return crypto.createHash('sha256').update(fp).digest('hex');
 }
 
+function shouldSkipAdminDeviceCheck(req) {
+    const baseUrl = String(req.baseUrl || '').toLowerCase();
+    const path = String(req.path || '').toLowerCase();
+    return baseUrl === '/api/auth' && (path === '/me' || path === '/logout');
+}
+
 // Middleware to check if user is admin
 function adminOnly(req, res, next) {
     if (!req.user) {
@@ -75,7 +81,7 @@ module.exports = async function (req, res, next) {
             return res.status(403).json({ msg: statusMsg });
         }
 
-        if (req.user.role === 'admin') {
+        if (req.user.role === 'admin' && !shouldSkipAdminDeviceCheck(req)) {
             const deviceHash = getDeviceHashFromReq(req);
             if (!deviceHash) {
                 return res.status(400).json({ msg: 'Missing device fingerprint' });

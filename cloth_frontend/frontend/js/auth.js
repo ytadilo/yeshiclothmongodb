@@ -634,11 +634,16 @@ function initForgotPasswordForm() {
             const bridge = await getFirebaseBridge();
             const email = sanitizeEmailInput(emailInput);
             const methods = await bridge.detectSignInMethods(email);
+            if (!methods.length) {
+                const notFoundError = new Error('No account was found for that email');
+                notFoundError.code = 'yeshi/user-not-found';
+                throw notFoundError;
+            }
             if (methods.includes('google.com') && !methods.includes('password')) {
                 throw new Error('This account uses Google Sign-In. Please continue with Google.');
             }
 
-            const result = await bridge.sendPasswordReset({ email });
+            const result = await bridge.sendPasswordReset({ email, knownMethods: methods });
             setFormStatus(form, 'success', result.message);
         } catch (error) {
             const bridge = window.YeshiFirebaseAuth;
@@ -660,6 +665,11 @@ function initForgotPasswordForm() {
 async function logout() {
     const storedUser = safeParseJson(localStorage.getItem('user'));
     const storedRole = (storedUser && storedUser.role) || localStorage.getItem('role');
+
+    if (window.YeshiAuth && typeof window.YeshiAuth.performLogout === 'function') {
+        await window.YeshiAuth.performLogout(storedRole === 'admin' ? '/admin/login' : '/auth/login');
+        return;
+    }
 
     try {
         const bridge = await getFirebaseBridge();
