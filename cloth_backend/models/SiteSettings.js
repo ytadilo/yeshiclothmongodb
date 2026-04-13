@@ -1,3 +1,10 @@
+const { isFirebaseMode, FirebaseSiteSettings } = require('../utils/firebaseAuthModels');
+
+if (isFirebaseMode()) {
+    module.exports = FirebaseSiteSettings;
+    return;
+}
+
 const mongoose = require('mongoose');
 
 const SocialLinksSchema = new mongoose.Schema(

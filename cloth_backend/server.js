@@ -8,6 +8,7 @@ const rateLimit = require('express-rate-limit');
 const hpp = require('hpp');
 const User = require('./models/User');
 const connectDB = require('./utils/db');
+const { getDatabaseProvider } = require('./utils/db');
 const ensureAdminUser = require('./utils/ensureAdminUser');
 require('dotenv').config();
 
@@ -438,16 +439,22 @@ if (hasFrontend) {
 const PORT = process.env.PORT || 5000;
 
 async function startServer() {
+    const provider = getDatabaseProvider();
+
     try {
         await connectDB();
-        await ensureAdminUser();
+        if (provider === 'mongo') {
+            await ensureAdminUser();
+        } else {
+            console.log('Skipping ensureAdminUser in Firebase mode');
+        }
     } catch (error) {
         const message = error && error.message ? error.message : String(error);
-        if (message.includes('MongoDB connection string is missing')) {
+        if (message.includes('MongoDB connection string is missing') || message.includes('Firebase credentials are missing')) {
             throw error;
         }
 
-        console.error('Starting without MongoDB connection:', message);
+        console.error(`Starting without ${provider} connection:`, message);
     }
 
     app.listen(PORT, () => console.log(`Server started on port ${PORT}`));

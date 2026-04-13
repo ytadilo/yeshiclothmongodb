@@ -1,6 +1,27 @@
 const mongoose = require('mongoose');
+const { getFirestore } = require('./firebase');
+
+function getDatabaseProvider() {
+    const provider = String(process.env.DB_PROVIDER || process.env.DATABASE_PROVIDER || 'mongo').trim().toLowerCase();
+    return provider === 'firebase' ? 'firebase' : 'mongo';
+}
 
 const connectDB = async () => {
+    const provider = getDatabaseProvider();
+
+    if (provider === 'firebase') {
+        try {
+            const firestore = getFirestore();
+            // Quick readiness check so startup fails fast on invalid credentials.
+            await firestore.collection('_health').limit(1).get();
+            console.log('Firebase Firestore connected');
+            return { provider: 'firebase' };
+        } catch (err) {
+            console.error('Firebase Firestore connection failed:', err.message);
+            throw err;
+        }
+    }
+
     const mongoUri =
         process.env.MONGO_URI ||
         process.env.MONGODB_URI ||
@@ -29,3 +50,4 @@ const connectDB = async () => {
 };
 
 module.exports = connectDB;
+module.exports.getDatabaseProvider = getDatabaseProvider;

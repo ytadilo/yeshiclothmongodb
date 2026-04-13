@@ -6,6 +6,7 @@ const Post = require('../models/Post');
 const User = require('../models/User');
 const Notification = require('../models/Notification');
 const SiteSettings = require('../models/SiteSettings');
+const { getDatabaseProvider } = require('../utils/db');
 
 function toNonNegativeNumber(value, fallback = 0) {
     const n = Number(value);
@@ -345,7 +346,10 @@ exports.createOrder = async (req, res) => {
             const deliveryMethod = normalizeDeliveryMethod(deliveryPayment.deliveryMethod || req.body.deliveryMethod || 'delivery');
             const proposedPrice = toNonNegativeNumber(req.body.proposedPriceETB ?? req.body.proposed_price_etb, 0);
             const rawProductId = String(req.body.productId || '').trim();
-            const hasValidPostId = !!rawProductId && mongoose.Types.ObjectId.isValid(rawProductId);
+            const provider = getDatabaseProvider();
+            const hasValidPostId = provider === 'firebase'
+                ? rawProductId.length > 0
+                : (!!rawProductId && mongoose.Types.ObjectId.isValid(rawProductId));
             const isProductAsIsOrder = hasValidPostId;
             const safeQuantity = Math.max(1, Math.floor(Number(req.body.quantity || 1)));
 

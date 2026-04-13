@@ -1,3 +1,10 @@
+const { isFirebaseMode, FirebaseUpload } = require('../utils/firebaseAuthModels');
+
+if (isFirebaseMode()) {
+    module.exports = FirebaseUpload;
+    return;
+}
+
 const mongoose = require('mongoose');
 
 const UploadSchema = new mongoose.Schema({

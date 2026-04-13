@@ -1,3 +1,10 @@
+const { isFirebaseMode, FirebaseNotification } = require('../utils/firebaseAuthModels');
+
+if (isFirebaseMode()) {
+    module.exports = FirebaseNotification;
+    return;
+}
+
 const mongoose = require('mongoose');
 
 const NotificationSchema = new mongoose.Schema({

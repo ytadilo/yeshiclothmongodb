@@ -1,3 +1,10 @@
+const { isFirebaseMode, FirebaseUserDevice } = require('../utils/firebaseAuthModels');
+
+if (isFirebaseMode()) {
+    module.exports = FirebaseUserDevice;
+    return;
+}
+
 const mongoose = require('mongoose');
 
 const UserDeviceSchema = new mongoose.Schema({

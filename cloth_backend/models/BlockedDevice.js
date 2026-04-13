@@ -1,3 +1,10 @@
+const { isFirebaseMode, FirebaseBlockedDevice } = require('../utils/firebaseAuthModels');
+
+if (isFirebaseMode()) {
+    module.exports = FirebaseBlockedDevice;
+    return;
+}
+
 const mongoose = require('mongoose');
 
 const BlockedDeviceSchema = new mongoose.Schema({

@@ -1,5 +1,6 @@
 const express = require('express');
 const mongoose = require('mongoose');
+const { getDatabaseProvider } = require('../utils/db');
 
 const Upload = require('../models/Upload');
 const auth = require('../middleware/authMiddleware');
@@ -19,7 +20,8 @@ function safeFilename(name) {
 router.get('/:id', optionalAuth, async (req, res) => {
     try {
         const { id } = req.params;
-        if (!mongoose.Types.ObjectId.isValid(id)) {
+        const provider = getDatabaseProvider();
+        if (provider === 'mongo' && !mongoose.Types.ObjectId.isValid(id)) {
             return res.status(400).json({ msg: 'Invalid upload id' });
         }
 

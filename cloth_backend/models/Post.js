@@ -1,3 +1,10 @@
+const { isFirebaseMode, FirebasePost } = require('../utils/firebaseAuthModels');
+
+if (isFirebaseMode()) {
+    module.exports = FirebasePost;
+    return;
+}
+
 const mongoose = require('mongoose');
 
 const PostSchema = new mongoose.Schema({

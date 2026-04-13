@@ -1,11 +1,12 @@
 # ---------------------------
 # Netlify redirects + proxy
 # Publish directory: frontend
-# Backend URL (Render): https://cloth-backend-io1m.onrender.com
+# Backend URL (Firebase deploy target)
 # ---------------------------
 
-# Proxy API to Render (keeps frontend code using /api/* unchanged)
-/api/*  https://cloth-backend-io1m.onrender.com/api/:splat  200!
+# Proxy API to deployed backend (keeps frontend code using /api/* unchanged)
+# Replace the domain below with your deployed backend URL.
+/api/*  https://REPLACE_WITH_BACKEND_URL/api/:splat  200!
 
 # Canonicalize: hide /user prefix + .html extensions (explicit, avoid breaking auth files)
 # NOTE: do not redirect /user/index.html to /, because the root index.html may redirect to /user/index.html.

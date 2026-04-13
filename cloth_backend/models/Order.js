@@ -1,3 +1,10 @@
+const { isFirebaseMode, FirebaseOrder } = require('../utils/firebaseAuthModels');
+
+if (isFirebaseMode()) {
+    module.exports = FirebaseOrder;
+    return;
+}
+
 const mongoose = require('mongoose');
 
 // Ethiopian Address Schema for weak address system support

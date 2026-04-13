@@ -1,3 +1,10 @@
+const { isFirebaseMode, FirebaseOTPCode } = require('../utils/firebaseAuthModels');
+
+if (isFirebaseMode()) {
+    module.exports = FirebaseOTPCode;
+    return;
+}
+
 const mongoose = require('mongoose');
 
 const OTPCodeSchema = new mongoose.Schema({

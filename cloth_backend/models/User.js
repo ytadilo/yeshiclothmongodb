@@ -1,3 +1,10 @@
+const { isFirebaseMode, FirebaseUser } = require('../utils/firebaseAuthModels');
+
+if (isFirebaseMode()) {
+    module.exports = FirebaseUser;
+    return;
+}
+
 const mongoose = require('mongoose');
 
 const ShippingAddressSchema = new mongoose.Schema({

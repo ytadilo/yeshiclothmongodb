@@ -1,3 +1,10 @@
+const { isFirebaseMode, FirebaseProduct } = require('../utils/firebaseAuthModels');
+
+if (isFirebaseMode()) {
+    module.exports = FirebaseProduct;
+    return;
+}
+
 const mongoose = require('mongoose');
 
 const ProductSchema = new mongoose.Schema({
