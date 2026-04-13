@@ -1255,6 +1255,17 @@
                 if (cardsEl) cardsEl.innerHTML = '<div style="color: var(--light-text);">Failed to load statistics.</div>';
             }
         }
+
+        // Ensure inline onclick handlers always resolve on window scope.
+        window.updateUserStatusAdmin = updateUserStatusAdmin;
+        window.openEditPost = openEditPost;
+        window.deletePostAdmin = deletePostAdmin;
+        window.openComments = openComments;
+        window.deleteCommentAdmin = deleteCommentAdmin;
+        window.editCommentAdmin = editCommentAdmin;
+        window.replyCommentAdmin = replyCommentAdmin;
+        window.updateStatus = updateStatus;
+        window.updatePaymentStatus = updatePaymentStatus;
     </script>
 </body>
 </html>

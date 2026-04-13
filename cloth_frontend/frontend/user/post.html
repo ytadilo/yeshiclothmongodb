@@ -870,6 +870,18 @@
                 .replace(/'/g, '&#039;');
         }
 
+        function resolvePostId(post) {
+            if (!post || typeof post !== 'object') return '';
+            const raw = post._id || post.id || post.postId || post.post_id;
+            return String(raw || '').trim();
+        }
+
+        function resolveCommentId(comment) {
+            if (!comment || typeof comment !== 'object') return '';
+            const raw = comment._id || comment.id || comment.commentId || comment.comment_id;
+            return String(raw || '').trim();
+        }
+
         function getYouTubeEmbedUrl(url) {
             const value = String(url || '').trim();
             if (!value) return '';
@@ -1069,14 +1081,18 @@
         }
 
         function addCurrentPostToBag() {
-            if (!currentPost || !currentPost._id) return;
+            const id = resolvePostId(currentPost);
+            if (!id) return false;
             const items = getBagItems();
-            const id = String(currentPost._id);
-            if (items.some((item) => String(item.postId) === id)) return false;
+            if (items.some((item) => {
+                const existingId = String((item && (item.postId || item._id || item.id || item.post_id)) || '').trim();
+                return !!existingId && existingId === id;
+            })) return false;
 
             const firstImage = Array.isArray(currentPost.images) && currentPost.images.length ? currentPost.images[0] : '';
             items.push({
                 postId: id,
+                id: id,
                 title: currentPost.title || 'Selected cloth',
                 image: firstImage || '',
                 category: currentPost.category || '',
@@ -1109,6 +1125,11 @@
                 const res = await fetch(`/api/posts/${postId}`);
                 if (!res.ok) throw new Error('Post not found');
                 currentPost = await res.json();
+                const canonicalPostId = resolvePostId(currentPost) || String(postId || '').trim();
+                if (!canonicalPostId) {
+                    throw new Error('Post id missing');
+                }
+                currentPost = { ...currentPost, _id: canonicalPostId, id: canonicalPostId };
 
                 const content = document.getElementById('post-content');
                 const likes = Array.isArray(currentPost.likes) ? currentPost.likes.length : 0;
@@ -1359,7 +1380,10 @@
                 const list = Array.isArray(posts) ? posts : [];
 
                 const ranked = list
-                    .filter((item) => item && String(item._id) !== String(postId))
+                    .filter((item) => {
+                        const id = resolvePostId(item);
+                        return !!id && id !== String(postId || '').trim();
+                    })
                     .sort((a, b) => Number((b && b.viewCount) || 0) - Number((a && a.viewCount) || 0))
                     .slice(0, 4);
 
@@ -1369,12 +1393,13 @@
                 }
 
                 target.innerHTML = ranked.map((item) => {
+                    const itemId = resolvePostId(item);
                     const image = Array.isArray(item.images) && item.images.length ? item.images[0] : '';
                     const title = escapeHtml(item.title || 'Untitled');
                     const price = Number(item.priceETB);
                     const priceText = Number.isFinite(price) && price > 0 ? `${price.toLocaleString()} ETB` : 'Price on request';
                     return `
-                        <article class="curated-card" onclick="window.location.href='/post?id=${encodeURIComponent(item._id)}'">
+                        <article class="curated-card" onclick="window.location.href='/post?id=${encodeURIComponent(itemId)}'">
                             <div class="curated-image">
                                 ${image ? `<img src="${image}" alt="${title}">` : '<div style="padding:12px;" class="muted">No image</div>'}
                             </div>
@@ -1395,7 +1420,10 @@
                 return;
             }
 
-            commentsDiv.innerHTML = comments.map((c) => `
+            commentsDiv.innerHTML = comments.map((c) => {
+                const commentId = resolveCommentId(c);
+                if (!commentId) return '';
+                return `
                 <div class="comment-item">
                     <div class="comment-top">
                         <strong>${escapeHtml(c.name || 'User')}</strong>
@@ -1406,10 +1434,10 @@
                     ${c.image_url ? `<div style="margin-top:8px;"><a href="${escapeHtml(c.image_url)}" target="_blank" rel="noopener noreferrer"><img src="${escapeHtml(c.image_url)}" alt="Comment image" style="max-width:220px; width:100%; border-radius:10px; border:1px solid rgba(0,0,0,0.12);"></a></div>` : ''}
 
                     <div class="comment-actions">
-                        <button type="button" class="comment-action" style="color:${c.likes && c.likes.includes(getUserId()) ? 'var(--secondary)' : 'var(--on-surface-variant)'}" onclick="likeComment('${c._id}')">
+                        <button type="button" class="comment-action" style="color:${c.likes && c.likes.includes(getUserId()) ? 'var(--secondary)' : 'var(--on-surface-variant)'}" onclick="likeComment('${commentId}')">
                             <i class="${c.likes && c.likes.includes(getUserId()) ? 'fas' : 'far'} fa-heart"></i> ${c.likes ? c.likes.length : 0}
                         </button>
-                        <button type="button" class="comment-action" onclick="showReplyForm('${c._id}')">Reply</button>
+                        <button type="button" class="comment-action" onclick="showReplyForm('${commentId}')">Reply</button>
                     </div>
 
                     ${c.replies && c.replies.length > 0 ? `
@@ -1423,22 +1451,23 @@
                         </div>
                     ` : ''}
 
-                    <div id="reply-form-${c._id}" class="reply-form">
+                    <div id="reply-form-${commentId}" class="reply-form">
                         <div class="chat-composer chat-composer--reply">
-                            <button type="button" class="chat-composer__btn chat-composer__btn--attach" onclick="triggerReplyImagePicker('${c._id}')" aria-label="Attach reply image">
+                            <button type="button" class="chat-composer__btn chat-composer__btn--attach" onclick="triggerReplyImagePicker('${commentId}')" aria-label="Attach reply image">
                                 <span class="material-symbols-outlined">add_circle</span>
                             </button>
-                            <input type="text" id="reply-text-${c._id}" placeholder="Write comment reply..." class="chat-composer__input">
-                            <img id="reply-image-thumb-${c._id}" class="chat-composer__thumb" alt="Selected reply image preview">
-                            <span id="reply-image-name-${c._id}" class="chat-composer__filelabel" style="display:none;"></span>
-                            <button type="button" onclick="submitReply('${c._id}')" class="chat-composer__btn chat-composer__btn--send" aria-label="Send reply">
+                            <input type="text" id="reply-text-${commentId}" placeholder="Write comment reply..." class="chat-composer__input">
+                            <img id="reply-image-thumb-${commentId}" class="chat-composer__thumb" alt="Selected reply image preview">
+                            <span id="reply-image-name-${commentId}" class="chat-composer__filelabel" style="display:none;"></span>
+                            <button type="button" onclick="submitReply('${commentId}')" class="chat-composer__btn chat-composer__btn--send" aria-label="Send reply">
                                 <span class="material-symbols-outlined">send</span>
                             </button>
                         </div>
-                        <input type="file" id="reply-image-${c._id}" class="hidden-file-input" accept="image/*">
+                        <input type="file" id="reply-image-${commentId}" class="hidden-file-input" accept="image/*">
                     </div>
                 </div>
-            `).join('');
+            `;
+            }).join('');
         }
 
         function getUserId() {
@@ -1471,6 +1500,8 @@
         }
 
         async function likeComment(commentId) {
+            const normalizedCommentId = String(commentId || '').trim();
+            if (!normalizedCommentId) return;
             const token = localStorage.getItem('token');
             if (!token) {
                 window.location.href = `/auth/login?next=${encodeURIComponent(window.location.pathname + window.location.search)}`;
@@ -1478,7 +1509,7 @@
             }
 
             try {
-                const res = await fetch(`/api/posts/comment/like/${postId}/${commentId}`, {
+                const res = await fetch(`/api/posts/comment/like/${postId}/${normalizedCommentId}`, {
                     method: 'POST',
                     headers: { 'x-auth-token': token }
                 });
@@ -1492,13 +1523,17 @@
         }
 
         function showReplyForm(commentId) {
-            const form = document.getElementById(`reply-form-${commentId}`);
+            const normalizedCommentId = String(commentId || '').trim();
+            if (!normalizedCommentId) return;
+            const form = document.getElementById(`reply-form-${normalizedCommentId}`);
             if (!form) return;
             form.style.display = form.style.display === 'none' || !form.style.display ? 'block' : 'none';
         }
 
         function triggerReplyImagePicker(commentId) {
-            const imageInput = document.getElementById(`reply-image-${commentId}`);
+            const normalizedCommentId = String(commentId || '').trim();
+            if (!normalizedCommentId) return;
+            const imageInput = document.getElementById(`reply-image-${normalizedCommentId}`);
             if (imageInput) imageInput.click();
         }
 
@@ -1547,14 +1582,16 @@
         }
 
         async function submitReply(commentId) {
+            const normalizedCommentId = String(commentId || '').trim();
+            if (!normalizedCommentId) return;
             const token = localStorage.getItem('token');
             if (!token) {
                 window.location.href = `/auth/login?next=${encodeURIComponent(window.location.pathname + window.location.search)}`;
                 return;
             }
 
-            const textInput = document.getElementById(`reply-text-${commentId}`);
-            const imageInput = document.getElementById(`reply-image-${commentId}`);
+            const textInput = document.getElementById(`reply-text-${normalizedCommentId}`);
+            const imageInput = document.getElementById(`reply-image-${normalizedCommentId}`);
             const text = textInput ? textInput.value : '';
             const imageFile = imageInput && imageInput.files ? imageInput.files[0] : null;
             if (!String(text || '').trim() && !imageFile) return;
@@ -1563,7 +1600,7 @@
                 const fd = new FormData();
                 fd.append('text', text);
                 if (imageFile) fd.append('image', imageFile);
-                const res = await fetch(`/api/posts/comment/reply/${postId}/${commentId}`, {
+                const res = await fetch(`/api/posts/comment/reply/${postId}/${normalizedCommentId}`, {
                     method: 'POST',
                     headers: {
                         'x-auth-token': token
@@ -1575,7 +1612,7 @@
                     renderComments(updatedComments);
                     if (textInput) textInput.value = '';
                     if (imageInput) imageInput.value = '';
-                    refreshReplyImageLabel(commentId);
+                    refreshReplyImageLabel(normalizedCommentId);
                 }
             } catch (err) {
                 console.error(err);

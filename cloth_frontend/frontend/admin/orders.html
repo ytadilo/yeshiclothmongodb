@@ -168,6 +168,11 @@
             return d.toLocaleString();
         }
 
+        function resolveOrderId(order) {
+            if (!order || typeof order !== 'object') return '';
+            return String(order._id || order.id || order.orderId || '').trim();
+        }
+
         function deriveFlowStatus(paymentStatus, sewingStatus, fallbackStatus) {
             const p = String(paymentStatus || '').toLowerCase();
             const s = String(sewingStatus || '').toLowerCase();
@@ -313,10 +318,14 @@
                 const payload = await res.json();
                 if (!res.ok) throw new Error(payload?.msg || 'Failed to load orders');
 
-                const orders = Array.isArray(payload) ? payload : [];
+                const orders = Array.isArray(payload)
+                    ? payload
+                    : (Array.isArray(payload?.orders) ? payload.orders : []);
                 container.innerHTML = '';
 
                 orders.forEach(order => {
+                    const orderId = resolveOrderId(order);
+                    if (!orderId) return;
                     const customer = order?.customer_info || order?.customerInfo || {};
                     const userProfile = order?.user_profile || {};
                     const customerAddress = customer.address && typeof customer.address === 'object' ? customer.address : {};
@@ -413,7 +422,7 @@
 
                     const div = document.createElement('div');
                     div.className = 'order-card';
-                    div.setAttribute('data-order-id', order._id);
+                    div.setAttribute('data-order-id', orderId);
                     div.setAttribute('data-country', String(country || '').trim().toLowerCase());
                     div.setAttribute('data-region', String(finalRegion || '').trim().toLowerCase());
                     div.setAttribute('data-city', String(city || '').trim().toLowerCase());
@@ -521,7 +530,7 @@
                                             <option value="Shipped" ${sewingStatus === 'Shipped' ? 'selected' : ''}>Shipped</option>
                                             <option value="Delivered" ${sewingStatus === 'Delivered' ? 'selected' : ''}>Delivered</option>
                                         </select>
-                                        <button type="button" class="btn-secondary" onclick="updateSewingStatus('${order._id}')">Update Sewing</button>
+                                        <button type="button" class="btn-secondary" onclick="updateSewingStatus('${orderId}')">Update Sewing</button>
                                     </div>
 
                                     <div style="margin-top: 12px; display:flex; gap: 10px; align-items:center; flex-wrap:wrap;">
@@ -531,7 +540,7 @@
                                             <option value="Failed" ${paymentStatus === 'Failed' ? 'selected' : ''}>Failed</option>
                                             <option value="Refunded" ${paymentStatus === 'Refunded' ? 'selected' : ''}>Refunded</option>
                                         </select>
-                                        <button type="button" class="btn" onclick="updatePaymentStatus('${order._id}')">
+                                        <button type="button" class="btn" onclick="updatePaymentStatus('${orderId}')">
                                             ${paymentStatus === 'Confirmed' ? 'Update Payment' : 'Confirm Payment'}
                                         </button>
                                         ${!screenshotUrl ? '<span style="color: var(--light-text);">No screenshot uploaded.</span>' : ''}
@@ -541,7 +550,7 @@
                                     <div style="margin-top: 12px; display:flex; gap: 10px; align-items:center; flex-wrap:wrap;">
                                         <input type="number" min="0" step="1" class="form-control" style="max-width: 160px;" aria-label="Set cloth price ETB" data-price-etb placeholder="Cloth ETB" value="${Number.isFinite(clothPrice) && clothPrice >= 0 ? String(clothPrice) : ''}">
                                         <input type="number" min="0" step="1" class="form-control" style="max-width: 160px;" aria-label="Set shipping price ETB" data-shipping-etb placeholder="Shipping ETB" value="${Number.isFinite(clothShippingPrice) && clothShippingPrice >= 0 ? String(clothShippingPrice) : ''}">
-                                        <button type="button" class="btn-secondary" onclick="updatePricing('${order._id}')">Set Price</button>
+                                        <button type="button" class="btn-secondary" onclick="updatePricing('${orderId}')">Set Price</button>
                                     </div>
                                     ` : ''}
 
@@ -565,7 +574,7 @@
                                                 </button>
                                                 <input type="text" class="form-control" data-negotiation-msg placeholder="Write negotiation..." style="flex:1; min-width:0; width:1%; border:none; background:transparent; box-shadow:none; padding:0; color:#5d574a; font-size:0.95rem;">
                                                 <span data-negotiation-image-name style="max-width:36%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:0.82rem; color:#6e6658; display:none;"></span>
-                                                <button type="button" class="btn-secondary" onclick="sendNegotiation('${order._id}')" style="width:40px; min-width:40px; height:40px; min-height:40px; padding:0; border-radius:999px; display:inline-flex; align-items:center; justify-content:center; background:#d9d3a4; color:#5b5800; border:none;" aria-label="Send message">
+                                                <button type="button" class="btn-secondary" onclick="sendNegotiation('${orderId}')" style="width:40px; min-width:40px; height:40px; min-height:40px; padding:0; border-radius:999px; display:inline-flex; align-items:center; justify-content:center; background:#d9d3a4; color:#5b5800; border:none;" aria-label="Send message">
                                                     <span class="material-symbols-outlined">send</span>
                                                 </button>
                                             </div>
@@ -597,17 +606,15 @@
                         </details>
 
                         <hr>
-                        <p><small>Order ID: ${escapeHtml(order._id)}</small></p>
+                        <p><small>Order ID: ${escapeHtml(orderId)}</small></p>
                     `;
 
                     const detailsEl = div.querySelector('details');
                     if (detailsEl) {
-                        const orderId = String(order._id || '');
-                        if (orderId && expandedOrderIds.has(orderId)) {
+                        if (expandedOrderIds.has(orderId)) {
                             detailsEl.open = true;
                         }
                         detailsEl.addEventListener('toggle', () => {
-                            if (!orderId) return;
                             if (detailsEl.open) expandedOrderIds.add(orderId);
                             else expandedOrderIds.delete(orderId);
                         });
@@ -640,7 +647,9 @@
         }
 
         async function updatePaymentStatus(orderId) {
-            const host = document.querySelector(`.order-card[data-order-id="${CSS.escape(orderId)}"]`);
+            const normalizedOrderId = String(orderId || '').trim();
+            if (!normalizedOrderId) return;
+            const host = document.querySelector(`.order-card[data-order-id="${CSS.escape(normalizedOrderId)}"]`);
             const select = host ? host.querySelector('[data-payment-status]') : null;
             const currentValue = select ? String(select.value || '').trim() : '';
             const nextStatus = (!currentValue || currentValue === 'Pending') ? 'Confirmed' : currentValue;
@@ -650,7 +659,7 @@
             }
 
             try {
-                const res = await apiFetch(`/api/orders/${orderId}`, {
+                const res = await apiFetch(`/api/orders/${normalizedOrderId}`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ payment_status: nextStatus })
@@ -676,12 +685,14 @@
         }
 
         async function updateSewingStatus(orderId) {
-            const host = document.querySelector(`.order-card[data-order-id="${CSS.escape(orderId)}"]`);
+            const normalizedOrderId = String(orderId || '').trim();
+            if (!normalizedOrderId) return;
+            const host = document.querySelector(`.order-card[data-order-id="${CSS.escape(normalizedOrderId)}"]`);
             const select = host ? host.querySelector('[data-sewing-status]') : null;
             const nextStatus = select ? select.value : 'Pending';
 
             try {
-                const res = await apiFetch(`/api/orders/${orderId}`, {
+                const res = await apiFetch(`/api/orders/${normalizedOrderId}`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ sewing_status: nextStatus })
@@ -697,7 +708,9 @@
         }
 
         async function updatePricing(orderId) {
-            const host = document.querySelector(`.order-card[data-order-id="${CSS.escape(orderId)}"]`);
+            const normalizedOrderId = String(orderId || '').trim();
+            if (!normalizedOrderId) return;
+            const host = document.querySelector(`.order-card[data-order-id="${CSS.escape(normalizedOrderId)}"]`);
             const priceInput = host ? host.querySelector('[data-price-etb]') : null;
             const shippingInput = host ? host.querySelector('[data-shipping-etb]') : null;
             const price = Number(priceInput ? priceInput.value : '');
@@ -713,7 +726,7 @@
             }
 
             try {
-                const res = await apiFetch(`/api/orders/${orderId}`, {
+                const res = await apiFetch(`/api/orders/${normalizedOrderId}`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -740,7 +753,9 @@
         }
 
         async function sendNegotiation(orderId) {
-            const host = document.querySelector(`.order-card[data-order-id="${CSS.escape(orderId)}"]`);
+            const normalizedOrderId = String(orderId || '').trim();
+            if (!normalizedOrderId) return;
+            const host = document.querySelector(`.order-card[data-order-id="${CSS.escape(normalizedOrderId)}"]`);
             const input = host ? host.querySelector('[data-negotiation-msg]') : null;
             const message = String(input ? input.value : '').trim();
             const imageFile = host ? host.querySelector('[data-negotiation-image]')?.files?.[0] : null;
@@ -753,7 +768,7 @@
                 const fd = new FormData();
                 fd.append('message', message);
                 if (imageFile) fd.append('image', imageFile);
-                const res = await apiFetch(`/api/orders/${orderId}/negotiation`, {
+                const res = await apiFetch(`/api/orders/${normalizedOrderId}/negotiation`, {
                     method: 'POST',
                     body: fd
                 });

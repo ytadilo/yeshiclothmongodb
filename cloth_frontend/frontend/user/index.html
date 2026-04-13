@@ -513,21 +513,23 @@
         function applyMenuAuthState() {
             const loginBtn = document.getElementById('mobileMenuLoginBtn');
             const signupBtn = document.getElementById('mobileMenuSignupBtn');
-            const mobileProfileBtn = document.getElementById('mobileMenuProfileBtn');
+            const mobileMyOrdersBtn = document.getElementById('mobileMenuMyOrdersBtn');
             const logoutBtn = document.getElementById('mobileMenuLogoutBtn');
+            const desktopMyOrders = document.getElementById('desktopMyOrdersItem');
             const desktopLogin = document.getElementById('desktopLoginItem');
             const desktopSignup = document.getElementById('desktopSignupItem');
-            const desktopProfile = document.getElementById('desktopProfileItem');
+            const desktopProfileAction = document.getElementById('desktopProfileAction');
             const desktopLogout = document.getElementById('desktopLogoutItem');
             const shoppingBagLink = document.getElementById('shoppingBagLink');
             const loggedIn = isUserLoggedIn();
             if (loginBtn) loginBtn.classList.toggle('hidden', loggedIn);
             if (signupBtn) signupBtn.classList.toggle('hidden', loggedIn);
-            if (mobileProfileBtn) mobileProfileBtn.classList.toggle('hidden', !loggedIn);
+            if (mobileMyOrdersBtn) mobileMyOrdersBtn.classList.toggle('hidden', !loggedIn);
             if (logoutBtn) logoutBtn.classList.toggle('hidden', !loggedIn);
+            if (desktopMyOrders) desktopMyOrders.classList.toggle('hidden', !loggedIn);
             if (desktopLogin) desktopLogin.classList.toggle('hidden', loggedIn);
             if (desktopSignup) desktopSignup.classList.toggle('hidden', loggedIn);
-            if (desktopProfile) desktopProfile.classList.toggle('hidden', !loggedIn);
+            if (desktopProfileAction) desktopProfileAction.classList.toggle('hidden', !loggedIn);
             if (desktopLogout) desktopLogout.classList.toggle('hidden', !loggedIn);
             if (shoppingBagLink) shoppingBagLink.classList.toggle('hidden', !loggedIn);
         }
@@ -569,6 +571,25 @@
                 .replace(/>/g, '&gt;')
                 .replace(/"/g, '&quot;')
                 .replace(/'/g, '&#39;');
+        }
+
+        function resolvePostId(post) {
+            if (!post || typeof post !== 'object') return '';
+            const raw = post._id || post.id || post.postId || post.post_id;
+            return String(raw || '').trim();
+        }
+
+        function normalizePostRecord(post) {
+            if (!post || typeof post !== 'object') return null;
+            const postId = resolvePostId(post);
+            if (!postId) return null;
+            return { ...post, _id: postId, id: postId };
+        }
+
+        function findPostById(postId) {
+            const id = String(postId || '').trim();
+            if (!id) return null;
+            return state.posts.find((post) => resolvePostId(post) === id) || null;
         }
 
         function escapeRegExp(value) {
@@ -618,10 +639,13 @@
         }
 
         function addToBag(post) {
-            if (!post || !post._id) return false;
+            const id = resolvePostId(post);
+            if (!id) return false;
             const items = getBagItems();
-            const id = String(post._id);
-            const already = items.some((item) => String(item.postId) === id);
+            const already = items.some((item) => {
+                const existingId = String((item && (item.postId || item._id || item.id || item.post_id)) || '').trim();
+                return !!existingId && existingId === id;
+            });
             if (already) {
                 updateBagCountBadge();
                 return false;
@@ -630,6 +654,7 @@
             const firstImage = Array.isArray(post.images) && post.images.length ? post.images[0] : '';
             items.push({
                 postId: id,
+                id: id,
                 title: post.title || 'Selected cloth',
                 image: firstImage || '',
                 category: post.category || '',
@@ -656,6 +681,8 @@
         }
 
         function renderCard(post) {
+            const postId = resolvePostId(post);
+            if (!postId) return '';
             const image = post.images && post.images.length ? post.images[0] : '';
             const prices = formatPricePair(post);
             const likes = Array.isArray(post.likes) ? post.likes.length : 0;
@@ -684,7 +711,7 @@
                 : '';
 
             return [
-                '<article class="group shrink-0 overflow-hidden rounded-xl bg-[#f4f3f3] shadow-sm', matchedCardClass, '" data-post-id="', escapeHtml(post._id), '">',
+                '<article class="group shrink-0 overflow-hidden rounded-xl bg-[#f4f3f3] shadow-sm', matchedCardClass, '" data-post-id="', escapeHtml(postId), '">',
                     '<div class="relative aspect-[4/5] overflow-hidden bg-white">',
                         '<div class="absolute left-2 top-2 z-10 inline-flex items-center gap-1 rounded-full bg-black/45 px-2 py-1 text-[10px] font-semibold text-white">',
                             '<span class="material-symbols-outlined text-xs">visibility</span>', views.toLocaleString(),
@@ -694,7 +721,7 @@
                             ? '<img src="' + escapeHtml(image) + '" alt="' + escapeHtml(post.title) + '" class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" loading="lazy" decoding="async">'
                             : '<div class="flex h-full items-center justify-center text-brand-muted"><span class="material-symbols-outlined text-5xl">image</span></div>',
                         '<div class="absolute bottom-2 left-2 z-10 flex flex-col items-center gap-2 text-white">',
-                            '<button type="button" class="flex h-9 min-w-[54px] items-center justify-center gap-1 rounded-full bg-black/55 px-2 backdrop-blur" data-add-cart-post-id="', escapeHtml(post._id), '" aria-label="Add to Bag">',
+                            '<button type="button" class="flex h-9 min-w-[54px] items-center justify-center gap-1 rounded-full bg-black/55 px-2 backdrop-blur" data-add-cart-post-id="', escapeHtml(postId), '" aria-label="Add to Bag">',
                                 '<span class="material-symbols-outlined text-base">shopping_bag</span>',
                                 '<span class="text-[10px] font-semibold leading-none">', (Number.isFinite(inBag) ? inBag : 0).toLocaleString(), '</span>',
                             '</button>',
@@ -702,7 +729,7 @@
                                 '<span class="material-symbols-outlined text-base">shopping_cart_checkout</span>',
                                 '<span class="text-[10px] font-semibold leading-none">', (showOrdered ? ordered.toLocaleString() : '-'), '</span>',
                             '</div>',
-                            '<a href="/user/mychat.html?postId=', encodeURIComponent(post._id),
+                            '<a href="/user/mychat.html?postId=', encodeURIComponent(postId),
                                 '&title=', encodeURIComponent(post.title || 'Selected cloth'),
                                 '&image=', encodeURIComponent(image || ''),
                                 '&price=', encodeURIComponent(prices.newPrice || ''),
@@ -717,15 +744,15 @@
                                 : ''),
                         '</div>',
                         '<div class="absolute bottom-2 right-2 z-10 flex flex-col items-center gap-2 text-white">',
-                            '<button type="button" class="flex h-9 w-9 items-center justify-center rounded-full ', likedByMe ? 'bg-[#ba1a1a]' : 'bg-black/55', ' backdrop-blur" data-like-post-id="', escapeHtml(post._id), '" aria-label="Like">',
+                            '<button type="button" class="flex h-9 w-9 items-center justify-center rounded-full ', likedByMe ? 'bg-[#ba1a1a]' : 'bg-black/55', ' backdrop-blur" data-like-post-id="', escapeHtml(postId), '" aria-label="Like">',
                                 '<span class="material-symbols-outlined text-base">favorite</span>',
                             '</button>',
                             '<span class="text-[10px] font-semibold leading-none">', likes.toLocaleString(), '</span>',
-                            '<a href="/user/post.html?id=', encodeURIComponent(post._id), '" class="flex h-9 w-9 items-center justify-center rounded-full bg-black/55 backdrop-blur" aria-label="Comment">',
+                            '<a href="/user/post.html?id=', encodeURIComponent(postId), '" class="flex h-9 w-9 items-center justify-center rounded-full bg-black/55 backdrop-blur" aria-label="Comment">',
                                 '<span class="material-symbols-outlined text-base">chat_bubble</span>',
                             '</a>',
                             '<span class="text-[10px] font-semibold leading-none">', comments.toLocaleString(), '</span>',
-                            '<button type="button" class="flex h-9 w-9 items-center justify-center rounded-full bg-black/55 backdrop-blur" data-share-post-id="', escapeHtml(post._id), '" data-share-title="', encodeURIComponent(post.title || 'Yeshi Product'), '" aria-label="Share">',
+                            '<button type="button" class="flex h-9 w-9 items-center justify-center rounded-full bg-black/55 backdrop-blur" data-share-post-id="', escapeHtml(postId), '" data-share-title="', encodeURIComponent(post.title || 'Yeshi Product'), '" aria-label="Share">',
                                 '<span class="material-symbols-outlined text-base">share</span>',
                             '</button>',
                             '<span class="text-[10px] font-semibold leading-none">', shares.toLocaleString(), '</span>',
@@ -747,7 +774,7 @@
                             prices.shipping ? '<div class="mt-1 text-[10px] font-semibold text-[#745B18]">' + escapeHtml(prices.shipping) + '</div>' : '',
                         '</div>',
                         '<div class="mt-3">',
-                            '<a href="/user/post.html?id=', encodeURIComponent(post._id), '" class="rounded-md bg-gradient-to-r from-brand-primary to-brand-accent px-2 py-1 text-center text-[11px] font-semibold text-white" style="display:block;">View & Order</a>',
+                            '<a href="/user/post.html?id=', encodeURIComponent(postId), '" class="rounded-md bg-gradient-to-r from-brand-primary to-brand-accent px-2 py-1 text-center text-[11px] font-semibold text-white" style="display:block;">View & Order</a>',
                         '</div>',
                     '</div>',
                 '</article>'
@@ -891,7 +918,8 @@
                         return;
                     }
 
-                    const id = btn.getAttribute('data-like-post-id');
+                    const id = String(btn.getAttribute('data-like-post-id') || '').trim();
+                    if (!id) return;
                     try {
                         const res = await fetch('/api/posts/like/' + encodeURIComponent(id || ''), {
                             method: 'POST',
@@ -899,7 +927,7 @@
                         });
                         if (!res.ok) return;
                         const likes = await res.json();
-                        const target = state.posts.find((p) => String(p._id) === String(id));
+                        const target = findPostById(id);
                         if (target) {
                             target.likes = Array.isArray(likes) ? likes : [];
                             renderFeeds();
@@ -934,7 +962,8 @@
 
             container.querySelectorAll('[data-share-post-id]').forEach((btn) => {
                 btn.addEventListener('click', async () => {
-                    const id = btn.getAttribute('data-share-post-id');
+                    const id = String(btn.getAttribute('data-share-post-id') || '').trim();
+                    if (!id) return;
                     const title = decodeURIComponent(btn.getAttribute('data-share-title') || 'Yeshi');
                     const url = window.location.origin + '/user/post.html?id=' + encodeURIComponent(id || '');
                     try {
@@ -953,8 +982,9 @@
 
             container.querySelectorAll('[data-add-cart-post-id]').forEach((btn) => {
                 btn.addEventListener('click', async () => {
-                    const id = btn.getAttribute('data-add-cart-post-id');
-                    const post = state.posts.find((p) => String(p._id) === String(id));
+                    const id = String(btn.getAttribute('data-add-cart-post-id') || '').trim();
+                    if (!id) return;
+                    const post = findPostById(id);
                     if (!post) return;
                     const wasAdded = addToBag(post);
                     if (!wasAdded) {
@@ -996,11 +1026,21 @@
                 const raw = await response.text();
                 let posts = [];
                 try {
-                    posts = raw ? JSON.parse(raw) : [];
+                    const parsed = raw ? JSON.parse(raw) : [];
+                    if (Array.isArray(parsed)) {
+                        posts = parsed;
+                    } else if (parsed && Array.isArray(parsed.posts)) {
+                        posts = parsed.posts;
+                    } else {
+                        posts = [];
+                    }
                 } catch (_) {
                     posts = [];
                 }
-                state.posts = response.ok && Array.isArray(posts) ? posts : [];
+                const normalized = Array.isArray(posts)
+                    ? posts.map(normalizePostRecord).filter(Boolean)
+                    : [];
+                state.posts = response.ok ? normalized : [];
             } catch (_) {
                 state.posts = [];
             }

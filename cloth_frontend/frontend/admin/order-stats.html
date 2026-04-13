@@ -277,6 +277,18 @@
             }
         }
 
+        const externalLoadAnalytics = (typeof window.loadAnalytics === 'function') ? window.loadAnalytics : null;
+        window.loadAnalytics = function loadAnalyticsFallback() {
+            if (externalLoadAnalytics && externalLoadAnalytics !== window.loadAnalytics) {
+                try {
+                    return externalLoadAnalytics();
+                } catch (_) {
+                    return loadOrderStats();
+                }
+            }
+            return loadOrderStats();
+        };
+
         document.addEventListener('DOMContentLoaded', () => {
             loadOrderStats();
         });

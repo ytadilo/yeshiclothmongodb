@@ -360,6 +360,16 @@
             }
         }
 
+        function resolvePostId(post) {
+            if (!post || typeof post !== 'object') return '';
+            return String(post._id || post.id || post.postId || post.post_id || '').trim();
+        }
+
+        function resolveCommentId(comment) {
+            if (!comment || typeof comment !== 'object') return '';
+            return String(comment._id || comment.id || comment.commentId || comment.comment_id || '').trim();
+        }
+
         document.querySelectorAll('.modal').forEach((el) => {
             el.setAttribute('aria-hidden', 'true');
             el.style.display = 'none';
@@ -416,17 +426,25 @@
 
             try {
                 const res = await apiFetch('/api/posts');
-                const posts = await res.json();
-                if (!res.ok) throw new Error(posts?.msg || 'Failed to load posts');
+                const payload = await res.json();
+                if (!res.ok) throw new Error(payload?.msg || 'Failed to load posts');
+                const rawPosts = Array.isArray(payload) ? payload : (Array.isArray(payload?.posts) ? payload.posts : []);
+                const posts = rawPosts
+                    .map((post) => {
+                        const postId = resolvePostId(post);
+                        return postId ? { ...post, _id: postId, id: postId } : null;
+                    })
+                    .filter(Boolean);
 
-                if (!Array.isArray(posts) || posts.length === 0) {
+                if (!posts.length) {
                     container.innerHTML = '<p>No posts yet.</p>';
                     return;
                 }
 
                 container.innerHTML = posts.map((post) => {
+                    const postId = resolvePostId(post);
                     return `
-                        <div class="order-card" data-post-id="${escapeHtml(post._id)}">
+                        <div class="order-card" data-post-id="${escapeHtml(postId)}">
                             <div class="order-card__header">
                                 <div>
                                     <h4 class="order-card__name">${escapeHtml(post.title)}</h4>
@@ -455,10 +473,10 @@
                                 Ordered: ${escapeHtml(String(Number(post.orderCount || 0)))} · Visibility: ${post.orderCountVisible === false ? 'Hidden' : 'Visible'}
                             </p>
                             <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top: 10px;">
-                                <button class="btn" type="button" onclick="openEditPost('${escapeHtml(post._id)}')">Edit</button>
-                                <button class="btn-secondary" type="button" onclick="deletePostAdmin('${escapeHtml(post._id)}')">Delete</button>
-                                <button class="btn-secondary" type="button" onclick="openComments('${escapeHtml(post._id)}')">Comments</button>
-                                <button class="btn-secondary" type="button" onclick="toggleOrderCountVisibility('${escapeHtml(post._id)}', ${post.orderCountVisible === false ? 'true' : 'false'})">${post.orderCountVisible === false ? 'Show Ordered Count' : 'Hide Ordered Count'}</button>
+                                <button class="btn" type="button" onclick="openEditPost('${escapeHtml(postId)}')">Edit</button>
+                                <button class="btn-secondary" type="button" onclick="deletePostAdmin('${escapeHtml(postId)}')">Delete</button>
+                                <button class="btn-secondary" type="button" onclick="openComments('${escapeHtml(postId)}')">Comments</button>
+                                <button class="btn-secondary" type="button" onclick="toggleOrderCountVisibility('${escapeHtml(postId)}', ${post.orderCountVisible === false ? 'true' : 'false'})">${post.orderCountVisible === false ? 'Show Ordered Count' : 'Hide Ordered Count'}</button>
                             </div>
                         </div>
                     `;
@@ -471,13 +489,17 @@
 
         async function openEditPost(postId) {
             if (!ensureAdmin()) return;
+            const requestedPostId = String(postId || '').trim();
+            if (!requestedPostId) return;
 
             try {
-                const res = await apiFetch(`/api/posts/${postId}`);
+                const res = await apiFetch(`/api/posts/${requestedPostId}`);
                 const post = await res.json();
                 if (!res.ok) throw new Error(post?.msg || 'Failed to load post');
+                const normalizedPostId = resolvePostId(post) || requestedPostId;
+                if (!normalizedPostId) throw new Error('Post id is missing');
 
-                document.getElementById('editPostId').value = post._id;
+                document.getElementById('editPostId').value = normalizedPostId;
                 document.getElementById('editTitle').value = post.title || '';
                 document.getElementById('editCategory').value = post.category || 'Women';
                 document.getElementById('editDescription').value = post.description || '';
@@ -590,10 +612,12 @@
 
         async function deletePostAdmin(postId) {
             if (!ensureAdmin()) return;
+            const normalizedPostId = String(postId || '').trim();
+            if (!normalizedPostId) return;
             if (!confirm('Delete this post?')) return;
 
             try {
-                const res = await apiFetch(`/api/posts/${postId}`, {
+                const res = await apiFetch(`/api/posts/${normalizedPostId}`, {
                     method: 'DELETE'
                 });
                 const data = await res.json();
@@ -608,8 +632,10 @@
 
         async function toggleOrderCountVisibility(postId, visible) {
             if (!ensureAdmin()) return;
+            const normalizedPostId = String(postId || '').trim();
+            if (!normalizedPostId) return;
             try {
-                const res = await apiFetch(`/api/posts/${postId}/order-count-visibility`, {
+                const res = await apiFetch(`/api/posts/${normalizedPostId}/order-count-visibility`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ visible: !!visible })
@@ -642,6 +668,8 @@
 
         async function openComments(postId, postTitle = '') {
             if (!ensureAdmin()) return;
+            const requestedPostId = String(postId || '').trim();
+            if (!requestedPostId) return;
 
             document.getElementById('commentsModalTitle').innerText = postTitle ? `Post: ${postTitle}` : '';
             const list = document.getElementById('commentsList');
@@ -649,9 +677,11 @@
             openModal('commentsModal');
 
             try {
-                const res = await apiFetch(`/api/posts/${postId}`);
+                const res = await apiFetch(`/api/posts/${requestedPostId}`);
                 const post = await res.json();
                 if (!res.ok) throw new Error(post?.msg || 'Failed to load comments');
+                const normalizedPostId = resolvePostId(post) || requestedPostId;
+                if (!normalizedPostId) throw new Error('Post id is missing');
                 document.getElementById('commentsModalTitle').innerText = `Post: ${String(post?.title || postTitle || '')}`;
 
                 const comments = Array.isArray(post.comments) ? post.comments : [];
@@ -661,6 +691,8 @@
                 }
 
                 list.innerHTML = comments.map((c) => {
+                    const commentId = resolveCommentId(c);
+                    if (!commentId) return '';
                     const replies = Array.isArray(c.replies) ? c.replies : [];
                     return `
                         <div style="padding: 10px; border-bottom: 1px solid rgba(0,0,0,0.08);">
@@ -669,7 +701,7 @@
                                     <div style="font-weight:800; color: var(--accent-color);">${escapeHtml(c.name || 'User')}</div>
                                     <div style="margin-top:6px;">${escapeHtml(c.text || '')}</div>
                                     ${c.image_url ? `<div style="margin-top:8px;"><a href="${escapeHtml(c.image_url)}" target="_blank" rel="noopener noreferrer"><img src="${escapeHtml(c.image_url)}" alt="Comment image" style="max-width:180px; width:100%; border-radius:10px; border:1px solid rgba(0,0,0,0.12);"></a></div>` : ''}
-                                    <div style="margin-top:8px; display:grid; gap:8px;" data-comment-editor="${escapeHtml(c._id)}">
+                                    <div style="margin-top:8px; display:grid; gap:8px;" data-comment-editor="${escapeHtml(commentId)}">
                                         <textarea class="form-control" data-comment-text rows="2" placeholder="Edit comment text">${escapeHtml(c.text || '')}</textarea>
                                         <input type="file" class="form-control" data-comment-image accept="image/*">
                                         <label style="display:flex; align-items:center; gap:8px; font-size:0.86rem; color:var(--light-text);">
@@ -686,13 +718,13 @@
                                                 ${r.image_url ? `<div style="margin-top:6px;"><a href="${escapeHtml(r.image_url)}" target="_blank" rel="noopener noreferrer"><img src="${escapeHtml(r.image_url)}" alt="Reply image" style="max-width:160px; width:100%; border-radius:10px; border:1px solid rgba(0,0,0,0.12);"></a></div>` : ''}
                                             </div>
                                         `).join('') : '<div style="color:var(--light-text); font-size:0.9rem;">No replies yet.</div>'}
-                                        <div style="display:grid; gap:8px; margin-top:8px;" data-reply-editor="${escapeHtml(c._id)}">
+                                        <div style="display:grid; gap:8px; margin-top:8px;" data-reply-editor="${escapeHtml(commentId)}">
                                             <div style="display:flex; align-items:center; gap:8px; background:#ece9df; border:1px solid rgba(0,0,0,0.08); border-radius:999px; padding:5px 7px; min-height:48px; width:100%; max-width:100%; box-sizing:border-box; overflow:hidden;">
                                                 <button type="button" data-reply-attach style="width:40px; height:40px; border:none; border-radius:999px; background:transparent; color:#463f32; display:inline-flex; align-items:center; justify-content:center; cursor:pointer;" aria-label="Attach reply image">
                                                     <span class="material-symbols-outlined">add_circle</span>
                                                 </button>
                                                 <input type="text" data-reply-text placeholder="Write comment reply..." style="flex:1; min-width:0; width:1%; border:none; background:transparent; color:#5d574a; outline:none; font:inherit; font-size:0.95rem;">
-                                                <button class="btn-secondary" type="button" onclick="replyCommentAdmin('${escapeHtml(postId)}','${escapeHtml(c._id)}')" style="width:40px; min-width:40px; height:40px; min-height:40px; padding:0; border-radius:999px; display:inline-flex; align-items:center; justify-content:center; background:#d9d3a4; color:#5b5800; border:none;" aria-label="Send reply">
+                                                <button class="btn-secondary" type="button" onclick="replyCommentAdmin('${escapeHtml(normalizedPostId)}','${escapeHtml(commentId)}')" style="width:40px; min-width:40px; height:40px; min-height:40px; padding:0; border-radius:999px; display:inline-flex; align-items:center; justify-content:center; background:#d9d3a4; color:#5b5800; border:none;" aria-label="Send reply">
                                                     <span class="material-symbols-outlined">send</span>
                                                 </button>
                                             </div>
@@ -701,8 +733,8 @@
                                     </div>
                                 </div>
                                 <div style="display:flex; flex-direction:column; gap:8px; min-width: 120px;">
-                                    <button class="btn-secondary" type="button" onclick="editCommentAdmin('${escapeHtml(postId)}','${escapeHtml(c._id)}')">Save</button>
-                                    <button class="btn-secondary" type="button" onclick="deleteCommentAdmin('${escapeHtml(postId)}','${escapeHtml(c._id)}')">Delete</button>
+                                    <button class="btn-secondary" type="button" onclick="editCommentAdmin('${escapeHtml(normalizedPostId)}','${escapeHtml(commentId)}')">Save</button>
+                                    <button class="btn-secondary" type="button" onclick="deleteCommentAdmin('${escapeHtml(normalizedPostId)}','${escapeHtml(commentId)}')">Delete</button>
                                 </div>
                             </div>
                         </div>
@@ -716,15 +748,18 @@
 
         async function deleteCommentAdmin(postId, commentId) {
             if (!ensureAdmin()) return;
+            const normalizedPostId = String(postId || '').trim();
+            const normalizedCommentId = String(commentId || '').trim();
+            if (!normalizedPostId || !normalizedCommentId) return;
             if (!confirm('Delete this comment?')) return;
 
             try {
-                const res = await apiFetch(`/api/posts/${postId}/comment/${commentId}`, {
+                const res = await apiFetch(`/api/posts/${normalizedPostId}/comment/${normalizedCommentId}`, {
                     method: 'DELETE'
                 });
                 const data = await res.json();
                 if (!res.ok) throw new Error(data?.msg || 'Failed to delete comment');
-                openComments(postId);
+                openComments(normalizedPostId);
             } catch (err) {
                 console.error(err);
                 alert(err?.message || 'Error deleting comment');
@@ -733,7 +768,10 @@
 
         async function editCommentAdmin(postId, commentId) {
             if (!ensureAdmin()) return;
-            const editor = document.querySelector(`[data-comment-editor="${CSS.escape(commentId)}"]`);
+            const normalizedPostId = String(postId || '').trim();
+            const normalizedCommentId = String(commentId || '').trim();
+            if (!normalizedPostId || !normalizedCommentId) return;
+            const editor = document.querySelector(`[data-comment-editor="${CSS.escape(normalizedCommentId)}"]`);
             if (!editor) return;
             const newText = String(editor.querySelector('[data-comment-text]')?.value || '').trim();
             const imageFile = editor.querySelector('[data-comment-image]')?.files?.[0] || null;
@@ -748,13 +786,13 @@
                 fd.append('text', newText);
                 if (imageFile) fd.append('image', imageFile);
                 if (removeImage) fd.append('remove_image', 'true');
-                const res = await apiFetch(`/api/posts/${postId}/comment/${commentId}`, {
+                const res = await apiFetch(`/api/posts/${normalizedPostId}/comment/${normalizedCommentId}`, {
                     method: 'PUT',
                     body: fd
                 });
                 const data = await res.json();
                 if (!res.ok) throw new Error(data?.msg || 'Failed to edit comment');
-                openComments(postId);
+                openComments(normalizedPostId);
             } catch (err) {
                 console.error(err);
                 alert(err?.message || 'Error editing comment');
@@ -763,7 +801,10 @@
 
         async function replyCommentAdmin(postId, commentId) {
             if (!ensureAdmin()) return;
-            const editor = document.querySelector(`[data-reply-editor="${CSS.escape(commentId)}"]`);
+            const normalizedPostId = String(postId || '').trim();
+            const normalizedCommentId = String(commentId || '').trim();
+            if (!normalizedPostId || !normalizedCommentId) return;
+            const editor = document.querySelector(`[data-reply-editor="${CSS.escape(normalizedCommentId)}"]`);
             if (!editor) return;
             const text = String(editor.querySelector('[data-reply-text]')?.value || '').trim();
             const imageFile = editor.querySelector('[data-reply-image]')?.files?.[0] || null;
@@ -776,13 +817,13 @@
                 const fd = new FormData();
                 fd.append('text', text);
                 if (imageFile) fd.append('image', imageFile);
-                const res = await apiFetch(`/api/posts/comment/reply/${postId}/${commentId}`, {
+                const res = await apiFetch(`/api/posts/comment/reply/${normalizedPostId}/${normalizedCommentId}`, {
                     method: 'POST',
                     body: fd
                 });
                 const data = await res.json();
                 if (!res.ok) throw new Error(data?.msg || 'Failed to send reply');
-                openComments(postId);
+                openComments(normalizedPostId);
             } catch (err) {
                 console.error(err);
                 alert(err?.message || 'Error sending reply');

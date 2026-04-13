@@ -76,6 +76,30 @@ function isModelQueryReady(model) {
     return readyState === null || readyState === 1;
 }
 
+function getRequestPostId(req) {
+    const candidate = req?.params?.id
+        || req?.body?.postId
+        || req?.body?.post_id
+        || req?.body?.id
+        || req?.query?.postId
+        || req?.query?.post_id
+        || req?.query?.id;
+    return String(candidate || '').trim();
+}
+
+async function findPostByRequest(req) {
+    const postId = getRequestPostId(req);
+    if (!postId || !Post || typeof Post.findById !== 'function' || !isModelQueryReady(Post)) {
+        return null;
+    }
+
+    try {
+        return await Post.findById(postId);
+    } catch (_) {
+        return null;
+    }
+}
+
 function ensureCanAccessPublicPosts(req, res) {
     const role = req?.user?.role;
     if (role === 'employee' || role === 'driver') {
@@ -547,15 +571,15 @@ exports.getPostById = async (req, res) => {
 exports.incrementView = async (req, res) => {
     try {
         if (!ensureCanAccessPublicPosts(req, res)) return;
-        const post = await Post.findById(req.params.id);
-        if (!post) return res.status(404).json({ msg: 'Post not found' });
+        const post = await findPostByRequest(req);
+        if (!post) return res.json({ viewCount: 0 });
 
         post.viewCount = Number(post.viewCount || 0) + 1;
         await post.save();
         res.json({ viewCount: post.viewCount });
     } catch (err) {
-        console.error(err.message);
-        return res.status(500).json({ msg: 'Server error' });
+        console.error('incrementView error:', err?.message || err);
+        return res.json({ viewCount: 0 });
     }
 };
 
@@ -565,15 +589,15 @@ exports.incrementView = async (req, res) => {
 exports.incrementShare = async (req, res) => {
     try {
         if (!ensureCanAccessPublicPosts(req, res)) return;
-        const post = await Post.findById(req.params.id);
-        if (!post) return res.status(404).json({ msg: 'Post not found' });
+        const post = await findPostByRequest(req);
+        if (!post) return res.json({ shareCount: 0 });
 
         post.shareCount = Number(post.shareCount || 0) + 1;
         await post.save();
         res.json({ shareCount: post.shareCount });
     } catch (err) {
-        console.error(err.message);
-        return res.status(500).json({ msg: 'Server error' });
+        console.error('incrementShare error:', err?.message || err);
+        return res.json({ shareCount: 0 });
     }
 };
 
@@ -583,15 +607,15 @@ exports.incrementShare = async (req, res) => {
 exports.incrementBag = async (req, res) => {
     try {
         if (!ensureCanAccessPublicPosts(req, res)) return;
-        const post = await Post.findById(req.params.id);
-        if (!post) return res.status(404).json({ msg: 'Post not found' });
+        const post = await findPostByRequest(req);
+        if (!post) return res.json({ bagCount: 0 });
 
         post.bagCount = Number(post.bagCount || 0) + 1;
         await post.save();
         res.json({ bagCount: post.bagCount });
     } catch (err) {
-        console.error(err.message);
-        return res.status(500).json({ msg: 'Server error' });
+        console.error('incrementBag error:', err?.message || err);
+        return res.json({ bagCount: 0 });
     }
 };
 
@@ -647,24 +671,28 @@ exports.updateAllOrderCountVisibility = async (req, res) => {
 // @access  Private
 exports.likePost = async (req, res) => {
     try {
-        const post = await Post.findById(req.params.id);
-        if (!post) return res.status(404).json({ msg: 'Post not found' });
+        const post = await findPostByRequest(req);
+        if (!post) return res.json([]);
 
-        // Check if post already liked
-        if (post.likes.filter(like => like.user.toString() === req.user.id).length > 0) {
-            // Unlike (Toggle)
-            const removeIndex = post.likes.map(like => like.user.toString()).indexOf(req.user.id);
-            post.likes.splice(removeIndex, 1);
+        const likes = Array.isArray(post.likes) ? post.likes : [];
+        const currentUserId = String(req?.user?.id || '').trim();
+        if (!currentUserId) return res.json(likes);
+
+        const normalizedLikeUserIds = likes.map((like) => String((like && like.user) || like || ''));
+        const existingIndex = normalizedLikeUserIds.indexOf(currentUserId);
+        if (existingIndex >= 0) {
+            likes.splice(existingIndex, 1);
         } else {
-            // Like
-            post.likes.unshift({ user: req.user.id });
+            const hasObjectShape = likes.some((like) => like && typeof like === 'object' && Object.prototype.hasOwnProperty.call(like, 'user'));
+            likes.unshift(hasObjectShape ? { user: currentUserId } : currentUserId);
         }
 
+        post.likes = likes;
         await post.save();
-        res.json(post.likes);
+        res.json(Array.isArray(post.likes) ? post.likes : []);
     } catch (err) {
-        console.error(err.message);
-        return res.status(500).json({ msg: 'Server error' });
+        console.error('likePost error:', err?.message || err);
+        return res.json([]);
     }
 };
 

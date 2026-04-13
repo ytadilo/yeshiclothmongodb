@@ -23,17 +23,34 @@ const auth = require('../middleware/authMiddleware');
 const optionalAuth = require('../middleware/optionalAuth');
 const upload = require('../middleware/upload');
 
+function resolveLegacyPostId(req, _res, next) {
+    const candidate = req.params?.id
+        || req.body?.postId
+        || req.body?.post_id
+        || req.body?.id
+        || req.query?.postId
+        || req.query?.post_id
+        || req.query?.id;
+    req.params = req.params || {};
+    req.params.id = String(candidate || '').trim();
+    return next();
+}
+
 // Public routes
 router.get('/', optionalAuth, getPosts);
 router.get('/:id', optionalAuth, getPostById);
 router.post('/:id/view', optionalAuth, incrementView);
 router.post('/:id/share', optionalAuth, incrementShare);
 router.post('/:id/bag', optionalAuth, incrementBag);
+router.post('/view', optionalAuth, resolveLegacyPostId, incrementView);
+router.post('/share', optionalAuth, resolveLegacyPostId, incrementShare);
+router.post('/bag', optionalAuth, resolveLegacyPostId, incrementBag);
 router.put('/order-count-visibility-all', auth, updateAllOrderCountVisibility);
 router.put('/:id/order-count-visibility', auth, updateOrderCountVisibility);
 
 // Protected routes
 router.post('/like/:id', auth, likePost);
+router.post('/like', auth, resolveLegacyPostId, likePost);
 router.post('/comment/:id', auth, upload.single('image'), commentPost);
 router.post('/comment/like/:id/:comment_id', auth, likeComment);
 router.post('/comment/favorite/:id/:comment_id', auth, favoriteComment);

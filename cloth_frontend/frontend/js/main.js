@@ -14,18 +14,18 @@ const YESHI_AUTH_STATE = {
     resolving: null
 };
 
-let yeshiFirebaseBridgePromise = null;
+let yeshiMainFirebaseBridgePromise = null;
 
 function ensureFirebaseAuthBridge() {
     if (window.YeshiFirebaseAuth) {
         return Promise.resolve(window.YeshiFirebaseAuth.whenReady()).then(() => window.YeshiFirebaseAuth);
     }
 
-    if (yeshiFirebaseBridgePromise) {
-        return yeshiFirebaseBridgePromise;
+    if (yeshiMainFirebaseBridgePromise) {
+        return yeshiMainFirebaseBridgePromise;
     }
 
-    yeshiFirebaseBridgePromise = new Promise((resolve, reject) => {
+    yeshiMainFirebaseBridgePromise = new Promise((resolve, reject) => {
         const existingScript = document.querySelector('script[data-yeshi-firebase-auth="1"]');
         if (existingScript) {
             const waitForBridge = () => {
@@ -54,7 +54,7 @@ function ensureFirebaseAuthBridge() {
         document.head.appendChild(script);
     });
 
-    return yeshiFirebaseBridgePromise;
+    return yeshiMainFirebaseBridgePromise;
 }
 
 function getProtectedUserPaths() {
@@ -1279,11 +1279,9 @@ function ensureHomepageNavForListedPages() {
 
                 <ul class="yeshi-desktop-nav nav-links no-scrollbar hidden items-center gap-5 overflow-x-auto text-xs font-semibold uppercase tracking-wider lg:flex">
                     <li><a class="active text-brand-primary" href="/user/">Home</a></li>
-                    <li><a href="https://yeshiclothe.com.et" target="_blank" rel="noopener noreferrer" class="hover:text-brand-primary">Website</a></li>
-                    <li><a href="/my-orders" class="hover:text-brand-primary">My Orders</a></li>
+                    <li id="desktopMyOrdersItem" class="hidden"><a href="/my-orders" class="hover:text-brand-primary">My Orders</a></li>
                     <li id="desktopLoginItem"><a href="/auth/login" class="hover:text-brand-primary">Login</a></li>
                     <li id="desktopSignupItem"><a href="/auth/register" class="hover:text-brand-primary">Sign Up</a></li>
-                    <li id="desktopProfileItem" class="hidden"><a href="/profile" class="hover:text-brand-primary">Profile</a></li>
                     <li id="desktopLogoutItem" class="hidden"><a href="#" data-action="logout" class="hover:text-brand-primary">Logout</a></li>
                 </ul>
 
@@ -1304,16 +1302,18 @@ function ensureHomepageNavForListedPages() {
                     <a aria-label="Open MyChat" class="yeshi-icon-btn rounded-full p-2 text-brand-muted hover:text-brand-primary" href="/user/mychat" style="position: relative;">
                         <span class="material-symbols-outlined">chat</span>
                     </a>
+                    <a id="desktopProfileAction" href="/profile" class="yeshi-icon-btn hidden rounded-full p-2 text-brand-muted hover:text-brand-primary" aria-label="Profile">
+                        <span class="material-symbols-outlined">person</span>
+                    </a>
                 </div>
             </div>
 
             <div id="mobile-menu" class="hidden bg-white lg:hidden">
                 <div class="yeshi-mobile-inner space-y-1 p-4 text-sm font-semibold uppercase tracking-wide">
                     <a class="active block rounded-md bg-amber-50 px-3 py-2 text-brand-primary" href="/user/">Home</a>
-                    <a href="/my-orders" class="block rounded-md px-3 py-2 hover:bg-amber-50">My Orders</a>
+                    <a id="mobileMenuMyOrdersBtn" href="/my-orders" class="hidden rounded-md px-3 py-2 hover:bg-amber-50">My Orders</a>
                     <a id="mobileMenuLoginBtn" href="/auth/login" class="block rounded-md px-3 py-2 hover:bg-amber-50">Login</a>
                     <a id="mobileMenuSignupBtn" href="/auth/register" class="block rounded-md px-3 py-2 hover:bg-amber-50">Sign Up</a>
-                    <a id="mobileMenuProfileBtn" href="/profile" class="hidden rounded-md px-3 py-2 hover:bg-amber-50">Profile</a>
                     <a id="mobileMenuLogoutBtn" href="#" data-action="logout" class="hidden rounded-md px-3 py-2 hover:bg-amber-50">Logout</a>
                 </div>
             </div>
@@ -1352,16 +1352,22 @@ function ensureHomepageNavForListedPages() {
     const applyMenuAuthState = () => {
         const loginBtn = document.getElementById('mobileMenuLoginBtn');
         const signupBtn = document.getElementById('mobileMenuSignupBtn');
+        const mobileMyOrdersBtn = document.getElementById('mobileMenuMyOrdersBtn');
         const logoutBtn = document.getElementById('mobileMenuLogoutBtn');
+        const desktopMyOrders = document.getElementById('desktopMyOrdersItem');
         const desktopLogin = document.getElementById('desktopLoginItem');
         const desktopSignup = document.getElementById('desktopSignupItem');
+        const desktopProfileAction = document.getElementById('desktopProfileAction');
         const desktopLogout = document.getElementById('desktopLogoutItem');
         const loggedIn = getCurrentAuthSnapshot().isLoggedIn;
         if (loginBtn) loginBtn.classList.toggle('hidden', loggedIn);
         if (signupBtn) signupBtn.classList.toggle('hidden', loggedIn);
+        if (mobileMyOrdersBtn) mobileMyOrdersBtn.classList.toggle('hidden', !loggedIn);
         if (logoutBtn) logoutBtn.classList.toggle('hidden', !loggedIn);
+        if (desktopMyOrders) desktopMyOrders.classList.toggle('hidden', !loggedIn);
         if (desktopLogin) desktopLogin.classList.toggle('hidden', loggedIn);
         if (desktopSignup) desktopSignup.classList.toggle('hidden', loggedIn);
+        if (desktopProfileAction) desktopProfileAction.classList.toggle('hidden', !loggedIn);
         if (desktopLogout) desktopLogout.classList.toggle('hidden', !loggedIn);
     };
 
@@ -2635,7 +2641,17 @@ function ensureMyOrdersNavLink() {
     const nav = document.querySelector('ul.nav-links');
     if (!nav) return;
 
+    const loggedIn = getCurrentAuthSnapshot().isLoggedIn;
     const existing = nav.querySelector('a[href="/my-orders"], a[href="/my-orders.html"], a[href="my-orders.html"]');
+    if (!loggedIn) {
+        if (existing) {
+            const li = existing.closest('li');
+            if (li) li.remove();
+            else existing.remove();
+        }
+        return;
+    }
+
     if (existing) return;
 
     const li = document.createElement('li');
@@ -3468,20 +3484,22 @@ function applyGlobalMenuAuthState() {
 
     const loginBtn = document.getElementById('mobileMenuLoginBtn');
     const signupBtn = document.getElementById('mobileMenuSignupBtn');
-    const mobileProfileBtn = document.getElementById('mobileMenuProfileBtn');
+    const mobileMyOrdersBtn = document.getElementById('mobileMenuMyOrdersBtn');
     const logoutBtn = document.getElementById('mobileMenuLogoutBtn');
+    const desktopMyOrders = document.getElementById('desktopMyOrdersItem');
     const desktopLogin = document.getElementById('desktopLoginItem');
     const desktopSignup = document.getElementById('desktopSignupItem');
-    const desktopProfile = document.getElementById('desktopProfileItem');
+    const desktopProfileAction = document.getElementById('desktopProfileAction');
     const desktopLogout = document.getElementById('desktopLogoutItem');
 
     if (loginBtn) loginBtn.classList.toggle('hidden', isLoggedIn);
     if (signupBtn) signupBtn.classList.toggle('hidden', isLoggedIn);
-    if (mobileProfileBtn) mobileProfileBtn.classList.toggle('hidden', !isLoggedIn);
+    if (mobileMyOrdersBtn) mobileMyOrdersBtn.classList.toggle('hidden', !isLoggedIn);
     if (logoutBtn) logoutBtn.classList.toggle('hidden', !isLoggedIn);
+    if (desktopMyOrders) desktopMyOrders.classList.toggle('hidden', !isLoggedIn);
     if (desktopLogin) desktopLogin.classList.toggle('hidden', isLoggedIn);
     if (desktopSignup) desktopSignup.classList.toggle('hidden', isLoggedIn);
-    if (desktopProfile) desktopProfile.classList.toggle('hidden', !isLoggedIn);
+    if (desktopProfileAction) desktopProfileAction.classList.toggle('hidden', !isLoggedIn);
     if (desktopLogout) desktopLogout.classList.toggle('hidden', !isLoggedIn);
 }
 
@@ -3567,7 +3585,6 @@ function enforceMobileMenuLinkPolicy() {
         ensureMenuLink(root, { id: 'mobileMenuMyOrdersBtn', href: '/my-orders', label: 'My Orders' });
         ensureMenuLink(root, { id: 'mobileMenuLoginBtn', href: '/auth/login', label: 'Login' });
         ensureMenuLink(root, { id: 'mobileMenuSignupBtn', href: '/auth/register', label: 'Sign Up' });
-        ensureMenuLink(root, { id: 'mobileMenuProfileBtn', href: '/profile', label: 'Profile' });
         ensureMenuLink(root, { id: 'mobileMenuLogoutBtn', href: '#', label: 'Logout', action: 'logout' });
     });
 
@@ -3602,14 +3619,14 @@ function enforceMobileMenuLinkPolicy() {
 
     const loginLinks = 'a[href="/auth/login"], a[href="/user/login.html"]';
     const signupLinks = 'a[href="/auth/register"], a[href="/user/signup.html"]';
-    const profileLinks = 'a[href="/profile"], a[href="/user/profile.html"], #mobileMenuProfileBtn';
+    const profileLinks = 'a[href="/profile"], a[href="/user/profile.html"]';
     const logoutLinks = 'a[data-action="logout"]';
     const myOrdersLinks = 'a[href="/my-orders"], a[href="/my-orders/"], a[href="/user/my-orders.html"], #mobileMenuMyOrdersBtn';
 
     if (isLoggedIn) {
         toggleInMobileMenu(loginLinks, false);
         toggleInMobileMenu(signupLinks, false);
-        toggleInMobileMenu(profileLinks, true);
+        toggleInMobileMenu(profileLinks, false);
         toggleInMobileMenu(logoutLinks, true);
         toggleInMobileMenu(myOrdersLinks, true);
     } else {
