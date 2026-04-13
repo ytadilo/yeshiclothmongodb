@@ -1360,15 +1360,21 @@ function ensureHomepageNavForListedPages() {
         const desktopProfileAction = document.getElementById('desktopProfileAction');
         const desktopLogout = document.getElementById('desktopLogoutItem');
         const loggedIn = getCurrentAuthSnapshot().isLoggedIn;
-        if (loginBtn) loginBtn.classList.toggle('hidden', loggedIn);
-        if (signupBtn) signupBtn.classList.toggle('hidden', loggedIn);
-        if (mobileMyOrdersBtn) mobileMyOrdersBtn.classList.toggle('hidden', !loggedIn);
-        if (logoutBtn) logoutBtn.classList.toggle('hidden', !loggedIn);
-        if (desktopMyOrders) desktopMyOrders.classList.toggle('hidden', !loggedIn);
-        if (desktopLogin) desktopLogin.classList.toggle('hidden', loggedIn);
-        if (desktopSignup) desktopSignup.classList.toggle('hidden', loggedIn);
-        if (desktopProfileAction) desktopProfileAction.classList.toggle('hidden', !loggedIn);
-        if (desktopLogout) desktopLogout.classList.toggle('hidden', !loggedIn);
+        const setVisible = (element, visible) => {
+            if (!element) return;
+            element.classList.toggle('hidden', !visible);
+            element.style.display = visible ? '' : 'none';
+            element.setAttribute('aria-hidden', visible ? 'false' : 'true');
+        };
+        setVisible(loginBtn, !loggedIn);
+        setVisible(signupBtn, !loggedIn);
+        setVisible(mobileMyOrdersBtn, loggedIn);
+        setVisible(logoutBtn, loggedIn);
+        setVisible(desktopMyOrders, loggedIn);
+        setVisible(desktopLogin, !loggedIn);
+        setVisible(desktopSignup, !loggedIn);
+        setVisible(desktopProfileAction, loggedIn);
+        setVisible(desktopLogout, loggedIn);
     };
 
     applyMenuAuthState();
@@ -3492,15 +3498,22 @@ function applyGlobalMenuAuthState() {
     const desktopProfileAction = document.getElementById('desktopProfileAction');
     const desktopLogout = document.getElementById('desktopLogoutItem');
 
-    if (loginBtn) loginBtn.classList.toggle('hidden', isLoggedIn);
-    if (signupBtn) signupBtn.classList.toggle('hidden', isLoggedIn);
-    if (mobileMyOrdersBtn) mobileMyOrdersBtn.classList.toggle('hidden', !isLoggedIn);
-    if (logoutBtn) logoutBtn.classList.toggle('hidden', !isLoggedIn);
-    if (desktopMyOrders) desktopMyOrders.classList.toggle('hidden', !isLoggedIn);
-    if (desktopLogin) desktopLogin.classList.toggle('hidden', isLoggedIn);
-    if (desktopSignup) desktopSignup.classList.toggle('hidden', isLoggedIn);
-    if (desktopProfileAction) desktopProfileAction.classList.toggle('hidden', !isLoggedIn);
-    if (desktopLogout) desktopLogout.classList.toggle('hidden', !isLoggedIn);
+    const setVisible = (element, visible) => {
+        if (!element) return;
+        element.classList.toggle('hidden', !visible);
+        element.style.display = visible ? '' : 'none';
+        element.setAttribute('aria-hidden', visible ? 'false' : 'true');
+    };
+
+    setVisible(loginBtn, !isLoggedIn);
+    setVisible(signupBtn, !isLoggedIn);
+    setVisible(mobileMyOrdersBtn, isLoggedIn);
+    setVisible(logoutBtn, isLoggedIn);
+    setVisible(desktopMyOrders, isLoggedIn);
+    setVisible(desktopLogin, !isLoggedIn);
+    setVisible(desktopSignup, !isLoggedIn);
+    setVisible(desktopProfileAction, isLoggedIn);
+    setVisible(desktopLogout, isLoggedIn);
 }
 
 function wireGenericMobileMenuToggle() {

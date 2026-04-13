@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Developer Information - Yeshi</title>
     <link rel="icon" type="image/png" href="/images/logo.png">
-    <script defer src="/js/adsense.js"></script>
     <script>window.__yeshiWarnPatch=window.__yeshiWarnPatch||(()=>{const w=console.warn;console.warn=function(...a){if(String(a[0]||'').includes('cdn.tailwindcss.com should not be used in production'))return;return w.apply(console,a);};return true;})();</script>
     <script src="https://cdn.tailwindcss.com?plugins=forms"></script>
     <script>
@@ -116,12 +115,18 @@
             const desktopSignup = document.getElementById('desktopSignupItem');
             const desktopLogout = document.getElementById('desktopLogoutItem');
             const loggedIn = isUserLoggedIn();
-            if (loginBtn) loginBtn.classList.toggle('hidden', loggedIn);
-            if (signupBtn) signupBtn.classList.toggle('hidden', loggedIn);
-            if (logoutBtn) logoutBtn.classList.toggle('hidden', !loggedIn);
-            if (desktopLogin) desktopLogin.classList.toggle('hidden', loggedIn);
-            if (desktopSignup) desktopSignup.classList.toggle('hidden', loggedIn);
-            if (desktopLogout) desktopLogout.classList.toggle('hidden', !loggedIn);
+            const setVisible = (element, visible) => {
+                if (!element) return;
+                element.classList.toggle('hidden', !visible);
+                element.style.display = visible ? '' : 'none';
+                element.setAttribute('aria-hidden', visible ? 'false' : 'true');
+            };
+            setVisible(loginBtn, !loggedIn);
+            setVisible(signupBtn, !loggedIn);
+            setVisible(logoutBtn, loggedIn);
+            setVisible(desktopLogin, !loggedIn);
+            setVisible(desktopSignup, !loggedIn);
+            setVisible(desktopLogout, loggedIn);
         }
 
         function bindLogoutActions() {
