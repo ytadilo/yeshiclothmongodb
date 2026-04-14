@@ -1,4 +1,5 @@
 const express = require('express');
+const multer = require('multer');
 const router = express.Router();
 const { 
     createPost, 
@@ -88,5 +89,24 @@ router.delete('/:id', auth, deletePost);
 // Admin comment moderation
 router.delete('/:id/comment/:commentId', auth, deleteComment);
 router.put('/:id/comment/:commentId', auth, upload.single('image'), editComment);
+
+router.use((err, _req, res, _next) => {
+    if (!err) {
+        return res.status(500).json({ msg: 'Unknown upload error' });
+    }
+
+    if (err instanceof multer.MulterError) {
+        if (err.code === 'LIMIT_FILE_SIZE') {
+            return res.status(400).json({ msg: 'Uploaded file is too large. Max allowed size is 12MB.' });
+        }
+        return res.status(400).json({ msg: err.message || 'Upload failed' });
+    }
+
+    if (typeof err.message === 'string' && err.message.toLowerCase().includes('only image or pdf')) {
+        return res.status(400).json({ msg: err.message });
+    }
+
+    return res.status(500).json({ msg: err.message || 'Server error' });
+});
 
 module.exports = router;

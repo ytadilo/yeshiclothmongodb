@@ -242,6 +242,20 @@ function getOrderPaymentScreenshotUrl(order) {
     return hit ? String(hit).trim() : '';
 }
 
+function getOrderPaymentComment(order) {
+    const paymentInfo = order && order.payment_info && typeof order.payment_info === 'object'
+        ? order.payment_info
+        : {};
+
+    const candidates = [
+        paymentInfo.comment,
+        order && order.payment_comment
+    ];
+
+    const hit = candidates.find((value) => String(value || '').trim());
+    return hit ? String(hit).trim() : '';
+}
+
 function stringifyAddressValue(value) {
     if (value === null || value === undefined) return '';
     if (typeof value === 'string') return value.trim();
@@ -378,6 +392,7 @@ exports.createOrder = async (req, res) => {
             const category = String(clothDetails.category || req.body.category || '').trim();
             const eventType = String(clothDetails.eventType || req.body.eventType || '').trim();
             const paymentMethod = String(deliveryPayment.paymentMethod || req.body.paymentMethod || '').trim();
+            const paymentComment = String(deliveryPayment.paymentComment || req.body.paymentComment || req.body.payment_comment || '').trim();
             const deliveryMethod = normalizeDeliveryMethod(deliveryPayment.deliveryMethod || req.body.deliveryMethod || 'delivery');
             const proposedPrice = toNonNegativeNumber(req.body.proposedPriceETB ?? req.body.proposed_price_etb, 0);
             const rawProductId = String(req.body.productId || req.body.postId || req.body.post_id || '').trim();
@@ -391,6 +406,10 @@ exports.createOrder = async (req, res) => {
 
             if (isProductAsIsOrder && !['bank_transfer', 'telebirr'].includes(paymentMethod)) {
                 return res.status(400).json({ msg: 'Payment method is required for product orders.' });
+            }
+
+            if (isProductAsIsOrder) {
+                return res.status(400).json({ msg: 'Payment screenshot is required for product orders.' });
             }
 
             let selectedPost = null;
@@ -476,8 +495,10 @@ exports.createOrder = async (req, res) => {
                 delivery_method: deliveryMethod,
                 payment_info: {
                     method: isProductAsIsOrder ? paymentMethod : '',
+                    comment: paymentComment,
                     status: 'Pending'
-                }
+                },
+                payment_comment: paymentComment
             };
 
             if (hasValidPostId) {
@@ -696,14 +717,17 @@ exports.createOrder = async (req, res) => {
 
         // Handle Payment - optional at creation for quote-first flow.
         const paymentMethod = String(req.body.payment_method || req.body.paymentMethod || '').trim();
+        const paymentComment = String(req.body.payment_comment || req.body.paymentComment || '').trim();
         const paymentFile = req.files?.paymentScreenshot?.[0];
 
         let paymentInfo = {
             method: ['bank_transfer', 'telebirr'].includes(paymentMethod) ? paymentMethod : '',
+            comment: paymentComment,
             status: 'Pending'
         };
 
         orderData.payment_info = paymentInfo;
+        orderData.payment_comment = paymentComment;
 
         // Reference images are accepted only for non-product custom orders.
         const refFiles = [];
@@ -761,6 +785,14 @@ exports.createOrder = async (req, res) => {
             return res.status(400).json({ msg: 'Shipping address must include country, region, city, and ZIP code.' });
         }
 
+        if (orderData.post_id && !paymentFile) {
+            return res.status(400).json({ msg: 'Payment screenshot is required for product orders.' });
+        }
+
+        if (orderData.post_id && !['bank_transfer', 'telebirr'].includes(paymentMethod)) {
+            return res.status(400).json({ msg: 'Payment method is required for product orders.' });
+        }
+
         if (isGuest && (!customer.address?.city || !customer.address?.specific_address)) {
             return res.status(400).json({ msg: 'City and address are required for guest checkout' });
         }
@@ -782,8 +814,10 @@ exports.createOrder = async (req, res) => {
                     order_id: order._id
                 });
                 order.payment_info = order.payment_info || {};
+                order.payment_info.comment = paymentComment;
                 order.payment_info.screenshot_url = '/api/uploads/' + up._id;
                 order.payment_screenshot_url = order.payment_info.screenshot_url;
+                order.payment_comment = paymentComment;
                 order.payment_info.paid_at = new Date();
                 if (!order.payment_info.status) {
                     order.payment_info.status = 'Pending';
@@ -993,15 +1027,18 @@ exports.getOrders = async (req, res) => {
 
                 const fallback = latestByOrder.get(key) || '';
                 const resolvedScreenshotUrl = getOrderPaymentScreenshotUrl(order) || fallback;
+                const resolvedComment = getOrderPaymentComment(order);
                 if (!resolvedScreenshotUrl) return order;
 
                 return {
                     ...order,
                     payment_info: {
                         ...paymentInfo,
-                        screenshot_url: resolvedScreenshotUrl
+                        screenshot_url: resolvedScreenshotUrl,
+                        comment: resolvedComment
                     },
-                    payment_screenshot_url: resolvedScreenshotUrl
+                    payment_screenshot_url: resolvedScreenshotUrl,
+                    payment_comment: resolvedComment
                 };
             });
 
@@ -1120,6 +1157,13 @@ exports.updateOrder = async (req, res) => {
         // Handle admin notes
         if (req.body.admin_notes) {
             order.admin_notes = req.body.admin_notes;
+        }
+
+        if (req.body.payment_comment !== undefined || req.body.paymentComment !== undefined) {
+            const paymentComment = String(req.body.payment_comment ?? req.body.paymentComment ?? '').trim();
+            if (!order.payment_info) order.payment_info = {};
+            order.payment_info.comment = paymentComment;
+            order.payment_comment = paymentComment;
         }
 
         // Update payment info
@@ -1273,6 +1317,7 @@ exports.uploadOrderPaymentProof = async (req, res) => {
         }
 
         const paymentMethod = String(req.body?.payment_method || req.body?.paymentMethod || '').trim();
+        const paymentComment = String(req.body?.payment_comment || req.body?.paymentComment || '').trim();
         if (!['bank_transfer', 'telebirr'].includes(paymentMethod)) {
             return res.status(400).json({ msg: 'Please choose a valid payment method: bank transfer or telebirr' });
         }
@@ -1295,9 +1340,11 @@ exports.uploadOrderPaymentProof = async (req, res) => {
 
         order.payment_info = order.payment_info || {};
         order.payment_info.method = paymentMethod;
+        order.payment_info.comment = paymentComment;
         order.payment_info.status = 'Pending';
         order.payment_info.screenshot_url = '/api/uploads/' + up._id;
         order.payment_screenshot_url = order.payment_info.screenshot_url;
+        order.payment_comment = paymentComment;
         order.payment_info.paid_at = new Date();
         order.payment_status = 'Pending';
         order.order_status = deriveOrderStatus(order.payment_status, order.sewing_status, order.order_status);

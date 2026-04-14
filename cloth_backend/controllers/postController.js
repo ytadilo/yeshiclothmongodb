@@ -1,3 +1,6 @@
+const fs = require('fs');
+const path = require('path');
+const crypto = require('crypto');
 const Post = require('../models/Post');
 const Order = require('../models/Order');
 const User = require('../models/User');
@@ -102,6 +105,31 @@ async function findPostByRequest(req) {
 
 function ensureCanAccessPublicPosts(req, res) {
     return true;
+}
+
+async function savePublicPostImageUpload(file, ownerUserId, purpose, postId) {
+    if (!file || !file.buffer) return null;
+
+    const uploadsDir = path.join(__dirname, '..', 'uploads', 'posts');
+    await fs.promises.mkdir(uploadsDir, { recursive: true });
+
+    const ext = path.extname(String(file.originalname || '')).slice(0, 16);
+    const generatedName = `${Date.now()}-${crypto.randomUUID()}${ext}`;
+    const absoluteFilePath = path.join(uploadsDir, generatedName);
+    const relativeStoragePath = path.posix.join('posts', generatedName);
+
+    await fs.promises.writeFile(absoluteFilePath, file.buffer);
+
+    return Upload.create({
+        originalName: file.originalname || 'upload',
+        mimeType: file.mimetype || 'application/octet-stream',
+        size: Number(file.size || 0),
+        storage_path: relativeStoragePath,
+        visibility: 'public',
+        owner_user_id: ownerUserId || undefined,
+        purpose: String(purpose || '').trim(),
+        post_id: postId || undefined
+    });
 }
 
 async function notifyCustomersAboutNewPost(postDoc) {
@@ -719,24 +747,27 @@ exports.commentPost = async (req, res) => {
 
         let imageUrl = '';
         if (imageFile) {
-            const up = await Upload.create({
-                originalName: imageFile.originalname,
-                mimeType: imageFile.mimetype,
-                size: imageFile.size,
-                data: imageFile.buffer,
-                visibility: 'public',
-                owner_user_id: req.user && req.user.id ? req.user.id : undefined,
-                purpose: 'post_comment_image',
-                post_id: post._id
-            });
+            const up = await savePublicPostImageUpload(
+                imageFile,
+                req.user && req.user.id ? req.user.id : undefined,
+                'post_comment_image',
+                post._id
+            );
             imageUrl = '/api/uploads/' + up._id;
         }
+
+        const commenterName = String(
+            (user && (user.fullName || user.name || user.email))
+            || req.user.fullName
+            || req.user.name
+            || 'Customer'
+        ).trim();
 
         const newComment = {
             text,
             image_url: imageUrl,
             rating: Math.round(parsedRating),
-            name: user.fullName,
+            name: commenterName,
             user: req.user.id,
             likes: [],
             favorites: [],
@@ -798,24 +829,27 @@ exports.replyComment = async (req, res) => {
 
         let imageUrl = '';
         if (imageFile) {
-            const up = await Upload.create({
-                originalName: imageFile.originalname,
-                mimeType: imageFile.mimetype,
-                size: imageFile.size,
-                data: imageFile.buffer,
-                visibility: 'public',
-                owner_user_id: req.user && req.user.id ? req.user.id : undefined,
-                purpose: 'post_comment_reply_image',
-                post_id: post._id
-            });
+            const up = await savePublicPostImageUpload(
+                imageFile,
+                req.user && req.user.id ? req.user.id : undefined,
+                'post_comment_reply_image',
+                post._id
+            );
             imageUrl = '/api/uploads/' + up._id;
         }
+
+        const replierName = String(
+            (user && (user.fullName || user.name || user.email))
+            || req.user.fullName
+            || req.user.name
+            || 'Customer'
+        ).trim();
 
         const newReply = {
             user: req.user.id,
             text,
             image_url: imageUrl,
-            name: user.fullName,
+            name: replierName,
             likes: []
         };
 
@@ -937,16 +971,12 @@ exports.editComment = async (req, res) => {
         }
 
         if (imageFile) {
-            const up = await Upload.create({
-                originalName: imageFile.originalname,
-                mimeType: imageFile.mimetype,
-                size: imageFile.size,
-                data: imageFile.buffer,
-                visibility: 'public',
-                owner_user_id: req.user && req.user.id ? req.user.id : undefined,
-                purpose: 'post_comment_image',
-                post_id: post._id
-            });
+            const up = await savePublicPostImageUpload(
+                imageFile,
+                req.user && req.user.id ? req.user.id : undefined,
+                'post_comment_image',
+                post._id
+            );
             comment.image_url = '/api/uploads/' + up._id;
         }
 

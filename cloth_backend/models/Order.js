@@ -124,10 +124,13 @@ const OrderSchema = new mongoose.Schema({
     payment_info: {
         method: String,  // 'bank_transfer', 'telebirr', 'cbe', 'chapa', 'cod'
         screenshot_url: String,
+        comment: { type: String, default: '' },
         status: { type: String, default: 'Pending' },
         transaction_id: String,
         paid_at: Date
     },
+
+    payment_comment: { type: String, default: '' },
     
     // Delivery Method
     delivery_method: { type: String, enum: ['pickup', 'delivery'], default: 'delivery' },

@@ -567,11 +567,12 @@
                         const target = resolveNotificationTarget(notificationLike);
                         try {
                             await apiFetch('/api/workflow/notifications/' + encodeURIComponent(id) + '/read', { method: 'PUT' });
-                            await refreshUnreadCount();
+                        } catch (_) {
+                            // ignore read errors and still navigate
+                        } finally {
+                            await refreshUnreadCount().catch(() => null);
                             panel.classList.remove('open');
                             window.location.href = target;
-                        } catch (_) {
-                            // ignore
                         }
                     });
                 });

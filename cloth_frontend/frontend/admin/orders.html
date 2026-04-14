@@ -216,6 +216,14 @@
             );
         }
 
+        function getOrderPaymentComment(order) {
+            const paymentInfo = order?.payment_info && typeof order.payment_info === 'object'
+                ? order.payment_info
+                : {};
+
+            return String(paymentInfo.comment || order?.payment_comment || '').trim();
+        }
+
         function parseMeasurementPack(measurements) {
             const raw = String(measurements?.size || '').trim();
             if (!raw) return null;
@@ -403,6 +411,7 @@
                     const paymentSubmittedAt = fmtDate(paymentInfo?.paid_at);
                     const effectiveStatus = deriveFlowStatus(paymentStatus, sewingStatus, status);
                     const screenshotUrl = getOrderPaymentScreenshot(order);
+                    const paymentComment = getOrderPaymentComment(order);
                     const createdAt = fmtDate(order?.created_at || order?.createdAt);
                     const orderedQty = Math.max(1, Math.floor(Number(order?.quantity || 1)));
                     const payableTotal = computeQuantityTotal(
@@ -530,6 +539,7 @@
                                         <div><span style="color:var(--light-text);">Payment method:</span> ${escapeHtml(paymentMethod)}</div>
                                         <div><span style="color:var(--light-text);">Payment status:</span> ${escapeHtml(paymentStatus)}</div>
                                         <div><span style="color:var(--light-text);">Payment date:</span> ${paymentSubmittedAt ? escapeHtml(paymentSubmittedAt) : '—'}</div>
+                                        <div><span style="color:var(--light-text);">Payment comment:</span> ${paymentComment ? escapeHtml(paymentComment) : '—'}</div>
                                         <div><span style="color:var(--light-text);">Sewing status:</span> ${escapeHtml(sewingStatus)}</div>
                                         <div><span style="color:var(--light-text);">Customer proposed cloth price:</span> ${Number.isFinite(proposedPrice) && proposedPrice > 0 ? escapeHtml(proposedPrice.toLocaleString()) + ' ETB' : '—'}</div>
                                         <div><span style="color:var(--light-text);">Submitted date:</span> ${createdAt ? escapeHtml(createdAt) : '—'}</div>
@@ -571,6 +581,7 @@
                                     ${screenshotUrl ? `
                                         <div style="margin-top: 12px;">
                                             <div style="color: var(--light-text); font-size: 0.9rem; margin-bottom: 6px;">Bank screenshot</div>
+                                            ${paymentComment ? `<div style="margin-bottom: 8px; color:#1a1c1c;"><strong>Comment:</strong> ${escapeHtml(paymentComment)}</div>` : ''}
                                             <a href="${escapeHtml(screenshotUrl)}" target="_blank" rel="noopener noreferrer" style="display:inline-block;">
                                                 <img src="${escapeHtml(screenshotUrl)}" alt="Payment screenshot" style="max-width: 100%; width: 420px; border-radius: 12px; border: 1px solid rgba(0,0,0,0.08);">
                                             </a>

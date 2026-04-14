@@ -1607,15 +1607,17 @@
                     },
                     body: fd
                 });
-                if (res.ok) {
-                    const updatedComments = await res.json();
-                    renderComments(updatedComments);
-                    if (textInput) textInput.value = '';
-                    if (imageInput) imageInput.value = '';
-                    refreshReplyImageLabel(normalizedCommentId);
+                const data = await res.json().catch(() => null);
+                if (!res.ok) {
+                    throw new Error((data && data.msg) || 'Failed to send reply');
                 }
+                renderComments(Array.isArray(data) ? data : []);
+                if (textInput) textInput.value = '';
+                if (imageInput) imageInput.value = '';
+                refreshReplyImageLabel(normalizedCommentId);
             } catch (err) {
                 console.error(err);
+                alert(err?.message || 'Failed to send reply');
             }
         }
 
@@ -1647,17 +1649,19 @@
                     },
                     body: fd
                 });
-                if (res.ok) {
-                    document.getElementById('commentText').value = '';
-                    document.getElementById('commentRating').value = '5';
-                    const imageInput = document.getElementById('commentImage');
-                    if (imageInput) imageInput.value = '';
-                    refreshCommentImageLabel();
-                    const updatedComments = await res.json();
-                    renderComments(updatedComments);
+                const data = await res.json().catch(() => null);
+                if (!res.ok) {
+                    throw new Error((data && data.msg) || 'Failed to submit comment');
                 }
+                document.getElementById('commentText').value = '';
+                document.getElementById('commentRating').value = '5';
+                const imageInput = document.getElementById('commentImage');
+                if (imageInput) imageInput.value = '';
+                refreshCommentImageLabel();
+                renderComments(Array.isArray(data) ? data : []);
             } catch (err) {
                 console.error(err);
+                alert(err?.message || 'Failed to submit comment');
             }
         });
 

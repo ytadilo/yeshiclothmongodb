@@ -3,8 +3,8 @@ const path = require('path');
 
 // Check file type
 function checkFileType(file, cb) {
-    const extPattern = /\.(jpeg|jpg|png|gif|webp|ico|pdf|heic|heif)$/i;
-    const mimePattern = /^(image\/(jpeg|jpg|png|gif|webp|heic|heif|x-icon|vnd\.microsoft\.icon)|application\/pdf)$/i;
+    const extPattern = /\.(jpeg|jpg|png|gif|webp|ico|pdf|heic|heif|avif|bmp|jfif)$/i;
+    const mimePattern = /^(image\/(jpeg|jpg|png|gif|webp|heic|heif|avif|bmp|x-icon|vnd\.microsoft\.icon)|application\/pdf)$/i;
     const originalName = String(file.originalname || '');
     const mimeType = String(file.mimetype || '');
     const extOk = extPattern.test(originalName);

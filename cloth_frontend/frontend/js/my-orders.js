@@ -262,6 +262,14 @@ function getOrderPaymentScreenshot(order) {
     );
 }
 
+function getOrderPaymentComment(order) {
+    const paymentInfo = order && order.payment_info && typeof order.payment_info === 'object'
+        ? order.payment_info
+        : {};
+
+    return String(paymentInfo.comment || order?.payment_comment || '').trim();
+}
+
 function toPriceText(value) {
     const n = Number(value);
     return Number.isFinite(n) && n > 0 ? `${n.toLocaleString()} ETB` : 'Price on request';
@@ -389,11 +397,12 @@ async function sendNegotiationMessage(orderId, message, imageFile) {
     if (!res.ok) throw new Error(data?.msg || 'Failed to send message');
 }
 
-async function uploadPaymentProof(orderId, paymentMethod, file) {
+async function uploadPaymentProof(orderId, paymentMethod, file, paymentComment) {
     const token = localStorage.getItem('token');
     const fd = new FormData();
     fd.append('paymentMethod', paymentMethod);
     fd.append('paymentScreenshot', file);
+    fd.append('payment_comment', String(paymentComment || '').trim());
 
     const res = await fetch(`/api/orders/${encodeURIComponent(orderId)}/payment-proof`, {
         method: 'POST',
@@ -478,6 +487,7 @@ async function loadMyOrders(options = {}) {
                 ? computeQuantityTotal(price, Number.isFinite(shippingPrice) ? shippingPrice : 0, orderedQty)
                 : NaN;
             const paymentScreenshot = getOrderPaymentScreenshot(order);
+            const paymentComment = getOrderPaymentComment(order);
             const isProductAsIsOrder =
                 String(order?.order_type || '').toLowerCase() === 'product'
                 || Boolean(order?.post_id || order?.productId);
@@ -527,7 +537,10 @@ async function loadMyOrders(options = {}) {
                             <a href="${escapeHtml(paymentScreenshot)}" target="_blank" rel="noopener noreferrer" style="display:inline-block;">
                                 <img src="${escapeHtml(paymentScreenshot)}" alt="Payment screenshot" style="width:72px; height:72px; object-fit:cover; border-radius:10px; border:1px solid rgba(0,0,0,0.1);">
                             </a>
-                            <div style="font-size:0.85rem; color:var(--light-text);">Payment proof uploaded</div>
+                            <div style="font-size:0.85rem; color:var(--light-text);">
+                                <div>Payment proof uploaded</div>
+                                ${paymentComment ? `<div style="margin-top:4px; color:#1a1c1c;"><strong>Comment:</strong> ${escapeHtml(paymentComment)}</div>` : ''}
+                            </div>
                         </div>
                     ` : ''}
 
@@ -585,6 +598,7 @@ async function loadMyOrders(options = {}) {
                                     <div><strong>Telebirr:</strong> +251933797981 (Haileyesus Tadilo)</div>
                                 </div>
                             </div>
+                            <textarea name="paymentComment" class="form-control" rows="3" placeholder="Add payment comment (optional)"></textarea>
                             <input type="file" name="paymentScreenshot" accept="image/*" class="form-control" required>
                             <button type="submit" class="btn">Submit Payment Proof</button>
                         </form>
@@ -703,6 +717,7 @@ async function loadMyOrders(options = {}) {
                 const orderId = String(frm.getAttribute('data-order-id') || '').trim();
                 const method = String(frm.querySelector('select[name="paymentMethod"]')?.value || '').trim();
                 const file = frm.querySelector('input[name="paymentScreenshot"]')?.files?.[0];
+                const paymentComment = String(frm.querySelector('textarea[name="paymentComment"]')?.value || '').trim();
                 markPaymentInteraction();
                 if (!orderId || !method || !file) {
                     alert('Please select payment method and screenshot.');
@@ -711,7 +726,7 @@ async function loadMyOrders(options = {}) {
                 const btn = frm.querySelector('button[type="submit"]');
                 if (btn) btn.disabled = true;
                 try {
-                    await uploadPaymentProof(orderId, method, file);
+                    await uploadPaymentProof(orderId, method, file, paymentComment);
                     setSavedPaymentMethod(orderId, '');
                     alert('Payment proof uploaded successfully.');
                     await loadMyOrders();

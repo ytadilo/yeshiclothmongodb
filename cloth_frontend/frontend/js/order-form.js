@@ -58,6 +58,7 @@ function applyProductOrderMode(isProductOrder) {
     const paymentMethodInput = document.getElementById('paymentMethod');
     const paymentDetailsCard = document.getElementById('productPaymentDetailsCard');
     const paymentScreenshotInput = document.getElementById('paymentScreenshot');
+    const paymentCommentInput = document.getElementById('paymentComment');
     const productQuantityGroup = document.getElementById('productQuantityGroup');
 
     if (categorySelect) {
@@ -87,8 +88,14 @@ function applyProductOrderMode(isProductOrder) {
         paymentMethodInput.required = !!isProductOrder;
         if (!isProductOrder) paymentMethodInput.value = '';
     }
+    if (paymentScreenshotInput) {
+        paymentScreenshotInput.required = !!isProductOrder;
+    }
     if (!isProductOrder && paymentScreenshotInput) {
         paymentScreenshotInput.value = '';
+    }
+    if (!isProductOrder && paymentCommentInput) {
+        paymentCommentInput.value = '';
     }
     updatePaymentDetailsVisibility();
 
@@ -289,6 +296,14 @@ function computeQuantityTotal(unitPrice, unitShipping, quantity) {
     const price = Number.isFinite(Number(unitPrice)) ? Number(unitPrice) : 0;
     const shipping = Number.isFinite(Number(unitShipping)) ? Number(unitShipping) : 0;
     return (price + shipping) * qty;
+}
+
+function getOrderPaymentComment(order) {
+    const paymentInfo = order && order.payment_info && typeof order.payment_info === 'object'
+        ? order.payment_info
+        : {};
+
+    return String(paymentInfo.comment || order?.payment_comment || '').trim();
 }
 
 function updateProductPaymentDetailsSummary() {
@@ -1438,7 +1453,12 @@ async function loadMyOrders() {
             const price = Number(cloth.post_price_etb ?? order?.productPrice);
             const shippingPrice = Number(cloth.post_shipping_price_etb ?? order?.shippingPrice);
             const freeShipping = !!cloth.post_free_shipping;
-            const paymentScreenshot = getImgUrl(order?.payment_info?.screenshot_url || '');
+            const paymentScreenshot = getImgUrl(
+                order?.payment_info?.screenshot_url
+                || order?.payment_screenshot_url
+                || ''
+            );
+            const paymentComment = getOrderPaymentComment(order);
             const payableTotal = Number.isFinite(price)
                 ? (Number.isFinite(shippingPrice) ? (price + shippingPrice) * Math.max(1, Number(order?.quantity || 1)) : price * Math.max(1, Number(order?.quantity || 1)))
                 : NaN;
@@ -1480,7 +1500,10 @@ async function loadMyOrders() {
                             <a href="${escapeHtml(paymentScreenshot)}" target="_blank" rel="noopener noreferrer" style="display:inline-block;">
                                 <img src="${escapeHtml(paymentScreenshot)}" alt="Payment screenshot" style="width:72px; height:72px; object-fit:cover; border-radius:10px; border:1px solid rgba(0,0,0,0.1);">
                             </a>
-                            <div style="font-size:0.85rem; color:var(--light-text);">Payment proof uploaded</div>
+                            <div style="font-size:0.85rem; color:var(--light-text);">
+                                <div>Payment proof uploaded</div>
+                                ${paymentComment ? `<div style="margin-top:4px; color:#1a1c1c;"><strong>Comment:</strong> ${escapeHtml(paymentComment)}</div>` : ''}
+                            </div>
                         </div>
                     ` : ''}
 
@@ -1639,6 +1662,7 @@ form.addEventListener('submit', async function(e) {
     const proposedPriceETB = readNumberField('proposedPriceETB');
     const paymentMethod = String(document.getElementById('paymentMethod')?.value || '').trim();
     const paymentFile = document.getElementById('paymentScreenshot')?.files?.[0] || null;
+    const paymentComment = String(document.getElementById('paymentComment')?.value || '').trim();
     const referenceFiles = Array.from(document.getElementById('referenceImages')?.files || []);
     const quantity = currentProductQuantity;
     // Fabric type removed
@@ -1736,7 +1760,8 @@ form.addEventListener('submit', async function(e) {
         },
         deliveryPayment: {
             deliveryMethod: delivery,
-            paymentMethod: isProductOrder ? paymentMethod : ''
+            paymentMethod: isProductOrder ? paymentMethod : '',
+            paymentComment: isProductOrder ? paymentComment : ''
         },
         proposedPriceETB: proposedPriceETB === undefined ? 0 : proposedPriceETB
     };
@@ -1745,6 +1770,18 @@ form.addEventListener('submit', async function(e) {
         const submitBtn = document.getElementById('orderPrimaryBtn');
         if (submitBtn) submitBtn.disabled = true;
         let res;
+
+        if (isProductOrder && !paymentMethod) {
+            alert('Please select a payment method.');
+            if (submitBtn) submitBtn.disabled = false;
+            return;
+        }
+
+        if (isProductOrder && !paymentFile) {
+            alert('Upload payment screenshot before placing the order.');
+            if (submitBtn) submitBtn.disabled = false;
+            return;
+        }
 
         if (!isProductOrder) {
             if (!referenceFiles.length) {
@@ -1808,6 +1845,7 @@ form.addEventListener('submit', async function(e) {
             fd.append('event_type', '');
             fd.append('post_id', productId);
             fd.append('quantity', String(quantity));
+            fd.append('payment_comment', paymentComment);
             fd.append('paymentScreenshot', paymentFile);
 
             res = await fetch('/api/orders', {
