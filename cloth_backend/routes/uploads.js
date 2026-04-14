@@ -1,4 +1,6 @@
 const express = require('express');
+const fs = require('fs');
+const path = require('path');
 const mongoose = require('mongoose');
 const { getDatabaseProvider } = require('../utils/db');
 
@@ -37,6 +39,18 @@ router.get('/:id', optionalAuth, async (req, res) => {
 
             // Chat attachments are private but viewable by authenticated users in chat UIs.
             if (String(upload.purpose || '') === 'chat_attachment') {
+                if (upload.storage_path) {
+                    const absolutePath = path.join(__dirname, '..', 'uploads', ...String(upload.storage_path).split('/'));
+                    if (!fs.existsSync(absolutePath)) {
+                        return res.status(404).json({ msg: 'Upload file not found' });
+                    }
+                    res.setHeader('Content-Type', upload.mimeType || 'application/octet-stream');
+                    res.setHeader(
+                        'Content-Disposition',
+                        `inline; filename="${safeFilename(upload.originalName)}"`
+                    );
+                    return res.sendFile(absolutePath);
+                }
                 res.setHeader('Content-Type', upload.mimeType || 'application/octet-stream');
                 res.setHeader(
                     'Content-Disposition',
@@ -52,6 +66,19 @@ router.get('/:id', optionalAuth, async (req, res) => {
             if (user.role !== 'admin' && !isOwner) {
                 return res.status(403).json({ msg: 'Access denied' });
             }
+        }
+
+        if (upload.storage_path) {
+            const absolutePath = path.join(__dirname, '..', 'uploads', ...String(upload.storage_path).split('/'));
+            if (!fs.existsSync(absolutePath)) {
+                return res.status(404).json({ msg: 'Upload file not found' });
+            }
+            res.setHeader('Content-Type', upload.mimeType || 'application/octet-stream');
+            res.setHeader(
+                'Content-Disposition',
+                `inline; filename="${safeFilename(upload.originalName)}"`
+            );
+            return res.sendFile(absolutePath);
         }
 
         res.setHeader('Content-Type', upload.mimeType || 'application/octet-stream');

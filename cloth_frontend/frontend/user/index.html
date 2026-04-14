@@ -417,6 +417,36 @@
         async function loadNotifications() {
             const token = localStorage.getItem('token');
             const list = document.getElementById('notificationList');
+        function buildNotificationHref(notification) {
+            const destination = notification && notification.destination && typeof notification.destination === 'object'
+                ? notification.destination
+                : null;
+            if (destination && destination.path) {
+                try {
+                    const url = new URL(String(destination.path), window.location.origin);
+                    const query = destination.query && typeof destination.query === 'object' ? destination.query : {};
+                    Object.entries(query).forEach(([key, value]) => {
+                        if (value === undefined || value === null) return;
+                        const normalized = String(value).trim();
+                        if (!normalized) return;
+                        url.searchParams.set(key, normalized);
+                    });
+                    return url.pathname + url.search + url.hash;
+                } catch (_) {
+                    return String(destination.path || '').trim();
+                }
+            }
+
+            const refId = String(notification && notification.reference_id || '').trim();
+            const type = String(notification && notification.type || '').toLowerCase();
+            if (type.includes('message')) return '/user/mychat.html' + (refId ? '?messageId=' + encodeURIComponent(refId) : '');
+            if (type.includes('order') || type.includes('payment') || type.includes('delivery')) {
+                return '/user/my-orders.html' + (refId ? '?highlight=' + encodeURIComponent(refId) : '');
+            }
+            if (refId) return '/user/post.html?id=' + encodeURIComponent(refId);
+            return '';
+        }
+
             if (!list) return;
 
             if (!token) {
@@ -448,10 +478,10 @@
                     const timeText = escapeNotificationHtml(formatNotificationTime(n && n.timestamp));
                     const unreadClass = n && n.is_read ? 'border-transparent' : 'border-[#D4B468]';
                     const notificationId = escapeNotificationHtml(n && n._id ? n._id : '');
-                    const refId = escapeNotificationHtml(n && n.reference_id ? n.reference_id : '');
-                    const clickableClass = refId ? ' cursor-pointer hover:bg-amber-50' : '';
+                    const href = escapeNotificationHtml(buildNotificationHref(n));
+                    const clickableClass = href ? ' cursor-pointer hover:bg-amber-50' : '';
                     return [
-                        '<article class="rounded-xl border-l-4 ', unreadClass, ' bg-white p-3 shadow-sm', clickableClass, '" data-notification-id="', notificationId, '" data-reference-id="', refId, '">',
+                        '<article class="rounded-xl border-l-4 ', unreadClass, ' bg-white p-3 shadow-sm', clickableClass, '" data-notification-id="', notificationId, '" data-href="', href, '">',
                             '<div class="flex items-center justify-between gap-2">',
                                 '<p class="text-[11px] font-bold uppercase tracking-wider text-brand-primary">', title, '</p>',
                                 '<span class="text-[10px] text-brand-muted">', timeText, '</span>',
@@ -467,11 +497,11 @@
         }
 
         function bindNotificationItemActions(token) {
-            document.querySelectorAll('#notificationList [data-reference-id]').forEach((item) => {
+            document.querySelectorAll('#notificationList [data-href]').forEach((item) => {
                 item.addEventListener('click', async function () {
-                    const refId = item.getAttribute('data-reference-id');
+                    const href = item.getAttribute('data-href');
                     const notificationId = item.getAttribute('data-notification-id');
-                    if (!refId) return;
+                    if (!href) return;
 
                     if (token && notificationId) {
                         fetch('/api/workflow/notifications/' + encodeURIComponent(notificationId) + '/read', {
@@ -479,13 +509,7 @@
                             headers: { 'x-auth-token': token }
                         }).catch(function () {});
                     }
-
-                    // If refId looks like a MongoDB ObjectId (24 hex chars), treat as chat messageId
-                    if (/^[a-f\d]{24}$/i.test(refId)) {
-                        window.location.href = '/user/mychat.html?messageId=' + encodeURIComponent(refId);
-                    } else {
-                        window.location.href = '/user/post.html?id=' + encodeURIComponent(refId);
-                    }
+                    window.location.href = href;
                 });
             });
         }

@@ -256,6 +256,9 @@
     let contactList = [];
     let pollId = null;
     let selectedAttachmentFile = null;
+    const initialParams = new URLSearchParams(window.location.search);
+    const initialSelectedUserId = String(initialParams.get('userId') || '').trim();
+    const initialHighlightedMessageId = String(initialParams.get('messageId') || '').trim();
 
     function resolveId(value) {
       if (!value || typeof value !== 'object') {
@@ -519,11 +522,12 @@
             } catch {}
             const sender = String((m.sender_id && (m.sender_id._id || m.sender_id.id)) || m.sender_id || '');
             const mine = sender === myId;
+            const messageId = resolveId(m);
             // Avatar (admin = 'A', user = 'U')
             const avatar = mine ? 'A' : 'U';
             // Product context card
             if (isProductContext) {
-                return `<div class="flex ${mine ? 'flex-row-reverse self-end' : ''} items-start gap-4 max-w-[80%]">
+              return `<div class="flex ${mine ? 'flex-row-reverse self-end' : ''} items-start gap-4 max-w-[80%]" data-message-id="${messageId}">
   <div class="w-8 h-8 rounded-full bg-black flex items-center justify-center text-gold-500 text-[10px] font-bold mt-1">${avatar}</div>
   <div class="bg-white p-4 rounded-2xl shadow-sm border border-cream-200">
     <img src="${productInfo.image || '/images/logo.png'}" alt="${productInfo.title || 'Product'}" class="w-full max-w-xs rounded mb-2"/>
@@ -563,9 +567,8 @@
               replyHtml = `<div class="border-l-2 border-gold-300 pl-2 mb-1 text-xs text-gold-700">${escapeHtml(replyLabel)}</div>`;
             }
             // Reply button
-            const messageId = resolveId(m);
             let replyBtn = messageId ? `<button class="reply-btn text-gold-700 ml-2 text-xs underline" data-reply-id="${messageId}">↩️ Reply</button>` : '';
-            return `<div class="flex ${mine ? 'flex-row-reverse self-end' : ''} items-start gap-4 max-w-[80%]">
+            return `<div class="flex ${mine ? 'flex-row-reverse self-end' : ''} items-start gap-4 max-w-[80%]" data-message-id="${messageId}">
   <div class="w-8 h-8 rounded-full bg-black flex items-center justify-center text-gold-500 text-[10px] font-bold mt-1">${avatar}</div>
   <div class="bg-white p-4 rounded-2xl shadow-sm border border-cream-200">
     ${replyHtml}${textContent ? `<div>${textContent}</div>` : ''}${contentHtml}<div class="mt-2 flex items-center gap-2 text-xs text-gray-400">${replyBtn}</div>
@@ -596,6 +599,10 @@
         contactList = contactList.filter(function (c) {
             return String(c.role || '').toLowerCase() !== 'admin';
         });
+        if (!selectedId && initialSelectedUserId) {
+          const existing = contactList.find(function (contact) { return resolveId(contact) === initialSelectedUserId; });
+          if (existing) selectedId = initialSelectedUserId;
+        }
         if (!selectedId && contactList.length) {
         selectedId = resolveId(contactList[0]);
         }
@@ -630,6 +637,18 @@
             const messageId = resolveId(message);
             return messageId ? Object.assign({}, message, { _id: messageId, id: messageId }) : message;
         }));
+        if (initialHighlightedMessageId) {
+          window.setTimeout(function () {
+            const target = messagesEl.querySelector('[data-message-id="' + initialHighlightedMessageId + '"]');
+            if (!target) return;
+            target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            target.style.boxShadow = '0 0 0 3px rgba(212, 175, 55, 0.75), 0 0 16px rgba(115, 92, 0, 0.28)';
+            target.style.borderRadius = '18px';
+            window.setTimeout(function () {
+              target.style.boxShadow = '';
+            }, 2000);
+          }, 120);
+        }
     }
 
     async function sendMessage(text) {
@@ -684,7 +703,17 @@
           },
           body: formData
         });
-        if (!uploadRes.ok) throw new Error('Upload failed');
+        if (!uploadRes.ok) {
+          const raw = await uploadRes.text();
+          let message = raw || 'Upload failed';
+          try {
+            const parsed = raw ? JSON.parse(raw) : null;
+            if (parsed && parsed.msg) message = parsed.msg;
+          } catch (_) {
+            // keep server response text
+          }
+          throw new Error(message);
+        }
         const uploadData = await uploadRes.json();
         let tag = '[File]';
         if (file.type.startsWith('image/')) tag = '[Image]';

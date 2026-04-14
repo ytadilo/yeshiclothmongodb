@@ -972,6 +972,20 @@
                     return '/' + v.replace(/^\/+/, '');
                 };
 
+                const getOrderPaymentScreenshot = (order) => {
+                    const paymentInfo = order?.payment_info && typeof order.payment_info === 'object'
+                        ? order.payment_info
+                        : {};
+                    return getImgUrl(
+                        paymentInfo.screenshot_url
+                        || paymentInfo.screenshotUrl
+                        || order?.payment_screenshot_url
+                        || order?.paymentScreenshotUrl
+                        || order?.screenshot_url
+                        || ''
+                    );
+                };
+
                 orders.forEach(order => {
                     const customer = order?.customer_info || order?.customerInfo || {};
                     const cloth = order?.cloth_details || order?.clothDetails || {};
@@ -1015,7 +1029,7 @@
 
                     const deliveryMethod = order?.delivery_method || order?.deliveryMethod || '—';
                     const paymentStatus = order?.payment_status || order?.paymentStatus || paymentInfo?.status || 'Pending';
-                    const screenshotUrl = getImgUrl(paymentInfo?.screenshot_url);
+                    const screenshotUrl = getOrderPaymentScreenshot(order);
                     const createdAt = fmtDate(order?.created_at || order?.createdAt);
 
                     const addressParts = [customer.city, customer.address].filter(Boolean);

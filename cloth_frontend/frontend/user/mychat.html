@@ -63,7 +63,7 @@
         body.mychat-page {
             min-height: 100vh;
             overflow-x: hidden;
-            overflow-y: auto;
+            overflow-y: hidden;
         }
 
         a {
@@ -77,9 +77,10 @@
         }
 
         .shell {
+            width: min(600px, calc(100vw - 24px));
             max-width: 600px;
             height: calc(100vh - 120px);
-            min-height: calc(100vh - 120px);
+            min-height: 0;
             margin: 92px auto 28px;
             background: color-mix(in srgb, var(--surface) 94%, #ffffff 6%);
             box-shadow: 0 0 0 1px var(--outline-ghost), 0 24px 60px rgba(26, 28, 28, 0.06);
@@ -90,7 +91,8 @@
         }
 
         body.mychat-page.yeshi-home-nav-active .shell {
-            max-width: min(600px, calc(100% - 24px));
+            width: min(600px, calc(100vw - 24px));
+            max-width: min(600px, calc(100vw - 24px));
         }
 
         .topbar {
@@ -567,6 +569,7 @@
                 max-width: 100vw;
                 min-width: 0;
                 height: 100vh;
+                width: 100vw;
                 box-shadow: none;
                 border-radius: 0;
             }
@@ -674,6 +677,7 @@
                 min-height: calc(100vh - 154px);
                 margin: 76px auto 0;
                 max-width: 100%;
+                width: 100%;
                 box-shadow: none;
                 border-radius: 0;
             }
@@ -1355,7 +1359,17 @@
                         },
                         body: formData
                     });
-                    if (!uploadRes.ok) throw new Error('Upload failed');
+                    if (!uploadRes.ok) {
+                        const raw = await uploadRes.text();
+                        let message = raw || 'Upload failed';
+                        try {
+                            const parsed = raw ? JSON.parse(raw) : null;
+                            if (parsed && parsed.msg) message = parsed.msg;
+                        } catch (_) {
+                            // keep server response text
+                        }
+                        throw new Error(message);
+                    }
                     const uploadData = await uploadRes.json();
                     const imageTag = '[Image](' + uploadData.url + ')';
                     message = message ? (message + '\n' + imageTag) : imageTag;

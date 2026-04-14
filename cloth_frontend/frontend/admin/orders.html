@@ -202,6 +202,20 @@
             return (unitPrice + unitShipping) * quantity;
         }
 
+        function getOrderPaymentScreenshot(order) {
+            const paymentInfo = order?.payment_info && typeof order.payment_info === 'object'
+                ? order.payment_info
+                : {};
+            return getImgUrl(
+                paymentInfo.screenshot_url
+                || paymentInfo.screenshotUrl
+                || order?.payment_screenshot_url
+                || order?.paymentScreenshotUrl
+                || order?.screenshot_url
+                || ''
+            );
+        }
+
         function parseMeasurementPack(measurements) {
             const raw = String(measurements?.size || '').trim();
             if (!raw) return null;
@@ -388,7 +402,7 @@
                     const paymentStatus = order?.payment_status || order?.paymentStatus || paymentInfo?.status || 'Pending';
                     const paymentSubmittedAt = fmtDate(paymentInfo?.paid_at);
                     const effectiveStatus = deriveFlowStatus(paymentStatus, sewingStatus, status);
-                    const screenshotUrl = getImgUrl(paymentInfo?.screenshot_url);
+                    const screenshotUrl = getOrderPaymentScreenshot(order);
                     const createdAt = fmtDate(order?.created_at || order?.createdAt);
                     const orderedQty = Math.max(1, Math.floor(Number(order?.quantity || 1)));
                     const payableTotal = computeQuantityTotal(

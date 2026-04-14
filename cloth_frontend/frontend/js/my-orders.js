@@ -247,6 +247,21 @@ function getImgUrl(pathValue) {
     return base;
 }
 
+function getOrderPaymentScreenshot(order) {
+    const paymentInfo = order && order.payment_info && typeof order.payment_info === 'object'
+        ? order.payment_info
+        : {};
+
+    return getImgUrl(
+        paymentInfo.screenshot_url
+        || paymentInfo.screenshotUrl
+        || order?.payment_screenshot_url
+        || order?.paymentScreenshotUrl
+        || order?.screenshot_url
+        || ''
+    );
+}
+
 function toPriceText(value) {
     const n = Number(value);
     return Number.isFinite(n) && n > 0 ? `${n.toLocaleString()} ETB` : 'Price on request';
@@ -462,7 +477,7 @@ async function loadMyOrders(options = {}) {
             const payableTotal = Number.isFinite(price)
                 ? computeQuantityTotal(price, Number.isFinite(shippingPrice) ? shippingPrice : 0, orderedQty)
                 : NaN;
-            const paymentScreenshot = getImgUrl(order?.payment_info?.screenshot_url || '');
+            const paymentScreenshot = getOrderPaymentScreenshot(order);
             const isProductAsIsOrder =
                 String(order?.order_type || '').toLowerCase() === 'product'
                 || Boolean(order?.post_id || order?.productId);

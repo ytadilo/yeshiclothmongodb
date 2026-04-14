@@ -355,7 +355,29 @@
         const listEl = panel.querySelector('#adminNotificationList');
         const markAllBtn = panel.querySelector('#markAllNotificationsReadBtn');
 
+        function buildDestinationHref(destination) {
+            if (!destination || typeof destination !== 'object') return '';
+            const pathname = String(destination.path || '').trim();
+            if (!pathname) return '';
+            try {
+                const url = new URL(pathname, window.location.origin);
+                const query = destination.query && typeof destination.query === 'object' ? destination.query : {};
+                Object.entries(query).forEach(([key, value]) => {
+                    if (value === undefined || value === null) return;
+                    const normalized = String(value).trim();
+                    if (!normalized) return;
+                    url.searchParams.set(key, normalized);
+                });
+                return url.pathname + url.search + url.hash;
+            } catch (_) {
+                return pathname;
+            }
+        }
+
         function resolveNotificationTarget(item) {
+            const destinationHref = buildDestinationHref(item?.destination);
+            if (destinationHref) return destinationHref;
+
             const type = String(item?.type || '').toLowerCase();
             const title = String(item?.title || '').toLowerCase();
             const body = String(item?.body || '').toLowerCase();
@@ -517,6 +539,8 @@
                             data-type="${escapeHtml(item.type || '')}"
                             data-title="${escapeHtml(item.title || '')}"
                             data-body="${escapeHtml(rawBody)}"
+                            data-destination-path="${escapeHtml(item?.destination?.path || '')}"
+                            data-destination-query="${escapeHtml(JSON.stringify(item?.destination?.query || {}))}"
                             data-reference-id="${escapeHtml(item.reference_id || '')}">
                             <div style="font-weight:800; color:#2d2410;">${escapeHtml(item.title || 'Notification')}</div>
                             <div style="margin-top:4px; color:#555; font-size:13px;">${escapeHtml(displayBody.text || '')}</div>
@@ -534,6 +558,10 @@
                             type: el.getAttribute('data-type') || '',
                             title: el.getAttribute('data-title') || '',
                             body: el.getAttribute('data-body') || '',
+                            destination: {
+                                path: el.getAttribute('data-destination-path') || '',
+                                query: safeParseJson(el.getAttribute('data-destination-query') || '{}') || {}
+                            },
                             reference_id: el.getAttribute('data-reference-id') || ''
                         };
                         const target = resolveNotificationTarget(notificationLike);

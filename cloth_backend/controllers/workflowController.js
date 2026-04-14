@@ -1,4 +1,7 @@
 const mongoose = require('mongoose');
+const fs = require('fs');
+const path = require('path');
+const crypto = require('crypto');
 const ChatMessage = require('../models/ChatMessage');
 const Notification = require('../models/Notification');
 const AuditLog = require('../models/AuditLog');
@@ -27,13 +30,37 @@ async function writeAudit(actorId, action, entityType, entityId, metadata) {
     }
 }
 
-async function createNotification(userId, type, title, body, referenceId) {
+function normalizeDestination(destination) {
+    if (!destination || typeof destination !== 'object') {
+        return { path: '', query: {} };
+    }
+
+    const query = destination.query && typeof destination.query === 'object'
+        ? Object.fromEntries(
+            Object.entries(destination.query)
+                .filter(([, value]) => value !== undefined && value !== null && String(value).trim() !== '')
+                .map(([key, value]) => [key, String(value)])
+        )
+        : {};
+
+    return {
+        path: String(destination.path || '').trim(),
+        query
+    };
+}
+
+function buildNotificationDestination(pathname, query) {
+    return normalizeDestination({ path: pathname, query });
+}
+
+async function createNotification(userId, type, title, body, referenceId, destination) {
     const doc = await Notification.create({
         user_id: userId,
         type,
         title,
         body,
         reference_id: String(referenceId || ''),
+        destination: normalizeDestination(destination),
         is_read: false
     });
 
@@ -43,6 +70,7 @@ async function createNotification(userId, type, title, body, referenceId) {
         title: doc.title,
         body: doc.body,
         reference_id: doc.reference_id,
+        destination: normalizeDestination(doc.destination),
         is_read: doc.is_read,
         timestamp: doc.timestamp
     });
@@ -126,12 +154,16 @@ exports.sendMessage = async (req, res) => {
 
         const senderName = String(sender?.fullName || sender?.email || 'User').trim();
         const notificationPreview = String(text || '').trim() || 'Sent an attachment';
+        const destination = receiver.role === 'admin'
+            ? buildNotificationDestination('/admin/chat', { userId: req.user.id, messageId: message._id })
+            : buildNotificationDestination('/user/mychat', { messageId: message._id });
         await createNotification(
             receiverId,
             'message',
             req.user.role === 'admin' ? 'New admin message' : 'New customer message',
             `${senderName}: ${notificationPreview}`.slice(0, 240),
-            message._id
+            message._id,
+            destination
         );
         await writeAudit(req.user.id, 'CHAT_MESSAGE_SENT', 'chat', message._id, { receiverId, jobId: jobId || null, deliveryId: deliveryId || null, replyTo });
 
@@ -155,11 +187,21 @@ exports.uploadChatAttachment = async (req, res) => {
             return res.status(400).json({ msg: 'Missing file' });
         }
 
+        const uploadsDir = path.join(__dirname, '..', 'uploads', 'chat');
+        await fs.promises.mkdir(uploadsDir, { recursive: true });
+
+        const ext = path.extname(String(req.file.originalname || '')).slice(0, 16);
+        const generatedName = `${Date.now()}-${crypto.randomUUID()}${ext}`;
+        const absoluteFilePath = path.join(uploadsDir, generatedName);
+        const relativeStoragePath = path.posix.join('chat', generatedName);
+
+        await fs.promises.writeFile(absoluteFilePath, req.file.buffer);
+
         const doc = await Upload.create({
             originalName: req.file.originalname || 'attachment',
             mimeType: req.file.mimetype || 'application/octet-stream',
             size: Number(req.file.size || 0),
-            data: req.file.buffer,
+            storage_path: relativeStoragePath,
             visibility: 'private',
             owner_user_id: req.user.id,
             purpose: 'chat_attachment'

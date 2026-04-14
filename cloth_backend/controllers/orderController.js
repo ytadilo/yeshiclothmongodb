@@ -139,6 +139,10 @@ async function notifyAdminsAboutOrder(order) {
                 reference_id: String(order._id || ''),
                 title: 'New order received',
                 body: summary,
+                destination: {
+                    path: '/admin/orders',
+                    query: { highlight: String(order._id || '') }
+                },
                 is_read: false,
                 timestamp: new Date()
             }))
@@ -158,6 +162,10 @@ async function notifyOrderOwner(order, title, body) {
             reference_id: String(order._id || ''),
             title: String(title || 'Order update'),
             body: String(body || ''),
+            destination: {
+                path: '/my-orders',
+                query: { highlight: String(order._id || '') }
+            },
             is_read: false,
             timestamp: new Date()
         });
@@ -184,6 +192,10 @@ async function notifyAdminsAboutPaymentProof(order) {
                 reference_id: String(order._id || ''),
                 title: 'Payment proof uploaded',
                 body: label,
+                destination: {
+                    path: '/admin/orders',
+                    query: { highlight: String(order._id || '') }
+                },
                 is_read: false,
                 timestamp: new Date()
             }))
@@ -211,6 +223,23 @@ function normalizeDeliveryMethod(value) {
     if (!text) return 'delivery';
     if (text === 'pickup' || text.includes('pickup')) return 'pickup';
     return 'delivery';
+}
+
+function getOrderPaymentScreenshotUrl(order) {
+    const paymentInfo = order && order.payment_info && typeof order.payment_info === 'object'
+        ? order.payment_info
+        : {};
+
+    const candidates = [
+        paymentInfo.screenshot_url,
+        paymentInfo.screenshotUrl,
+        order && order.payment_screenshot_url,
+        order && order.paymentScreenshotUrl,
+        order && order.screenshot_url
+    ];
+
+    const hit = candidates.find((value) => String(value || '').trim());
+    return hit ? String(hit).trim() : '';
 }
 
 function stringifyAddressValue(value) {
@@ -754,6 +783,7 @@ exports.createOrder = async (req, res) => {
                 });
                 order.payment_info = order.payment_info || {};
                 order.payment_info.screenshot_url = '/api/uploads/' + up._id;
+                order.payment_screenshot_url = order.payment_info.screenshot_url;
                 order.payment_info.paid_at = new Date();
                 if (!order.payment_info.status) {
                     order.payment_info.status = 'Pending';
@@ -957,21 +987,21 @@ exports.getOrders = async (req, res) => {
 
             orders = orders.map((order) => {
                 const key = String(order && order._id || '');
-                const fallback = latestByOrder.get(key);
-                if (!fallback) return order;
-
                 const paymentInfo = (order && order.payment_info && typeof order.payment_info === 'object')
                     ? order.payment_info
                     : {};
 
-                if (paymentInfo.screenshot_url) return order;
+                const fallback = latestByOrder.get(key) || '';
+                const resolvedScreenshotUrl = getOrderPaymentScreenshotUrl(order) || fallback;
+                if (!resolvedScreenshotUrl) return order;
 
                 return {
                     ...order,
                     payment_info: {
                         ...paymentInfo,
-                        screenshot_url: fallback
-                    }
+                        screenshot_url: resolvedScreenshotUrl
+                    },
+                    payment_screenshot_url: resolvedScreenshotUrl
                 };
             });
 
@@ -1267,6 +1297,7 @@ exports.uploadOrderPaymentProof = async (req, res) => {
         order.payment_info.method = paymentMethod;
         order.payment_info.status = 'Pending';
         order.payment_info.screenshot_url = '/api/uploads/' + up._id;
+        order.payment_screenshot_url = order.payment_info.screenshot_url;
         order.payment_info.paid_at = new Date();
         order.payment_status = 'Pending';
         order.order_status = deriveOrderStatus(order.payment_status, order.sewing_status, order.order_status);

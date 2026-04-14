@@ -3302,13 +3302,36 @@ function ensureUserChatLauncher() {
             .replace(/'/g, '&#39;');
     }
 
+    function buildNotificationHrefFromDestination(destination) {
+        if (!destination || typeof destination !== 'object') return '';
+        const pathname = String(destination.path || '').trim();
+        if (!pathname) return '';
+
+        try {
+            const url = new URL(pathname, window.location.origin);
+            const query = destination.query && typeof destination.query === 'object' ? destination.query : {};
+            Object.entries(query).forEach(([key, value]) => {
+                if (value === undefined || value === null) return;
+                const normalized = String(value).trim();
+                if (!normalized) return;
+                url.searchParams.set(key, normalized);
+            });
+            return url.pathname + url.search + url.hash;
+        } catch (_) {
+            return pathname;
+        }
+    }
+
     function getNotificationHref(item) {
+        const destinationHref = buildNotificationHrefFromDestination(item && item.destination);
+        if (destinationHref) return destinationHref;
+
         const ref = String(item && item.reference_id || '').trim();
         const type = String(item && item.type || '').trim().toLowerCase();
         const title = String(item && item.title || '').trim().toLowerCase();
         const body = String(item && item.body || '').trim().toLowerCase();
         if (type === 'message' || type === 'chat' || type === 'chat_message') {
-            return '/user/mychat';
+            return ref ? '/user/mychat?messageId=' + encodeURIComponent(ref) : '/user/mychat';
         }
         if (/^[a-f\d]{24}$/i.test(ref)) {
             if (type === 'new_product' || type === 'product' || type === 'post_update') {

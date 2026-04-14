@@ -126,6 +126,10 @@ async function notifyCustomersAboutNewPost(postDoc) {
             reference_id: String(postDoc._id),
             title,
             body,
+            destination: {
+                path: '/post',
+                query: { id: String(postDoc._id) }
+            },
             is_read: false
         }))
     );
@@ -137,6 +141,7 @@ async function notifyCustomersAboutNewPost(postDoc) {
             title: doc.title,
             body: doc.body,
             reference_id: doc.reference_id,
+            destination: doc.destination || { path: '/post', query: { id: String(postDoc._id) } },
             is_read: doc.is_read,
             timestamp: doc.timestamp
         });

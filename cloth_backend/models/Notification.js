@@ -9,10 +9,14 @@ const mongoose = require('mongoose');
 
 const NotificationSchema = new mongoose.Schema({
     user_id: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-    type: { type: String, enum: ['message', 'status_update'], required: true },
+    type: { type: String, default: 'system' },
     reference_id: { type: String, default: '' },
     title: { type: String, default: '' },
     body: { type: String, default: '' },
+    destination: {
+        path: { type: String, default: '' },
+        query: { type: mongoose.Schema.Types.Mixed, default: {} }
+    },
     is_read: { type: Boolean, default: false },
     timestamp: { type: Date, default: Date.now }
 });

@@ -678,6 +678,7 @@ class FirebaseUpload {
             mimeType: String(data && data.mimeType ? data.mimeType : 'application/octet-stream'),
             size: Number(data && data.size ? data.size : 0),
             data: data && data.data ? Buffer.from(data.data).toString('base64') : '',
+            storage_path: String(data && data.storage_path ? data.storage_path : ''),
             visibility: String(data && data.visibility ? data.visibility : 'public'),
             owner_user_id: data && data.owner_user_id ? String(data.owner_user_id) : null,
             purpose: String(data && data.purpose ? data.purpose : ''),
@@ -735,6 +736,9 @@ class FirebaseUpload {
         const setValues = clone((update && update.$set) || {});
         if (setValues.data) {
             setValues.data = Buffer.from(setValues.data).toString('base64');
+        }
+        if (setValues.storage_path !== undefined) {
+            setValues.storage_path = String(setValues.storage_path || '');
         }
 
         const ref = FirebaseUpload.collection().doc(String(id));
@@ -1151,6 +1155,14 @@ class FirebaseNotification {
             title: String(src.title || '').trim(),
             body: String(src.body || '').trim(),
             reference_id: src.reference_id ? String(src.reference_id) : '',
+            destination: src.destination && typeof src.destination === 'object'
+                ? {
+                    path: String(src.destination.path || '').trim(),
+                    query: src.destination.query && typeof src.destination.query === 'object'
+                        ? clone(src.destination.query)
+                        : {}
+                }
+                : { path: '', query: {} },
             is_read: src.is_read === true,
             timestamp: src.timestamp || nowIso()
         };

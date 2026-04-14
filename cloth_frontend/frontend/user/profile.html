@@ -213,8 +213,8 @@
                     <span id="profileAvatarFallback" style="font-weight:800;">Y</span>
                 </div>
                 <div style="min-width:0;">
-                    <div id="profileName" style="font-weight:800; font-size:1.2rem;">Guest</div>
-                    <div id="profileEmail" style="color: var(--light-text);">Login to manage your profile</div>
+                    <div id="profileName" style="font-weight:800; font-size:1.2rem;">&nbsp;</div>
+                    <div id="profileEmail" style="color: var(--light-text);">&nbsp;</div>
                     <div id="profileStatus" style="margin-top:6px; color:#745B18; font-weight:700; font-size:0.85rem;">HERITAGE MEMBER</div>
                     <button type="button" class="upload-btn" id="uploadAvatarBtn"><i class="fas fa-camera" style="margin-right:6px;"></i>Upload Profile</button>
                     <input id="avatarInput" type="file" accept="image/*" style="display:none;">
@@ -468,7 +468,7 @@
             const fallbackName = user.fullName || getDisplayName(user);
 
             const items = [
-                ['Full name', fallbackName || 'Guest'],
+                ['Full name', fallbackName || '—'],
                 ['Phone', user.phone || '—'],
                 ['Age', user.age != null && user.age !== '' ? String(user.age) : '—'],
                 ['Sex', formatSex(user.sex)],
@@ -490,11 +490,11 @@
             if (parts) return parts;
             const email = String(user?.email || '').trim();
             if (email.includes('@')) return email.split('@')[0];
-            return email || 'Guest';
+            return email || '—';
         }
 
         function getDisplayEmail(user) {
-            return String(user?.email || '').trim() || 'Login to manage your profile';
+            return String(user?.email || '').trim() || '—';
         }
 
         function getProfileImage(user) {
