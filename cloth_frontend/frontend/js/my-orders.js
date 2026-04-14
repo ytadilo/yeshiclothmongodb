@@ -270,6 +270,26 @@ function getOrderPaymentComment(order) {
     return String(paymentInfo.comment || order?.payment_comment || '').trim();
 }
 
+function getOrderPaymentMethod(order) {
+    const paymentInfo = order && order.payment_info && typeof order.payment_info === 'object'
+        ? order.payment_info
+        : {};
+
+    return String(
+        paymentInfo.method
+        || order?.payment_method
+        || order?.paymentMethod
+        || ''
+    ).trim();
+}
+
+function formatPaymentMethodLabel(value) {
+    const normalized = String(value || '').trim().toLowerCase();
+    if (normalized === 'bank_transfer') return 'Bank transfer';
+    if (normalized === 'telebirr') return 'Telebirr';
+    return normalized ? normalized.replace(/_/g, ' ') : 'Not selected';
+}
+
 function toPriceText(value) {
     const n = Number(value);
     return Number.isFinite(n) && n > 0 ? `${n.toLocaleString()} ETB` : 'Price on request';
@@ -488,6 +508,9 @@ async function loadMyOrders(options = {}) {
                 : NaN;
             const paymentScreenshot = getOrderPaymentScreenshot(order);
             const paymentComment = getOrderPaymentComment(order);
+            const paymentMethodValue = getOrderPaymentMethod(order);
+            const paymentMethodLabel = formatPaymentMethodLabel(paymentMethodValue);
+            const paymentSubmittedAt = formatDate(paymentInfo?.paid_at || order?.updated_at || order?.updatedAt);
             const isProductAsIsOrder =
                 String(order?.order_type || '').toLowerCase() === 'product'
                 || Boolean(order?.post_id || order?.productId);
@@ -532,15 +555,35 @@ async function loadMyOrders(options = {}) {
                         </div>
                     ` : ''}
 
-                    ${paymentScreenshot ? `
-                        <div style="margin-top:10px; display:flex; gap:10px; align-items:center;">
-                            <a href="${escapeHtml(paymentScreenshot)}" target="_blank" rel="noopener noreferrer" style="display:inline-block;">
-                                <img src="${escapeHtml(paymentScreenshot)}" alt="Payment screenshot" style="width:72px; height:72px; object-fit:cover; border-radius:10px; border:1px solid rgba(0,0,0,0.1);">
-                            </a>
-                            <div style="font-size:0.85rem; color:var(--light-text);">
-                                <div>Payment proof uploaded</div>
-                                ${paymentComment ? `<div style="margin-top:4px; color:#1a1c1c;"><strong>Comment:</strong> ${escapeHtml(paymentComment)}</div>` : ''}
+                    ${(paymentScreenshot || (isProductAsIsOrder && (paymentMethodValue || paymentStatus))) ? `
+                        <div style="margin-top:12px; padding:12px; border:1px solid rgba(30,75,53,0.14); border-radius:14px; background:linear-gradient(180deg, rgba(249,252,250,0.96) 0%, rgba(241,247,243,0.96) 100%);">
+                            <div style="display:flex; justify-content:space-between; gap:10px; align-items:flex-start; flex-wrap:wrap;">
+                                <div>
+                                    <div style="font-weight:800; color:#0f2f21;">Payment Proof</div>
+                                    <div style="margin-top:4px; font-size:0.86rem; color:var(--light-text);">This is the screenshot and payment detail saved for this order.</div>
+                                </div>
+                                <div style="display:inline-flex; align-items:center; gap:6px; padding:6px 10px; border-radius:999px; background:${paymentScreenshot ? 'rgba(30,75,53,0.10)' : 'rgba(186,26,26,0.10)'}; color:${paymentScreenshot ? '#0f2f21' : '#8a1c1c'}; font-size:0.82rem; font-weight:800;">
+                                    ${paymentScreenshot ? 'Proof uploaded' : 'Proof not found'}
+                                </div>
                             </div>
+                            <div style="margin-top:10px; display:grid; grid-template-columns:repeat(auto-fit, minmax(160px, 1fr)); gap:8px 12px; font-size:0.9rem; color:#1a1c1c;">
+                                <div><span style="color:var(--light-text);">Method:</span> ${escapeHtml(paymentMethodLabel)}</div>
+                                <div><span style="color:var(--light-text);">Status:</span> ${escapeHtml(paymentStatus)}</div>
+                                <div><span style="color:var(--light-text);">Submitted:</span> ${paymentSubmittedAt ? escapeHtml(paymentSubmittedAt) : '—'}</div>
+                            </div>
+                            ${paymentComment ? `<div style="margin-top:8px; font-size:0.9rem; color:#1a1c1c;"><span style="color:var(--light-text);">Comment:</span> ${escapeHtml(paymentComment)}</div>` : ''}
+                            ${paymentScreenshot ? `
+                                <div style="margin-top:12px; display:flex; gap:12px; align-items:flex-start; flex-wrap:wrap;">
+                                    <a href="${escapeHtml(paymentScreenshot)}" target="_blank" rel="noopener noreferrer" style="display:inline-block;">
+                                        <img src="${escapeHtml(paymentScreenshot)}" alt="Payment screenshot" style="width:120px; height:120px; object-fit:cover; border-radius:14px; border:1px solid rgba(0,0,0,0.1); box-shadow:0 8px 20px rgba(0,0,0,0.08);">
+                                    </a>
+                                    <div style="font-size:0.86rem; color:var(--light-text); min-width:180px; flex:1;">
+                                        <div style="font-weight:700; color:#1a1c1c;">Payment proof image saved</div>
+                                        <div style="margin-top:4px;">Tap the image to open the full screenshot.</div>
+                                        <div style="margin-top:6px; word-break:break-word;">Link: <a href="${escapeHtml(paymentScreenshot)}" target="_blank" rel="noopener noreferrer">Open payment proof</a></div>
+                                    </div>
+                                </div>
+                            ` : ''}
                         </div>
                     ` : ''}
 

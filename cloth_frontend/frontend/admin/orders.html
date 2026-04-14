@@ -570,6 +570,37 @@
                                         ${!screenshotUrl ? '<span style="color: var(--light-text);">No screenshot uploaded.</span>' : ''}
                                     </div>
 
+                                    <div style="margin-top:12px; padding:12px; border:1px solid rgba(30,75,53,0.14); border-radius:14px; background:linear-gradient(180deg, rgba(249,252,250,0.96) 0%, rgba(241,247,243,0.96) 100%);">
+                                        <div style="display:flex; justify-content:space-between; gap:10px; align-items:flex-start; flex-wrap:wrap;">
+                                            <div>
+                                                <div style="font-weight:800; color:#0f2f21;">Payment Proof</div>
+                                                <div style="margin-top:4px; font-size:0.86rem; color:var(--light-text);">Review the payment method, comment, and screenshot submitted by the customer.</div>
+                                            </div>
+                                            <div style="display:inline-flex; align-items:center; gap:6px; padding:6px 10px; border-radius:999px; background:${screenshotUrl ? 'rgba(30,75,53,0.10)' : 'rgba(186,26,26,0.10)'}; color:${screenshotUrl ? '#0f2f21' : '#8a1c1c'}; font-size:0.82rem; font-weight:800;">
+                                                ${screenshotUrl ? 'Proof uploaded' : 'Proof not found'}
+                                            </div>
+                                        </div>
+                                        <div style="margin-top:10px; display:grid; grid-template-columns:repeat(auto-fit, minmax(160px, 1fr)); gap:8px 12px; font-size:0.9rem; color:#1a1c1c;">
+                                            <div><span style="color:var(--light-text);">Method:</span> ${escapeHtml(paymentMethod)}</div>
+                                            <div><span style="color:var(--light-text);">Status:</span> ${escapeHtml(paymentStatus)}</div>
+                                            <div><span style="color:var(--light-text);">Submitted:</span> ${paymentSubmittedAt ? escapeHtml(paymentSubmittedAt) : '—'}</div>
+                                        </div>
+                                        <div style="margin-top:8px; font-size:0.9rem; color:#1a1c1c;"><span style="color:var(--light-text);">Comment:</span> ${paymentComment ? escapeHtml(paymentComment) : '—'}</div>
+
+                                        ${screenshotUrl ? `
+                                            <div style="margin-top:12px; display:flex; gap:12px; align-items:flex-start; flex-wrap:wrap;">
+                                                <a href="${escapeHtml(screenshotUrl)}" target="_blank" rel="noopener noreferrer" style="display:inline-block;">
+                                                    <img src="${escapeHtml(screenshotUrl)}" alt="Payment screenshot" style="max-width:100%; width:420px; border-radius:12px; border:1px solid rgba(0,0,0,0.08); box-shadow:0 10px 22px rgba(0,0,0,0.08);">
+                                                </a>
+                                                <div style="font-size:0.86rem; color:var(--light-text); min-width:180px; flex:1;">
+                                                    <div style="font-weight:700; color:#1a1c1c;">Customer screenshot saved</div>
+                                                    <div style="margin-top:4px;">Open the image to inspect the full payment proof before confirming payment.</div>
+                                                    <div style="margin-top:6px; word-break:break-word;">Link: <a href="${escapeHtml(screenshotUrl)}" target="_blank" rel="noopener noreferrer">Open payment proof</a></div>
+                                                </div>
+                                            </div>
+                                        ` : `<div style="margin-top:10px; color:var(--light-text);">No screenshot uploaded.</div>`}
+                                    </div>
+
                                     ${!isProductAsIsOrder ? `
                                     <div style="margin-top: 12px; display:flex; gap: 10px; align-items:center; flex-wrap:wrap;">
                                         <input type="number" min="0" step="1" class="form-control" style="max-width: 160px;" aria-label="Set cloth price ETB" data-price-etb placeholder="Cloth ETB" value="${Number.isFinite(clothPrice) && clothPrice >= 0 ? String(clothPrice) : ''}">
@@ -577,16 +608,6 @@
                                         <button type="button" class="btn-secondary" onclick="updatePricing('${orderId}')">Set Price</button>
                                     </div>
                                     ` : ''}
-
-                                    ${screenshotUrl ? `
-                                        <div style="margin-top: 12px;">
-                                            <div style="color: var(--light-text); font-size: 0.9rem; margin-bottom: 6px;">Bank screenshot</div>
-                                            ${paymentComment ? `<div style="margin-bottom: 8px; color:#1a1c1c;"><strong>Comment:</strong> ${escapeHtml(paymentComment)}</div>` : ''}
-                                            <a href="${escapeHtml(screenshotUrl)}" target="_blank" rel="noopener noreferrer" style="display:inline-block;">
-                                                <img src="${escapeHtml(screenshotUrl)}" alt="Payment screenshot" style="max-width: 100%; width: 420px; border-radius: 12px; border: 1px solid rgba(0,0,0,0.08);">
-                                            </a>
-                                        </div>
-                                    ` : `<div style="margin-top: 10px; color: var(--light-text);">No screenshot uploaded.</div>`}
 
                                     ${!isProductAsIsOrder ? `
                                     <div style="margin-top: 12px; border:1px solid rgba(0,0,0,0.08); border-radius:10px; padding:12px; background:#fafafa;">
