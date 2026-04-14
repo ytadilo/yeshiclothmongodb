@@ -310,6 +310,55 @@
             return 'Video Link';
         }
 
+        function getVideoPlatform(url) {
+            const value = String(url || '').toLowerCase();
+            if (value.includes('tiktok.com')) return 'tiktok';
+            if (value.includes('instagram.com')) return 'instagram';
+            if (value.includes('youtube.com') || value.includes('youtu.be')) return 'youtube';
+            return 'direct';
+        }
+
+        async function trackVideoModalView(postId, url) {
+            const normalizedPostId = String(postId || '').trim();
+            const normalizedUrl = String(url || '').trim();
+            if (!normalizedPostId || !normalizedUrl) return;
+
+            const sessionKey = 'yeshi_home_video_view_' + normalizedPostId + '_' + normalizedUrl;
+            try {
+                if (sessionStorage.getItem(sessionKey)) return;
+                sessionStorage.setItem(sessionKey, '1');
+            } catch (_) {}
+
+            const payload = {
+                productId: normalizedPostId,
+                platform: getVideoPlatform(normalizedUrl),
+                url: normalizedUrl,
+                source: 'home_feed_modal'
+            };
+
+            try {
+                if (typeof window.trackAnalyticsEvent === 'function') {
+                    await window.trackAnalyticsEvent('video_view', payload);
+                    return;
+                }
+            } catch (_) {}
+
+            try {
+                const token = localStorage.getItem('token');
+                const headers = { 'Content-Type': 'application/json' };
+                if (token) headers['x-auth-token'] = token;
+                await fetch('/api/analytics/track', {
+                    method: 'POST',
+                    headers,
+                    body: JSON.stringify({
+                        eventType: 'video_view',
+                        eventData: payload
+                    }),
+                    keepalive: true
+                });
+            } catch (_) {}
+        }
+
         function renderVideoChooser(urls) {
             const list = Array.isArray(urls) ? urls.filter(Boolean) : [];
             if (!list.length) return '<p style="margin:0;color:#777;">No video available.</p>';
@@ -323,7 +372,7 @@
             ].join('');
         }
 
-        function openVideoModal(input) {
+        function openVideoModal(input, postId) {
             const modal = document.getElementById('videoModal');
             const body = document.getElementById('videoModalBody');
             if (!modal || !body) return;
@@ -339,6 +388,7 @@
                 });
             };
             const showSelected = (selectedUrl) => {
+                trackVideoModalView(postId, selectedUrl);
                 body.innerHTML = [
                     '<div style="display:grid;gap:10px;">',
                         '<button type="button" id="videoBackToChoices" class="rounded-md bg-[#f4f3f3] px-3 py-2 text-sm" style="justify-self:start;">Back to choices</button>',
@@ -974,7 +1024,8 @@
                     } catch (_) {
                         list = [];
                     }
-                    openVideoModal(list);
+                    const postId = String(btn.closest('[data-post-id]')?.getAttribute('data-post-id') || '').trim();
+                    openVideoModal(list, postId);
                 });
             });
 
