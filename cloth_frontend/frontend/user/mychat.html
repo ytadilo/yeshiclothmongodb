@@ -34,15 +34,31 @@
         :root {
             --primary: #735c00;
             --primary-container: #D4AF37;
-            --surface: #fff8f0;
-            --surface-low: #fbf3e5;
-            --surface-high: #f5ead7;
+            --surface: #fbf8f3;
+            --surface-low: #f7f1e4;
+            --surface-high: #efe4c9;
             --surface-lowest: #ffffff;
             --on-surface: #1a1c1c;
             --on-surface-variant: #4d4639;
             --outline-ghost: rgba(126, 118, 103, 0.12);
             --secondary: #bb0010;
             --tertiary: #006e04;
+            --message-user: #efe6c8;
+            --message-admin: #ffffff;
+            --input-ring: rgba(165, 139, 55, 0.6);
+        }
+
+        body.dark-chat {
+            --surface: #171513;
+            --surface-low: #221e18;
+            --surface-high: #30291e;
+            --surface-lowest: #1d1a17;
+            --on-surface: #f4efe8;
+            --on-surface-variant: #d0c3af;
+            --outline-ghost: rgba(234, 219, 187, 0.12);
+            --message-user: #5b4b1d;
+            --message-admin: #26211d;
+            --input-ring: rgba(212, 175, 55, 0.7);
         }
 
         * {
@@ -54,8 +70,8 @@
             font-family: 'Manrope', sans-serif;
             color: var(--on-surface);
             background:
-                radial-gradient(circle at 15% 20%, rgba(212, 180, 104, 0.11), transparent 34%),
-                radial-gradient(circle at 85% 90%, rgba(116, 91, 24, 0.08), transparent 30%),
+                radial-gradient(circle at 14% 20%, rgba(212, 180, 104, 0.11), transparent 32%),
+                radial-gradient(circle at 84% 76%, rgba(116, 91, 24, 0.08), transparent 28%),
                 var(--surface);
             min-height: 100vh;
         }
@@ -77,13 +93,13 @@
         }
 
         .shell {
-            width: min(600px, calc(100vw - 24px));
-            max-width: 600px;
-            height: calc(100vh - 120px);
+            width: min(1360px, 100vw);
+            max-width: 1360px;
+            height: 100vh;
             min-height: 0;
-            margin: 92px auto 28px;
-            background: color-mix(in srgb, var(--surface) 94%, #ffffff 6%);
-            box-shadow: 0 0 0 1px var(--outline-ghost), 0 24px 60px rgba(26, 28, 28, 0.06);
+            margin: 0 auto;
+            background: transparent;
+            box-shadow: none;
             position: relative;
             overflow: hidden;
             display: flex;
@@ -99,17 +115,17 @@
             position: sticky;
             top: 0;
             z-index: 30;
-            background: rgba(250, 249, 249, 0.84);
-            backdrop-filter: blur(12px);
+            background: rgba(251, 248, 243, 0.84);
+            backdrop-filter: blur(14px);
             border-bottom: 1px solid var(--outline-ghost);
         }
 
         .topbar-row {
-            padding: 16px;
+            padding: 24px 18px 22px;
             display: flex;
             align-items: center;
             justify-content: space-between;
-            gap: 10px;
+            gap: 18px;
         }
 
         .topbar-left {
@@ -120,12 +136,12 @@
         }
 
         .topbar-btn {
-            width: 34px;
-            height: 34px;
+            width: 44px;
+            height: 44px;
             border-radius: 999px;
             border: none;
             background: transparent;
-            color: var(--on-surface-variant);
+            color: #4d4639;
             display: inline-flex;
             align-items: center;
             justify-content: center;
@@ -165,17 +181,17 @@
             color: var(--primary);
             text-transform: uppercase;
             letter-spacing: 0.2em;
-            font-size: 0.72rem;
-            font-weight: 700;
-            margin-bottom: 2px;
+            font-size: 0.8rem;
+            font-weight: 800;
+            margin-bottom: 1px;
         }
 
         .support-title {
             display: flex;
             align-items: center;
             gap: 8px;
-            font-size: 1.05rem;
-            font-weight: 700;
+            font-size: clamp(1.1rem, 2vw, 1.35rem);
+            font-weight: 800;
             letter-spacing: -0.01em;
         }
 
@@ -189,7 +205,7 @@
         .chat-stream {
             flex: 1;
             min-height: 0;
-            padding: 18px 14px 178px;
+            padding: 22px 34px 176px;
             overflow-y: auto;
         }
 
@@ -208,51 +224,41 @@
 
         .message-block {
             margin-bottom: 18px;
-            max-width: 94%;
+            max-width: 100%;
         }
 
         .message-row {
             display: flex;
             align-items: flex-end;
-            gap: 5px;
+            gap: 0;
             margin-bottom: 6px;
             min-height: 38px;
         }
 
         .avatar {
-            width: 38px;
-            height: 38px;
-            border-radius: 12px;
-            background: var(--surface-high);
-            color: var(--on-surface-variant);
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 700;
-            flex-shrink: 0;
-            overflow: hidden;
+            display: none;
         }
 
         .bubble {
-            background: var(--surface-lowest);
-            border-radius: 12px;
-            padding: 7px 10px;
-            line-height: 1.42;
+            background: var(--message-admin);
+            border-radius: 26px;
+            padding: 16px 22px;
+            line-height: 1.3;
             color: var(--on-surface);
-            box-shadow: 0 6px 16px rgba(26, 28, 28, 0.03);
-            max-width: 82%;
+            box-shadow: 0 10px 30px rgba(26, 28, 28, 0.03);
+            max-width: min(820px, 88%);
             white-space: pre-wrap;
-            font-size: 0.89rem;
+            font-size: clamp(1rem, 1.5vw, 1.08rem);
         }
 
         .bubble.user {
             margin-left: auto;
-            background: color-mix(in srgb, var(--primary-container) 22%, #fff 78%);
-            border-bottom-right-radius: 6px;
+            background: var(--message-user);
+            border-bottom-right-radius: 8px;
         }
 
         .bubble.concierge {
-            border-bottom-left-radius: 6px;
+            border-bottom-left-radius: 8px;
         }
 
         .bubble img {
@@ -406,11 +412,11 @@
             position: fixed;
             left: 50%;
             transform: translateX(-50%);
-            bottom: 74px;
-            width: min(760px, 100%);
-            padding: 10px 14px;
-            background: rgba(250, 249, 249, 0.9);
-            backdrop-filter: blur(12px);
+            bottom: 0;
+            width: min(1360px, 100vw);
+            padding: 12px 20px 18px;
+            background: rgba(251, 248, 243, 0.94);
+            backdrop-filter: blur(14px);
             border-top: 1px solid var(--outline-ghost);
             z-index: 20;
         }
@@ -418,10 +424,12 @@
         .composer {
             display: flex;
             align-items: center;
-            gap: 10px;
-            background: var(--surface-low);
+            gap: 12px;
+            background: rgba(255,255,255,0.82);
+            border: 3px solid rgba(165, 139, 55, 0.75);
             border-radius: 999px;
-            padding: 9px 11px;
+            padding: 10px 14px;
+            box-shadow: inset 0 0 0 1px rgba(255,255,255,0.7);
         }
 
         .replying-bar {
@@ -496,6 +504,7 @@
             width: 100%;
             font: inherit;
             color: var(--on-surface);
+            font-size: clamp(1rem, 1.5vw, 1.08rem);
         }
 
         .composer input::placeholder {
@@ -503,8 +512,8 @@
         }
 
         .round-btn {
-            width: 34px;
-            height: 34px;
+            width: 42px;
+            height: 42px;
             border-radius: 999px;
             border: none;
             display: inline-flex;
@@ -517,8 +526,46 @@
         }
 
         .round-btn.send {
-            background: color-mix(in srgb, var(--primary-container) 34%, #fff 66%);
-            color: var(--primary);
+            background: linear-gradient(180deg, #ecd980 0%, #cfb34c 100%);
+            color: #5f4d0f;
+            box-shadow: 0 6px 14px rgba(116, 91, 24, 0.18);
+        }
+
+        .theme-toggle-btn {
+            min-width: 112px;
+            height: 58px;
+            border-radius: 999px;
+            border: 1px solid rgba(116, 91, 24, 0.2);
+            background: rgba(255,255,255,0.74);
+            color: var(--on-surface);
+            font: inherit;
+            font-weight: 800;
+            font-size: 1rem;
+            cursor: pointer;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.04);
+        }
+
+        .message-meta-row {
+            margin-top: 8px;
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            color: rgba(77, 70, 57, 0.74);
+            font-size: 0.8rem;
+        }
+
+        .message-meta-row.user {
+            justify-content: flex-end;
+        }
+
+        .reply-btn {
+            background: transparent;
+            border: none;
+            color: #8a7640;
+            cursor: pointer;
+            font-size: 0.8rem;
+            font-weight: 700;
+            padding: 0;
         }
 
         .chat-empty,
@@ -534,33 +581,17 @@
         }
 
         @media (max-width: 640px) {
-            .context-title {
-                font-size: 1.12rem;
-            }
-
             .composer-wrap {
-                bottom: 84px;
+                padding: 10px 10px 14px;
             }
 
             .chat-stream {
-                padding-bottom: 170px;
+                padding: 16px 14px 160px;
             }
 
-            .chat-head {
-                flex-direction: column;
-                align-items: flex-start;
-                gap: 6px;
-            }
-
-            .chat-title {
-                font-size: 1.05rem;
-            }
-
-            .latest-talk-btn {
-                right: 10px;
-                top: 50%;
-                transform: translateY(-50%);
-                padding: 9px 10px;
+            .theme-toggle-btn {
+                min-width: 84px;
+                height: 46px;
             }
         }
 
@@ -575,7 +606,7 @@
             }
 
             .chat-stream {
-                padding: 10px 2vw 110px 2vw;
+                padding: 14px 14px 158px;
                 min-height: 0;
             }
 
@@ -583,8 +614,8 @@
                 width: 100vw;
                 left: 0;
                 transform: none;
-                padding: 8px 2vw;
-                bottom: 84px;
+                padding: 10px 12px 14px;
+                bottom: 0;
             }
 
             .bubble img {
@@ -715,6 +746,7 @@
                         <div class="support-title"><span class="status-dot" aria-hidden="true"></span>Support Team</div>
                     </div>
                 </div>
+                <button type="button" id="themeToggleBtn" class="theme-toggle-btn">Dark</button>
             </div>
         </section>
 
@@ -841,6 +873,7 @@
             const composerForm = document.getElementById('composerForm');
             const composerInput = document.getElementById('composerInput');
             const sendBtn = composerForm ? composerForm.querySelector('button[type="submit"]') : null;
+            const themeToggleBtn = document.getElementById('themeToggleBtn');
             const replyPreviewBar = document.getElementById('replyPreviewBar');
             const replyPreviewText = document.getElementById('replyPreviewText');
             const clearReplyBtn = document.getElementById('clearReplyBtn');
@@ -856,6 +889,29 @@
             let unseenIncomingCount = 0;
             let initializedMessageState = false;
             let knownIncomingMessageIds = new Set();
+            const CHAT_THEME_STORAGE_KEY = 'yeshi_mychat_theme';
+
+            function applyChatTheme(theme) {
+                const normalized = String(theme || '').trim().toLowerCase() === 'dark' ? 'dark' : 'light';
+                document.body.classList.toggle('dark-chat', normalized === 'dark');
+                if (themeToggleBtn) {
+                    themeToggleBtn.textContent = normalized === 'dark' ? 'Light' : 'Dark';
+                }
+                try {
+                    localStorage.setItem(CHAT_THEME_STORAGE_KEY, normalized);
+                } catch (_) {
+                    // ignore storage failures
+                }
+            }
+
+            if (themeToggleBtn) {
+                themeToggleBtn.addEventListener('click', function () {
+                    const next = document.body.classList.contains('dark-chat') ? 'light' : 'dark';
+                    applyChatTheme(next);
+                });
+            }
+
+            applyChatTheme(localStorage.getItem(CHAT_THEME_STORAGE_KEY) || 'light');
 
             function isAtChatBottom(threshold = 36) {
                 if (!chatStream) return true;
@@ -1138,14 +1194,11 @@
                         : String(msg.sender_id || '');
                     const mine = senderId && myUserId && senderId === myUserId;
                     // User message: right, admin message: left
-                    const userAvatarHtml = `<div class="avatar" style="background:#745b18;color:#fff;width:32px;height:32px;display:flex;align-items:center;justify-content:center;border-radius:50%;font-weight:700;">U</div>`;
-                    const adminAvatarHtml = `<div class="avatar" style="background:#745b18;color:#fff;width:32px;height:32px;display:flex;align-items:center;justify-content:center;border-radius:50%;font-weight:700;">A</div>`;
                     let rowClass = 'message-row';
                     let alignStyle = mine ? 'justify-content: flex-end;' : 'justify-content: flex-start;';
                     // Product context card
                     if (isProductContext) {
                         return `<div class="${rowClass}" style="${alignStyle} align-items:flex-end;" data-message-id="${msg._id}">
-            ${!mine ? adminAvatarHtml : ''}
             <div class="bubble${mine ? ' user' : ''}" style="padding:0; background:transparent; box-shadow:none; text-align:${mine ? 'right' : 'left'};">
                 <div class="product-card" style="background:#fff;border-radius:12px;box-shadow:0 2px 8px #0001;padding:12px 14px 14px 14px;max-width:320px;min-width:220px;">
                     <img src="${productInfo.image || '/images/logo.png'}" alt="${productInfo.title || 'Product'}" style="width:100%;max-width:260px;border-radius:8px;display:block;margin-bottom:10px;">
@@ -1157,7 +1210,6 @@
                     ${productInfo.postId ? `<a href="/user/post.html?id=${productInfo.postId}" target="_blank" style="color:#745b18;text-decoration:underline;font-size:0.97rem;">View Product</a>` : ''}
                 </div>
             </div>
-            ${mine ? userAvatarHtml : ''}
         </div>`;
                     }
                     // Handle image messages
@@ -1193,20 +1245,20 @@
                     }
 
                     // Reply button
-                    let replyBtn = `<button class="reply-btn" data-reply-id="${msg._id}" style="background:none;border:none;color:#745b18;cursor:pointer;font-size:0.9em;margin-left:4px;">↩️ Reply</button>`;
+                    let replyBtn = `<button class="reply-btn" data-reply-id="${msg._id}">Reply</button>`;
 
                     return `<div class="${rowClass}" style="${alignStyle} align-items:flex-end;" data-message-id="${msg._id}">
-            ${!mine ? adminAvatarHtml : ''}
-            <div class="bubble${mine ? ' user' : ''}" style="text-align:${mine ? 'right' : 'left'};">
+            <div>
+            <div class="bubble${mine ? ' user' : ' concierge'}" style="text-align:${mine ? 'right' : 'left'};">
                 ${replyHtml}
                 <div>${textContent ? textContent : ''}${contentHtml}</div>
-                <div style="margin-top:6px;font-size:0.85em;color:#888;display:flex;align-items:center;gap:8px;">
+            </div>
+                <div class="message-meta-row${mine ? ' user' : ''}">
                     <span>${timeStr}</span>
                     ${statusHtml}
                     ${replyBtn}
                 </div>
             </div>
-            ${mine ? userAvatarHtml : ''}
         </div>`;
                 }).join('');
                 messagesPanel.innerHTML = html;

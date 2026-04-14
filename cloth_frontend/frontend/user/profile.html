@@ -215,7 +215,6 @@
                 <div style="min-width:0;">
                     <div id="profileName" style="font-weight:800; font-size:1.2rem;">&nbsp;</div>
                     <div id="profileEmail" style="color: var(--light-text);">&nbsp;</div>
-                    <div id="profileStatus" style="margin-top:6px; color:#745B18; font-weight:700; font-size:0.85rem;">HERITAGE MEMBER</div>
                     <button type="button" class="upload-btn" id="uploadAvatarBtn"><i class="fas fa-camera" style="margin-right:6px;"></i>Upload Profile</button>
                     <input id="avatarInput" type="file" accept="image/*" style="display:none;">
                 </div>
@@ -471,8 +470,7 @@
                 ['Full name', fallbackName || '—'],
                 ['Phone', user.phone || '—'],
                 ['Age', user.age != null && user.age !== '' ? String(user.age) : '—'],
-                ['Sex', formatSex(user.sex)],
-                ['Role', user.role || 'customer']
+                ['Sex', formatSex(user.sex)]
             ];
 
             grid.innerHTML = items.map(([label, value]) => `
@@ -574,13 +572,8 @@
             const fullName = getDisplayName(user);
             const email = getDisplayEmail(user);
             const imageUrl = getProfileImage(user);
-            const statusLabel = user.role === 'admin'
-                ? 'ADMIN ACCOUNT'
-                : (String(user.status || '').toLowerCase() === 'inactive' ? 'INACTIVE ACCOUNT' : 'HERITAGE MEMBER');
-
             setText('profileName', fullName);
             setText('profileEmail', email);
-            setText('profileStatus', statusLabel);
 
             renderProfileDetails({
                 ...user,
