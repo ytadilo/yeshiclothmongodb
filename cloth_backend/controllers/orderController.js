@@ -256,6 +256,46 @@ function getOrderPaymentComment(order) {
     return hit ? String(hit).trim() : '';
 }
 
+function markOrderPaymentInfoModified(order) {
+    if (!order || typeof order.markModified !== 'function') return;
+    order.markModified('payment_info');
+    order.markModified('payment_screenshot_url');
+    order.markModified('payment_comment');
+}
+
+function resolveApproximatePaymentUploadUrl(order, uploads, usedUploadIds) {
+    if (!order || !Array.isArray(uploads) || !uploads.length) return '';
+
+    const orderUserId = String(order.user_id || '').trim();
+    if (!orderUserId) return '';
+
+    const orderCreatedAt = new Date(order.created_at || order.createdAt || 0).getTime();
+    if (!Number.isFinite(orderCreatedAt) || orderCreatedAt <= 0) return '';
+
+    const maxDistanceMs = 2 * 60 * 60 * 1000;
+    let best = null;
+
+    uploads.forEach((uploadDoc) => {
+        const uploadId = String(uploadDoc && uploadDoc._id || '').trim();
+        if (!uploadId || usedUploadIds.has(uploadId)) return;
+        if (String(uploadDoc.owner_user_id || '').trim() !== orderUserId) return;
+
+        const uploadCreatedAt = new Date(uploadDoc.created_at || 0).getTime();
+        if (!Number.isFinite(uploadCreatedAt) || uploadCreatedAt <= 0) return;
+
+        const distance = Math.abs(uploadCreatedAt - orderCreatedAt);
+        if (distance > maxDistanceMs) return;
+
+        if (!best || distance < best.distance) {
+            best = { uploadId, distance };
+        }
+    });
+
+    if (!best) return '';
+    usedUploadIds.add(best.uploadId);
+    return '/api/uploads/' + best.uploadId;
+}
+
 function stringifyAddressValue(value) {
     if (value === null || value === undefined) return '';
     if (typeof value === 'string') return value.trim();
@@ -822,6 +862,7 @@ exports.createOrder = async (req, res) => {
                 if (!order.payment_info.status) {
                     order.payment_info.status = 'Pending';
                 }
+                markOrderPaymentInfoModified(order);
             } catch (uploadErr) {
                 console.error('payment screenshot upload failed:', uploadErr.message || uploadErr);
                 // Keep the order instead of failing with 500.
@@ -1008,15 +1049,19 @@ exports.getOrders = async (req, res) => {
                 order_id: { $in: orderIds },
                 purpose: 'order_payment_screenshot'
             })
-                .select('_id order_id created_at')
+                .select('_id order_id owner_user_id created_at')
                 .sort({ created_at: -1 })
                 .lean();
 
             const latestByOrder = new Map();
+            const usedUploadIds = new Set();
             uploads.forEach((u) => {
                 const key = String(u.order_id || '');
                 if (!key || latestByOrder.has(key)) return;
-                latestByOrder.set(key, '/api/uploads/' + String(u._id));
+                const uploadId = String(u._id || '').trim();
+                if (!uploadId) return;
+                latestByOrder.set(key, '/api/uploads/' + uploadId);
+                usedUploadIds.add(uploadId);
             });
 
             orders = orders.map((order) => {
@@ -1025,7 +1070,9 @@ exports.getOrders = async (req, res) => {
                     ? order.payment_info
                     : {};
 
-                const fallback = latestByOrder.get(key) || '';
+                const fallback = latestByOrder.get(key)
+                    || resolveApproximatePaymentUploadUrl(order, uploads, usedUploadIds)
+                    || '';
                 const resolvedScreenshotUrl = getOrderPaymentScreenshotUrl(order) || fallback;
                 const resolvedComment = getOrderPaymentComment(order);
                 if (!resolvedScreenshotUrl) return order;
@@ -1346,6 +1393,7 @@ exports.uploadOrderPaymentProof = async (req, res) => {
         order.payment_screenshot_url = order.payment_info.screenshot_url;
         order.payment_comment = paymentComment;
         order.payment_info.paid_at = new Date();
+                markOrderPaymentInfoModified(order);
         order.payment_status = 'Pending';
         order.order_status = deriveOrderStatus(order.payment_status, order.sewing_status, order.order_status);
 

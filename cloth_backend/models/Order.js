@@ -130,6 +130,8 @@ const OrderSchema = new mongoose.Schema({
         paid_at: Date
     },
 
+    payment_screenshot_url: { type: String, default: '' },
+
     payment_comment: { type: String, default: '' },
     
     // Delivery Method
