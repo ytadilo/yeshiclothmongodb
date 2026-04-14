@@ -30,6 +30,12 @@ function normalizeCountryCode(value, fallback = '+251') {
     return fallback;
 }
 
+function isSupportedPostId(value) {
+    const id = String(value || '').trim();
+    if (!id) return false;
+    return getDatabaseProvider() === 'firebase' ? id.length > 0 : mongoose.Types.ObjectId.isValid(id);
+}
+
 function isCountryAllowedByRule(country, ruleScope, ruleCountries) {
     const normalizedCountry = String(country || '').trim().toLowerCase();
     const scope = String(ruleScope || 'ethiopia_only').trim();
@@ -345,11 +351,8 @@ exports.createOrder = async (req, res) => {
             const paymentMethod = String(deliveryPayment.paymentMethod || req.body.paymentMethod || '').trim();
             const deliveryMethod = normalizeDeliveryMethod(deliveryPayment.deliveryMethod || req.body.deliveryMethod || 'delivery');
             const proposedPrice = toNonNegativeNumber(req.body.proposedPriceETB ?? req.body.proposed_price_etb, 0);
-            const rawProductId = String(req.body.productId || '').trim();
-            const provider = getDatabaseProvider();
-            const hasValidPostId = provider === 'firebase'
-                ? rawProductId.length > 0
-                : (!!rawProductId && mongoose.Types.ObjectId.isValid(rawProductId));
+            const rawProductId = String(req.body.productId || req.body.postId || req.body.post_id || '').trim();
+            const hasValidPostId = isSupportedPostId(rawProductId);
             const isProductAsIsOrder = hasValidPostId;
             const safeQuantity = Math.max(1, Math.floor(Number(req.body.quantity || 1)));
 
@@ -567,7 +570,8 @@ exports.createOrder = async (req, res) => {
             orderData.customer_info = buildCustomerInfoFromRequest(req, parsedCustomer, parsedAddress, currentUserId);
 
             orderData.cloth_details = buildClothDetailsFromRequest(req, parsedCloth);
-            const hasPostOrder = !!(req.body.post_id && /^[a-f\d]{24}$/i.test(String(req.body.post_id)));
+            const incomingPostId = String(req.body.post_id || req.body.postId || '').trim();
+            const hasPostOrder = isSupportedPostId(incomingPostId);
             const requestedQty = Math.max(1, Math.floor(Number(req.body.quantity || 1)));
             orderData.quantity = requestedQty;
 
@@ -581,11 +585,11 @@ exports.createOrder = async (req, res) => {
             }
 
             if (hasPostOrder) {
-                orderData.post_id = req.body.post_id;
+                orderData.post_id = incomingPostId;
                 orderData.order_type = 'product';
 
                 try {
-                    const selectedPost = await Post.findById(req.body.post_id)
+                    const selectedPost = await Post.findById(incomingPostId)
                         .select('title category description priceETB shippingPriceETB freeShipping images stock_quantity unlimited_stock delivery_scope delivery_countries')
                         .lean();
 
@@ -621,7 +625,7 @@ exports.createOrder = async (req, res) => {
 
                         if (!selectedPost.unlimited_stock) {
                             const stockUpdate = await Post.updateOne(
-                                { _id: req.body.post_id, stock_quantity: { $gte: requestedQty } },
+                                { _id: incomingPostId, stock_quantity: { $gte: requestedQty } },
                                 { $inc: { stock_quantity: -requestedQty } }
                             );
                             if (!stockUpdate || stockUpdate.modifiedCount !== 1) {

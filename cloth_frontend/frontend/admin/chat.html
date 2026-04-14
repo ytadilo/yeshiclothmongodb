@@ -261,7 +261,7 @@
       if (!value || typeof value !== 'object') {
         return String(value || '').trim();
       }
-      return String(value._id || value.id || '').trim();
+      return String(value._id || value.id || value.user_id || value.userId || value.firebaseUid || '').trim();
     }
 
     function getDeviceFingerprint() {
@@ -427,7 +427,17 @@
                 'x-device-fingerprint': deviceFingerprint
             })
         }));
-        if (!response.ok) throw new Error('Request failed');
+      if (!response.ok) {
+        const raw = await response.text();
+        let message = raw || 'Request failed';
+        try {
+          const parsed = raw ? JSON.parse(raw) : null;
+          if (parsed && parsed.msg) message = parsed.msg;
+        } catch (_) {
+          // keep response text as-is
+        }
+        throw new Error(message);
+      }
         return response.json();
     }
 
@@ -626,8 +636,11 @@
         if (!selectedId) return;
         const message = String(text || '').trim();
         if (!message) return;
+      const selected = contactList.find(function (c) { return resolveId(c) === selectedId; });
+      const receiverId = resolveId(selected) || String(selectedId || '').trim();
+      if (!receiverId) throw new Error('Customer ID is missing');
         let replyTo = messageInput.getAttribute('data-reply-to');
-        const payload = { receiver_id: selectedId, message: message };
+      const payload = { receiver_id: receiverId, message: message };
         if (replyTo) payload.reply_to = replyTo;
         await api('/api/workflow/chat/messages', {
             method: 'POST',
@@ -686,8 +699,9 @@
 
     composer.addEventListener('submit', function (e) {
         e.preventDefault();
-        sendComposedMessage(messageInput.value, selectedAttachmentFile).catch(function () {
-            messagesEl.innerHTML += '<p class="text-gray-400 mt-2">Failed to send. Please retry.</p>';
+      sendComposedMessage(messageInput.value, selectedAttachmentFile).catch(function (err) {
+        const msg = err && err.message ? err.message : 'Failed to send. Please retry.';
+        messagesEl.innerHTML += '<p class="text-gray-400 mt-2">' + escapeHtml(msg) + '</p>';
         });
     });
 

@@ -63,6 +63,7 @@ function getProtectedUserPaths() {
         '/my-orders',
         '/user/my-orders.html',
         '/mychat',
+        '/user/mychat',
         '/user/mychat.html',
         '/order',
         '/user/order.html',
@@ -538,6 +539,8 @@ function initAnalyticsTracking() {
         const productId =
             String(el.getAttribute('data-product-id') || '') ||
             String(el.getAttribute('data-post-id') || '') ||
+            String(el.getAttribute('data-like-post-id') || '') ||
+            String(el.getAttribute('data-share-post-id') || '') ||
             String(el.getAttribute('data-add-cart-post-id') || '') ||
             getCurrentProductIdFromContext();
 
@@ -546,12 +549,12 @@ function initAnalyticsTracking() {
             trackAnalyticsEvent('add_to_cart', { productId });
         }
 
-        const isLike = action === 'like' || el.matches('[data-like], .like-btn, .btn-like') || aria.includes('like') || text === 'like';
+        const isLike = action === 'like' || el.matches('[data-like], [data-like-post-id], .like-btn, .btn-like') || aria.includes('like') || text === 'like';
         if (isLike) {
             trackAnalyticsEvent('like', { productId });
         }
 
-        const isShare = action === 'share' || el.matches('[data-share], .share-btn, .btn-share') || aria.includes('share') || text.includes('share');
+        const isShare = action === 'share' || el.matches('[data-share], [data-share-post-id], .share-btn, .btn-share') || aria.includes('share') || text.includes('share');
         if (isShare) {
             trackAnalyticsEvent('share', { productId });
         }
@@ -730,11 +733,18 @@ function enforceMobileTopNavLayout() {
                     gap: 6px;
                     align-items: center;
                 }
-                nav:not(#yeshiMobileBottomNav) .yeshi-order-btn,
                 nav:not(#yeshiMobileBottomNav) [aria-label="Favorites"],
                 nav:not(#yeshiMobileBottomNav) [aria-label="Open MyChat"],
                 nav:not(#yeshiMobileBottomNav) [aria-label="Profile"] {
                     display: none !important;
+                }
+                nav:not(#yeshiMobileBottomNav) .yeshi-order-btn {
+                    display: inline-flex !important;
+                    padding: 0.48rem 0.72rem;
+                    font-size: 0.68rem;
+                    letter-spacing: 0.14em;
+                    line-height: 1;
+                    white-space: nowrap;
                 }
                 nav:not(#yeshiMobileBottomNav) #shoppingBagLink {
                     display: none !important;
@@ -1048,6 +1058,9 @@ function ensureHomepageNavForListedPages() {
         '/user',
         '/user/index',
         '/user/index.html',
+        '/mychat',
+        '/user/mychat',
+        '/user/mychat.html',
         '/my-orders',
         '/user/my-orders.html',
         '/order',

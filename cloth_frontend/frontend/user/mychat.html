@@ -61,8 +61,9 @@
         }
 
         body.mychat-page {
-            height: 100vh;
-            overflow: hidden;
+            min-height: 100vh;
+            overflow-x: hidden;
+            overflow-y: auto;
         }
 
         a {
@@ -77,14 +78,19 @@
 
         .shell {
             max-width: 600px;
-            height: 100vh;
-            margin: 0 auto;
+            height: calc(100vh - 120px);
+            min-height: calc(100vh - 120px);
+            margin: 92px auto 28px;
             background: color-mix(in srgb, var(--surface) 94%, #ffffff 6%);
             box-shadow: 0 0 0 1px var(--outline-ghost), 0 24px 60px rgba(26, 28, 28, 0.06);
             position: relative;
             overflow: hidden;
             display: flex;
             flex-direction: column;
+        }
+
+        body.mychat-page.yeshi-home-nav-active .shell {
+            max-width: min(600px, calc(100% - 24px));
         }
 
         .topbar {
@@ -662,6 +668,17 @@
             }
         }
 
+        @media (max-width: 900px) {
+            .shell {
+                height: calc(100vh - 154px);
+                min-height: calc(100vh - 154px);
+                margin: 76px auto 0;
+                max-width: 100%;
+                box-shadow: none;
+                border-radius: 0;
+            }
+        }
+
         body.embedded-chat-panel #yeshiMobileBottomNav {
             display: none !important;
             visibility: hidden !important;
@@ -681,9 +698,9 @@
         }
     </style>
 </head>
-<body class="mychat-page">
+<body class="mychat-page yeshi-has-bottom-nav">
     <div class="shell">
-        <header class="topbar">
+        <section class="topbar">
             <div class="topbar-row">
                 <div class="topbar-left">
                     <button type="button" class="topbar-btn" aria-label="Back" onclick="window.history.length > 1 ? window.history.back() : (window.location.href='/user/index.html')">
@@ -695,7 +712,7 @@
                     </div>
                 </div>
             </div>
-        </header>
+        </section>
 
         <main class="chat-stream">
 
@@ -758,6 +775,12 @@
             const token = localStorage.getItem('token');
             const user = JSON.parse(localStorage.getItem('user') || '{}');
             const myUserId = user && (user.id || user._id) ? String(user.id || user._id) : '';
+
+            function resolveEntityId(value) {
+                if (!value) return '';
+                if (typeof value === 'string' || typeof value === 'number') return String(value).trim();
+                return String(value._id || value.id || value.user_id || value.userId || '').trim();
+            }
 
             const productContextState = {
                 postId,
@@ -1216,8 +1239,9 @@
                 const list = Array.isArray(contacts) ? contacts : [];
                 if (!list.length) throw new Error('No admin contact available');
                 const admin = list.find((c) => String(c && c.role || '').toLowerCase() === 'admin') || list[0];
-                if (!admin || !admin._id) throw new Error('No admin contact available');
-                adminId = String(admin._id);
+                const resolvedAdminId = resolveEntityId(admin);
+                if (!admin || !resolvedAdminId) throw new Error('No admin contact available');
+                adminId = resolvedAdminId;
                 if (sendBtn) sendBtn.disabled = false;
                 if (chatMeta) chatMeta.textContent = 'Live MyChat support';
             }
@@ -1297,7 +1321,14 @@
                 });
                 if (!res.ok) {
                     const raw = await res.text();
-                    throw new Error(raw || 'Failed to send');
+                    let message = raw || 'Failed to send';
+                    try {
+                        const parsed = raw ? JSON.parse(raw) : null;
+                        if (parsed && parsed.msg) message = parsed.msg;
+                    } catch (_) {
+                        // keep raw message
+                    }
+                    throw new Error(message);
                 }
                 composerInput.value = '';
                 clearReplyTarget();

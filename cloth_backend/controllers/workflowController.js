@@ -7,6 +7,7 @@ const Order = require('../models/Order');
 const Upload = require('../models/Upload');
 const Post = require('../models/Post');
 const { subscribe, unsubscribe, pushEvent } = require('../utils/realtime');
+const { getDatabaseProvider } = require('../utils/db');
 
 function isAdmin(req) {
     return req.user && req.user.role === 'admin';
@@ -55,6 +56,22 @@ function staffingFeatureRemoved(res) {
     return res.status(410).json({ msg: STAFFING_FEATURE_REMOVAL_MSG });
 }
 
+function isFirebaseProvider() {
+    return getDatabaseProvider() === 'firebase';
+}
+
+function isValidAppId(value) {
+    const id = String(value || '').trim();
+    if (!id) return false;
+    return isFirebaseProvider() ? id.length > 0 : mongoose.isValidObjectId(id);
+}
+
+function isValidChatReferenceId(value) {
+    const id = String(value || '').trim();
+    if (!id) return false;
+    return isFirebaseProvider() ? id.length > 0 : mongoose.isValidObjectId(id);
+}
+
 exports.createJob = async (_req, res) => staffingFeatureRemoved(res);
 exports.updateJob = async (_req, res) => staffingFeatureRemoved(res);
 exports.listJobs = async (_req, res) => staffingFeatureRemoved(res);
@@ -80,9 +97,9 @@ exports.sendMessage = async (req, res) => {
         const text = String(req.body.message || '').trim();
         const jobId = String(req.body.job_id || '').trim();
         const deliveryId = String(req.body.delivery_id || '').trim();
-        const replyTo = req.body.reply_to && mongoose.isValidObjectId(req.body.reply_to) ? req.body.reply_to : null;
+        const replyTo = isValidChatReferenceId(req.body.reply_to) ? String(req.body.reply_to).trim() : null;
 
-        if (!mongoose.isValidObjectId(receiverId)) return res.status(400).json({ msg: 'Invalid receiver' });
+        if (!isValidAppId(receiverId)) return res.status(400).json({ msg: 'Invalid receiver' });
         if (!text) return res.status(400).json({ msg: 'Message is required' });
 
         const receiver = await User.findById(receiverId).select('role');
@@ -240,7 +257,7 @@ exports.listMessages = async (req, res) => {
             const adminIds = adminDocs.map((admin) => String(admin._id));
             if (!adminIds.length) return res.json([]);
             // Only allow messages with admin(s)
-            if (mongoose.isValidObjectId(otherId) && adminIds.includes(otherId)) {
+            if (isValidAppId(otherId) && adminIds.includes(otherId)) {
                 query.$or = [
                     { sender_id: req.user.id, receiver_id: otherId },
                     { sender_id: otherId, receiver_id: req.user.id }
@@ -252,7 +269,7 @@ exports.listMessages = async (req, res) => {
                     { sender_id: { $in: adminIds }, receiver_id: req.user.id }
                 ];
             }
-        } else if (isAdmin(req) && mongoose.isValidObjectId(otherId)) {
+        } else if (isAdmin(req) && isValidAppId(otherId)) {
             // Admin: see chat with any user (otherId)
             query.$or = [
                 { sender_id: req.user.id, receiver_id: otherId },
@@ -329,7 +346,7 @@ exports.blockMessaging = async (req, res) => {
         if (!isAdmin(req)) return res.status(403).json({ msg: 'Access denied' });
         const userId = String(req.params.userId || '').trim();
         const blocked = !!req.body.blocked_status;
-        if (!mongoose.isValidObjectId(userId)) return res.status(400).json({ msg: 'Invalid user id' });
+        if (!isValidAppId(userId)) return res.status(400).json({ msg: 'Invalid user id' });
 
         const user = await User.findById(userId);
         if (!user) return res.status(404).json({ msg: 'User not found' });

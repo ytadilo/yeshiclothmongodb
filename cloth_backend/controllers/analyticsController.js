@@ -235,7 +235,7 @@ exports.getUserActivity = async (req, res) => {
       safeFindAll(AnalyticsEvent, { timestamp: { $gte: start, $lte: end } }, { timestamp: 1 }),
       safeFindAll(User, {}, { createdAt: -1 }, '_id fullName email createdAt lastLoginAt'),
       safeFindAll(Order, { created_at: { $gte: start, $lte: end } }, { created_at: -1 }),
-      safeFindAll(Post, {}, { created_at: -1 }, '_id title viewCount created_at')
+      safeFindAll(Post, {}, { created_at: -1 }, '_id title viewCount created_at bagCount shareCount likes')
     ]);
 
     const allUsers = Array.isArray(users) ? users : [];
@@ -328,6 +328,24 @@ exports.getUserActivity = async (req, res) => {
     });
 
     const postViewMap = new Map(allPosts.map((post) => [String(post._id || post.id || ''), Number(post.viewCount || 0)]));
+    allPosts.forEach((post) => {
+      const postId = String(post?._id || post?.id || '').trim();
+      if (!postId) return;
+
+      const bagCount = Number(post?.bagCount || 0);
+      const shareCount = Number(post?.shareCount || 0);
+      const likesCount = Array.isArray(post?.likes) ? post.likes.length : Number(post?.likesCount || 0);
+
+      if (bagCount > 0) {
+        addToCartMap.set(postId, Math.max(addToCartMap.get(postId) || 0, bagCount));
+      }
+      if (shareCount > 0) {
+        shareMap.set(postId, Math.max(shareMap.get(postId) || 0, shareCount));
+      }
+      if (likesCount > 0) {
+        likeMap.set(postId, Math.max(likeMap.get(postId) || 0, likesCount));
+      }
+    });
     analyticsEvents.filter((event) => String(event?.eventType || '').trim() === 'product_view').forEach((event) => {
       const productId = String(event?.eventData?.productId || '').trim();
       if (!productId) return;

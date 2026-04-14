@@ -473,7 +473,7 @@
             const firstVisit = row.firstVisit ? new Date(row.firstVisit).toLocaleString() : '—';
             const lastActive = row.lastActive ? new Date(row.lastActive).toLocaleString() : '—';
             const userId = String(row.userId || '').trim();
-            const hasAccount = /^[a-f0-9]{24}$/i.test(userId);
+            const hasAccount = !!userId;
             const previewHref = hasAccount ? `/admin/users?userId=${encodeURIComponent(userId)}` : '';
             return `
                 <tr>

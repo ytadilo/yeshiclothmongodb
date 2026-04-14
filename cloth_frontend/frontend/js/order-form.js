@@ -480,13 +480,13 @@ function renderSavedMeasurementPreview(profile) {
     }
 
     const data = {
-        height: Number(profile.height || profile.length || 0),
-        shoulder: Number(profile.shoulder || 0),
-        chest: Number(profile.chest || 0),
-        waist: Number(profile.waist || 0),
-        hip: Number(profile.hip || 0),
-        length: Number(profile.length || 0),
-        sleeve: Number(profile.sleeve_length || 0)
+        height: readMeasurementNumber(profile.height || profile.length || 0),
+        shoulder: readMeasurementNumber(profile.shoulder || 0),
+        chest: readMeasurementNumber(profile.chest || 0),
+        waist: readMeasurementNumber(profile.waist || 0),
+        hip: readMeasurementNumber(profile.hip || 0),
+        length: readMeasurementNumber(profile.length || 0),
+        sleeve: readMeasurementNumber(profile.sleeve_length || 0)
     };
 
     const fieldsHtml = getMeasurementFieldDefs().map((field) => {
@@ -536,13 +536,13 @@ function buildMeasurementEntriesFromSavedProfile(profile, category, quantity) {
     const blocks = getMeasurementBlocks(category, quantity, normalMode);
     const personName = String(profile.profile_name || '').trim();
     const measurementDetails = {
-        height: String(Number(profile.height || profile.length || 0) || ''),
-        shoulder: String(Number(profile.shoulder || 0) || ''),
-        chest: String(Number(profile.chest || 0) || ''),
-        waist: String(Number(profile.waist || 0) || ''),
-        hip: String(Number(profile.hip || 0) || ''),
-        length: String(Number(profile.length || 0) || ''),
-        sleeve: String(Number(profile.sleeve_length || 0) || '')
+        height: sanitizeMeasurementValue(profile.height || profile.length || 0),
+        shoulder: sanitizeMeasurementValue(profile.shoulder || 0),
+        chest: sanitizeMeasurementValue(profile.chest || 0),
+        waist: sanitizeMeasurementValue(profile.waist || 0),
+        hip: sanitizeMeasurementValue(profile.hip || 0),
+        length: sanitizeMeasurementValue(profile.length || 0),
+        sleeve: sanitizeMeasurementValue(profile.sleeve_length || 0)
     };
 
     return blocks.map((block) => ({
@@ -572,8 +572,9 @@ function fillMeasurementBlocksFromProfile(profile) {
         };
         Object.entries(map).forEach(([key, value]) => {
             const field = entry.querySelector(`[data-measure-field="${key}"]`);
-            if (field && Number(value) > 0) {
-                field.value = String(value);
+            const sanitized = sanitizeMeasurementValue(value);
+            if (field && sanitized) {
+                field.value = sanitized;
             }
         });
     });
@@ -800,6 +801,46 @@ function getMeasurementFieldDefs() {
     ];
 }
 
+function sanitizeMeasurementValue(value) {
+    const raw = String(value ?? '').trim();
+    if (!raw) return '';
+    const normalized = raw.replace(/,/g, '.');
+    const parsed = Number(normalized);
+    if (Number.isFinite(parsed) && parsed > 0) {
+        return String(Math.trunc(parsed));
+    }
+    const matched = normalized.match(/\d+(?:\.\d+)?/);
+    if (!matched) return '';
+    const fallback = Number(matched[0]);
+    return Number.isFinite(fallback) && fallback > 0 ? String(Math.trunc(fallback)) : '';
+}
+
+function readMeasurementNumber(value) {
+    const sanitized = sanitizeMeasurementValue(value);
+    return sanitized ? Number(sanitized) : 0;
+}
+
+function initMeasurementInputSanitizer() {
+    const container = document.getElementById('measurementBlocksContainer');
+    if (!container || container.dataset.integerMeasurementBound === '1') return;
+
+    const syncValue = (field) => {
+        if (!field || !field.matches('[data-measure-field]')) return;
+        const sanitized = sanitizeMeasurementValue(field.value);
+        if (field.value !== sanitized) {
+            field.value = sanitized;
+        }
+    };
+
+    container.addEventListener('input', (event) => {
+        syncValue(event.target);
+    });
+    container.addEventListener('blur', (event) => {
+        syncValue(event.target);
+    }, true);
+    container.dataset.integerMeasurementBound = '1';
+}
+
 function collectExistingMeasurementValues() {
     const map = new Map();
     document.querySelectorAll('.measurement-entry').forEach((entry) => {
@@ -809,7 +850,7 @@ function collectExistingMeasurementValues() {
         const measurements = {};
         getMeasurementFieldDefs().forEach((field) => {
             const raw = String(entry.querySelector(`[data-measure-field="${field.key}"]`)?.value || '').trim();
-            measurements[field.key] = raw;
+            measurements[field.key] = sanitizeMeasurementValue(raw);
         });
         map.set(key, { personName, measurements });
     });
@@ -842,7 +883,7 @@ function renderMeasurementBlocks() {
         const fieldsHtml = getMeasurementFieldDefs().map((field) => `
             <div class="form-group" style="margin-bottom:8px;">
                 <label>${field.label}</label>
-                <input type="number" min="0" step="0.1" class="form-control" data-measure-field="${field.key}" placeholder="cm" value="${escapeHtml(String(old.measurements?.[field.key] || ''))}">
+                <input type="number" min="0" step="1" inputmode="numeric" class="form-control" data-measure-field="${field.key}" placeholder="cm" value="${escapeHtml(sanitizeMeasurementValue(old.measurements?.[field.key] || ''))}">
             </div>
         `).join('');
         return `
@@ -859,6 +900,7 @@ function renderMeasurementBlocks() {
     }).join('');
 
     container.innerHTML = html;
+    initMeasurementInputSanitizer();
 
     if (useSavedMeasurements) {
         const selectedId = String(document.getElementById('savedMeasurementSelect')?.value || '');
@@ -878,7 +920,7 @@ function collectMeasurementEntries() {
             personName: String(entry.querySelector('[data-measure-person]')?.value || '').trim(),
             measurementDetails: getMeasurementFieldDefs().reduce((acc, field) => {
                 const raw = String(entry.querySelector(`[data-measure-field="${field.key}"]`)?.value || '').trim();
-                acc[field.key] = raw;
+                acc[field.key] = sanitizeMeasurementValue(raw);
                 return acc;
             }, {})
         });
