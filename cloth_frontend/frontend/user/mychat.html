@@ -82,6 +82,8 @@
             min-height: 100vh;
             overflow-x: hidden;
             overflow-y: hidden;
+            padding-top: 0 !important;
+            padding-bottom: 0 !important;
         }
 
         a {
@@ -440,7 +442,7 @@
             background: rgba(251, 248, 243, 0.94);
             backdrop-filter: blur(14px);
             border-top: 1px solid var(--outline-ghost);
-            z-index: 20;
+            z-index: 2601;
         }
 
         .composer {
@@ -605,10 +607,11 @@
         @media (max-width: 640px) {
             .composer-wrap {
                 padding: 10px 10px 14px;
+                bottom: calc(var(--chat-mobile-bottom-offset) + 8px);
             }
 
             .chat-stream {
-                padding: 16px 14px calc(160px + var(--chat-mobile-bottom-offset));
+                padding: 16px 14px calc(184px + var(--chat-mobile-bottom-offset));
             }
 
             .theme-toggle-btn {
@@ -629,7 +632,7 @@
             }
 
             .chat-stream {
-                padding: 14px 14px calc(158px + var(--chat-mobile-bottom-offset));
+                padding: 14px 14px calc(182px + var(--chat-mobile-bottom-offset));
                 min-height: 0;
             }
 
@@ -637,6 +640,7 @@
                 width: 100vw;
                 left: 0;
                 transform: none;
+                bottom: calc(var(--chat-mobile-bottom-offset) + 8px);
                 padding: 10px 12px 14px;
             }
 
@@ -749,6 +753,7 @@
 
             body.mychat-page {
                 padding-bottom: 0 !important;
+                padding-top: 0 !important;
             }
 
             .topbar-row {
@@ -932,6 +937,67 @@
                     // ignore
                 }
             }
+
+            function buildProductContextPayload() {
+                return {
+                    type: 'product_context',
+                    postId: productContextState.postId || '',
+                    title: productContextState.title || '',
+                    image: productContextState.image || '',
+                    price: productContextState.price || '',
+                    shipping: productContextState.shipping || '',
+                    category: productContextState.category || '',
+                    description: productContextState.description || ''
+                };
+            }
+
+            function normalizeComparableText(value) {
+                return String(value || '').trim().toLowerCase();
+            }
+
+            function isSameProductContextMessage(rawMessage, expectedContext) {
+                const value = String(rawMessage || '').trim();
+                if (!value || !expectedContext) return false;
+                try {
+                    const parsed = JSON.parse(value);
+                    if (!parsed || (parsed.type !== 'product_context' && !parsed.postId && !parsed.title && !parsed.image)) {
+                        return false;
+                    }
+                    const expectedPostId = normalizeComparableText(expectedContext.postId);
+                    const actualPostId = normalizeComparableText(parsed.postId);
+                    if (expectedPostId && actualPostId) {
+                        return expectedPostId === actualPostId;
+                    }
+                    return normalizeComparableText(parsed.title) === normalizeComparableText(expectedContext.title)
+                        && normalizeComparableText(parsed.image) === normalizeComparableText(expectedContext.image)
+                        && normalizeComparableText(parsed.description) === normalizeComparableText(expectedContext.description);
+                } catch (_) {
+                    return false;
+                }
+            }
+
+            async function fetchConversationMessages() {
+                if (!adminId) return [];
+                const res = await fetch('/api/workflow/chat/messages?other_user_id=' + encodeURIComponent(adminId), {
+                    headers: { 'x-auth-token': token }
+                });
+                if (!res.ok) throw new Error('Failed messages');
+                const messages = await res.json();
+                return Array.isArray(messages) ? messages : [];
+            }
+
+            function clearProductContextQueryParams() {
+                try {
+                    const url = new URL(window.location.href);
+                    ['postId', 'title', 'image', 'price', 'shipping', 'category', 'description'].forEach(function (key) {
+                        url.searchParams.delete(key);
+                    });
+                    const nextUrl = url.pathname + url.search + url.hash;
+                    window.history.replaceState({}, document.title, nextUrl);
+                } catch (_) {
+                    // ignore
+                }
+            }
             renderProductContext();
             const messagesPanel = document.getElementById('messagesPanel');
             const chatStream = document.querySelector('.chat-stream');
@@ -968,6 +1034,35 @@
                 const topOffset = mobileViewport && homeNav ? `${Math.ceil(homeNav.getBoundingClientRect().height || 0)}px` : '0px';
                 document.documentElement.style.setProperty('--chat-mobile-bottom-offset', bottomOffset);
                 document.documentElement.style.setProperty('--chat-mobile-top-offset', topOffset);
+
+                if (document.body) {
+                    document.body.style.paddingTop = '0px';
+                    document.body.style.paddingBottom = '0px';
+                }
+
+                if (!mobileViewport) {
+                    if (bottomNav) {
+                        bottomNav.style.display = 'none';
+                        bottomNav.style.visibility = 'hidden';
+                        bottomNav.style.pointerEvents = 'none';
+                    }
+                    if (homeNav) {
+                        homeNav.style.display = 'none';
+                        homeNav.style.visibility = 'hidden';
+                        homeNav.style.pointerEvents = 'none';
+                    }
+                } else {
+                    if (bottomNav) {
+                        bottomNav.style.display = '';
+                        bottomNav.style.visibility = '';
+                        bottomNav.style.pointerEvents = '';
+                    }
+                    if (homeNav) {
+                        homeNav.style.display = '';
+                        homeNav.style.visibility = '';
+                        homeNav.style.pointerEvents = '';
+                    }
+                }
             }
 
             function applyChatTheme(theme) {
@@ -1524,24 +1619,24 @@
                         await hydrateProductContextFromPost();
                         renderProductContext();
                         await loadContacts();
-                        const productContext = {
-                            type: 'product_context',
-                            postId: productContextState.postId || '',
-                            title: productContextState.title || '',
-                            image: productContextState.image || '',
-                            price: productContextState.price || '',
-                            shipping: productContextState.shipping || '',
-                            category: productContextState.category || '',
-                            description: productContextState.description || ''
-                        };
-                        await fetch('/api/workflow/chat/messages', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'x-auth-token': token
-                            },
-                            body: JSON.stringify({ receiver_id: adminId, message: JSON.stringify(productContext) })
+                        const productContext = buildProductContextPayload();
+                        const existingMessages = await fetchConversationMessages();
+                        const alreadyShared = existingMessages.some(function (message) {
+                            return isSameProductContextMessage(message && message.message, productContext);
                         });
+
+                        if (!alreadyShared) {
+                            await fetch('/api/workflow/chat/messages', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'x-auth-token': token
+                                },
+                                body: JSON.stringify({ receiver_id: adminId, message: JSON.stringify(productContext) })
+                            });
+                        }
+
+                        clearProductContextQueryParams();
                         await loadMessages();
                         if (composerInput) composerInput.value = '';
                     } catch (err) {
