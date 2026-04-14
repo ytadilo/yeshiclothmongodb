@@ -28,7 +28,7 @@ router.get('/:id', optionalAuth, async (req, res) => {
         }
 
         const upload = await Upload.findById(id).select(
-            'data mimeType originalName visibility owner_user_id purpose'
+            'data storage_path mimeType originalName visibility owner_user_id purpose'
         );
 
         if (!upload) return res.status(404).json({ msg: 'Upload not found' });

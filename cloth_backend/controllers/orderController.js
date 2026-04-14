@@ -7,6 +7,9 @@ const User = require('../models/User');
 const Notification = require('../models/Notification');
 const SiteSettings = require('../models/SiteSettings');
 const { getDatabaseProvider } = require('../utils/db');
+const fs = require('fs');
+const path = require('path');
+const crypto = require('crypto');
 
 function toNonNegativeNumber(value, fallback = 0) {
     const n = Number(value);
@@ -261,6 +264,43 @@ function markOrderPaymentInfoModified(order) {
     order.markModified('payment_info');
     order.markModified('payment_screenshot_url');
     order.markModified('payment_comment');
+}
+
+async function savePrivateOrderUpload(file, ownerUserId, purpose, orderId) {
+    if (!file || !file.buffer) return null;
+
+    const uploadsDir = path.join(__dirname, '..', 'uploads', 'orders');
+    await fs.promises.mkdir(uploadsDir, { recursive: true });
+
+    const ext = path.extname(String(file.originalname || '')).slice(0, 16);
+    const generatedName = `${Date.now()}-${crypto.randomUUID()}${ext}`;
+    const absoluteFilePath = path.join(uploadsDir, generatedName);
+    const relativeStoragePath = path.posix.join('orders', generatedName);
+
+    await fs.promises.writeFile(absoluteFilePath, file.buffer);
+
+    return Upload.create({
+        originalName: file.originalname || 'upload',
+        mimeType: file.mimetype || 'application/octet-stream',
+        size: Number(file.size || 0),
+        storage_path: relativeStoragePath,
+        visibility: 'private',
+        owner_user_id: ownerUserId || undefined,
+        purpose: String(purpose || '').trim(),
+        order_id: orderId || undefined
+    });
+}
+
+async function restorePostOrderStock(order) {
+    const postId = String(order?.post_id || '').trim();
+    const qty = Math.max(1, Math.floor(Number(order?.quantity || 1)));
+    if (!postId || qty <= 0) return;
+
+    try {
+        await Post.updateOne({ _id: postId }, { $inc: { stock_quantity: qty } });
+    } catch (stockErr) {
+        console.error('restorePostOrderStock error:', stockErr?.message || stockErr);
+    }
 }
 
 function resolveApproximatePaymentUploadUrl(order, uploads, usedUploadIds) {
@@ -840,19 +880,15 @@ exports.createOrder = async (req, res) => {
         const newOrder = new Order(orderData);
         const order = await newOrder.save();
 
-        // Save uploaded files into MongoDB so they can be accessed from DB
+        // Persist uploaded files and fail product-linked orders if the required payment proof cannot be saved.
         if (paymentFile && paymentFile.buffer) {
             try {
-                const up = await Upload.create({
-                    originalName: paymentFile.originalname,
-                    mimeType: paymentFile.mimetype,
-                    size: paymentFile.size,
-                    data: paymentFile.buffer,
-                    visibility: 'private',
-                    owner_user_id: currentUserId || undefined,
-                    purpose: 'order_payment_screenshot',
-                    order_id: order._id
-                });
+                const up = await savePrivateOrderUpload(
+                    paymentFile,
+                    currentUserId || undefined,
+                    'order_payment_screenshot',
+                    order._id
+                );
                 order.payment_info = order.payment_info || {};
                 order.payment_info.comment = paymentComment;
                 order.payment_info.screenshot_url = '/api/uploads/' + up._id;
@@ -865,7 +901,11 @@ exports.createOrder = async (req, res) => {
                 markOrderPaymentInfoModified(order);
             } catch (uploadErr) {
                 console.error('payment screenshot upload failed:', uploadErr.message || uploadErr);
-                // Keep the order instead of failing with 500.
+                if (orderData.post_id) {
+                    await Order.deleteOne({ _id: order._id });
+                    await restorePostOrderStock(order);
+                    return res.status(500).json({ msg: 'Saving payment proof failed. Please retry the order with the screenshot again.' });
+                }
             }
         }
 
@@ -1374,16 +1414,12 @@ exports.uploadOrderPaymentProof = async (req, res) => {
             return res.status(400).json({ msg: 'Payment screenshot is required' });
         }
 
-        const up = await Upload.create({
-            originalName: file.originalname,
-            mimeType: file.mimetype,
-            size: file.size,
-            data: file.buffer,
-            visibility: 'private',
-            owner_user_id: req.user && req.user.id ? req.user.id : undefined,
-            purpose: 'order_payment_screenshot',
-            order_id: order._id
-        });
+        const up = await savePrivateOrderUpload(
+            file,
+            req.user && req.user.id ? req.user.id : undefined,
+            'order_payment_screenshot',
+            order._id
+        );
 
         order.payment_info = order.payment_info || {};
         order.payment_info.method = paymentMethod;
