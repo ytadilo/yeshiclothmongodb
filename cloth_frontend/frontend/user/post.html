@@ -921,6 +921,67 @@
             return '';
         }
 
+        function getVideoPlatform(url) {
+            const value = String(url || '').toLowerCase();
+            if (!value) return 'unknown';
+            if (value.includes('youtube.com') || value.includes('youtu.be')) return 'youtube';
+            if (value.includes('instagram.com')) return 'instagram';
+            if (value.includes('tiktok.com')) return 'tiktok';
+            if (value.endsWith('.mp4') || value.endsWith('.webm') || value.endsWith('.ogg')) return 'direct';
+            return 'external';
+        }
+
+        async function sendVideoViewAnalytics(url) {
+            const value = String(url || '').trim();
+            const normalizedPostId = String(postId || '').trim();
+            if (!value || !normalizedPostId) return;
+
+            const sessionKey = `yeshi_video_view_${normalizedPostId}_${value}`;
+            try {
+                if (sessionStorage.getItem(sessionKey)) return;
+                sessionStorage.setItem(sessionKey, '1');
+            } catch (_) {
+                // ignore sessionStorage failures
+            }
+
+            const payload = {
+                productId: normalizedPostId,
+                platform: getVideoPlatform(value),
+                url: value,
+                path: String(window.location.pathname || '')
+            };
+
+            try {
+                if (typeof window.trackAnalyticsEvent === 'function') {
+                    await window.trackAnalyticsEvent('video_view', payload);
+                    return;
+                }
+            } catch (_) {
+                // fall back to direct request
+            }
+
+            try {
+                const token = localStorage.getItem('token');
+                const headers = { 'Content-Type': 'application/json' };
+                if (token) headers['x-auth-token'] = token;
+
+                await fetch('/api/analytics/track', {
+                    method: 'POST',
+                    headers,
+                    body: JSON.stringify({
+                        eventType: 'video_view',
+                        eventData: payload,
+                        deviceId: (typeof window.getAnalyticsDeviceId === 'function') ? window.getAnalyticsDeviceId() : '',
+                        deviceType: (typeof window.detectDeviceType === 'function') ? window.detectDeviceType() : 'desktop',
+                        sessionId: (typeof window.getAnalyticsSessionId === 'function') ? window.getAnalyticsSessionId() : ''
+                    }),
+                    keepalive: true
+                });
+            } catch (_) {
+                // analytics failures should stay silent
+            }
+        }
+
         function renderVideoEmbed(url) {
             const value = String(url || '').trim();
             if (!value) return '';
@@ -928,7 +989,7 @@
             const yt = getYouTubeEmbedUrl(value);
             if (yt) {
                 return `
-                    <div class="video-wrap">
+                    <div class="video-wrap" data-video-url="${escapeHtml(value)}">
                         <iframe src="${yt}" title="Video" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
                     </div>
                 `;
@@ -939,7 +1000,7 @@
             const tiktok = getTikTokEmbedUrl(value);
             if (tiktok) {
                 return `
-                    <div class="video-wrap tiktok-wrap">
+                    <div class="video-wrap tiktok-wrap" data-video-url="${escapeHtml(value)}">
                         <iframe src="${tiktok}" title="TikTok video" scrolling="no" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
                     </div>
                 `;
@@ -948,7 +1009,7 @@
             const instagram = getInstagramEmbedUrl(value);
             if (instagram) {
                 return `
-                    <div class="video-wrap tiktok-wrap">
+                    <div class="video-wrap tiktok-wrap" data-video-url="${escapeHtml(value)}">
                         <iframe src="${instagram}" title="Instagram reel" scrolling="no" allow="autoplay; clipboard-write; encrypted-media; picture-in-picture" allowfullscreen></iframe>
                     </div>
                 `;
@@ -957,15 +1018,15 @@
             const isDirectVideo = lower.endsWith('.mp4') || lower.endsWith('.webm') || lower.endsWith('.ogg');
             if (isDirectVideo) {
                 return `
-                    <div class="video-wrap">
-                        <video src="${value}" controls playsinline></video>
+                    <div class="video-wrap" data-video-url="${escapeHtml(value)}">
+                        <video src="${value}" controls playsinline data-video-url="${escapeHtml(value)}"></video>
                     </div>
                 `;
             }
 
             return `
-                <div class="video-wrap">
-                    <a href="${value}" target="_blank" rel="noopener noreferrer" class="btn btn-soft" style="text-transform:none; letter-spacing:0; font-size:0.92rem;">Open video link</a>
+                <div class="video-wrap" data-video-url="${escapeHtml(value)}">
+                    <a href="${value}" target="_blank" rel="noopener noreferrer" class="btn btn-soft" data-video-url="${escapeHtml(value)}" style="text-transform:none; letter-spacing:0; font-size:0.92rem;">Open video link</a>
                 </div>
             `;
         }
@@ -1341,6 +1402,26 @@
                     });
                 }
 
+                if (videoUrls.length === 1) {
+                    sendVideoViewAnalytics(videoUrls[0]);
+                }
+
+                document.querySelectorAll('.video-wrap a[data-video-url]').forEach((link) => {
+                    if (link.dataset.analyticsBound === '1') return;
+                    link.dataset.analyticsBound = '1';
+                    link.addEventListener('click', () => {
+                        sendVideoViewAnalytics(link.getAttribute('data-video-url') || '');
+                    });
+                });
+
+                document.querySelectorAll('.video-wrap video[data-video-url]').forEach((videoEl) => {
+                    if (videoEl.dataset.analyticsBound === '1') return;
+                    videoEl.dataset.analyticsBound = '1';
+                    videoEl.addEventListener('play', () => {
+                        sendVideoViewAnalytics(videoEl.getAttribute('data-video-url') || videoEl.currentSrc || videoEl.src || '');
+                    });
+                });
+
                 if (videoUrls.length > 1) {
                     const chooserButtons = Array.from(document.querySelectorAll('[data-video-choice]'));
                     const chooserPlayer = document.getElementById('videoChooserPlayer');
@@ -1349,10 +1430,23 @@
                             const idx = Number(btn.getAttribute('data-video-choice') || 0);
                             const selected = videoUrls[idx] || videoUrls[0];
                             if (!chooserPlayer) return;
+                            sendVideoViewAnalytics(selected);
                             chooserPlayer.innerHTML = `
                                 <button type="button" id="videoChooserBackBtn" class="btn btn-soft" style="width:auto; min-height:40px; text-transform:none; letter-spacing:0; font-size:0.9rem; margin-bottom:10px;">Back to choices</button>
                                 ${renderVideoEmbed(selected)}
                             `;
+                            const chooserLink = chooserPlayer.querySelector('a[data-video-url]');
+                            if (chooserLink) {
+                                chooserLink.addEventListener('click', () => {
+                                    sendVideoViewAnalytics(chooserLink.getAttribute('data-video-url') || '');
+                                });
+                            }
+                            const chooserVideo = chooserPlayer.querySelector('video[data-video-url]');
+                            if (chooserVideo) {
+                                chooserVideo.addEventListener('play', () => {
+                                    sendVideoViewAnalytics(chooserVideo.getAttribute('data-video-url') || chooserVideo.currentSrc || chooserVideo.src || '');
+                                });
+                            }
                             const backBtn = document.getElementById('videoChooserBackBtn');
                             if (backBtn) {
                                 backBtn.addEventListener('click', () => {
