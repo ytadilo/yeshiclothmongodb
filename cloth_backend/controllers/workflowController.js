@@ -262,15 +262,37 @@ exports.listMessages = async (req, res) => {
 
         // Find messages
         const messages = await ChatMessage.find(query)
-            .populate('sender_id', 'fullName email profileImage role')
-            .populate('receiver_id', 'fullName email profileImage role')
-            .populate('reply_to')
             .sort({ timestamp: 1 })
             .limit(400)
             .lean();
 
+        const userIds = Array.from(new Set((messages || []).flatMap((message) => [
+            String(message?.sender_id || '').trim(),
+            String(message?.receiver_id || '').trim()
+        ]).filter(Boolean)));
+        const replyIds = Array.from(new Set((messages || []).map((message) => String(message?.reply_to || '').trim()).filter(Boolean)));
+
+        const [users, replyMessages] = await Promise.all([
+            userIds.length
+                ? User.find({ _id: { $in: userIds } }).select('_id fullName email profileImage role').lean()
+                : Promise.resolve([]),
+            replyIds.length
+                ? ChatMessage.find({ _id: { $in: replyIds } }).sort({ timestamp: 1 }).lean()
+                : Promise.resolve([])
+        ]);
+
+        const userMap = new Map((users || []).map((user) => [String(user._id || user.id || ''), user]));
+        const replyMap = new Map((replyMessages || []).map((message) => [String(message._id || message.id || ''), message]));
+
+        const enrichedMessages = (messages || []).map((message) => ({
+            ...message,
+            sender_id: userMap.get(String(message?.sender_id || '').trim()) || message.sender_id,
+            receiver_id: userMap.get(String(message?.receiver_id || '').trim()) || message.receiver_id,
+            reply_to: replyMap.get(String(message?.reply_to || '').trim()) || message.reply_to
+        }));
+
         // Mark as seen all messages received by the current user that are not yet seen
-        const unseenIds = messages
+        const unseenIds = enrichedMessages
             .filter(m => String(m.receiver_id?._id || m.receiver_id) === String(req.user.id) && !m.seen)
             .map(m => m._id);
         if (unseenIds.length) {
@@ -282,17 +304,20 @@ exports.listMessages = async (req, res) => {
 
         // If any messages were updated, reload them to return updated seen status
         if (unseenIds.length) {
-            const updatedMessages = await ChatMessage.find(query)
-                .populate('sender_id', 'fullName email profileImage role')
-                .populate('receiver_id', 'fullName email profileImage role')
-                .populate('reply_to')
+            const refreshed = await ChatMessage.find(query)
                 .sort({ timestamp: 1 })
                 .limit(400)
                 .lean();
-            return res.json(updatedMessages);
+            const refreshedMessages = (refreshed || []).map((message) => ({
+                ...message,
+                sender_id: userMap.get(String(message?.sender_id || '').trim()) || message.sender_id,
+                receiver_id: userMap.get(String(message?.receiver_id || '').trim()) || message.receiver_id,
+                reply_to: replyMap.get(String(message?.reply_to || '').trim()) || message.reply_to
+            }));
+            return res.json(refreshedMessages);
         }
 
-        return res.json(messages);
+        return res.json(enrichedMessages);
     } catch (err) {
         console.error(err);
         return res.status(500).json({ msg: 'Server error' });

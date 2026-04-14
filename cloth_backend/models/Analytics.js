@@ -1,6 +1,13 @@
 // Analytics.js
 // Model for tracking user activity and events
 
+const { isFirebaseMode, FirebaseAnalyticsEvent } = require('../utils/firebaseAuthModels');
+
+if (isFirebaseMode()) {
+  module.exports = FirebaseAnalyticsEvent;
+  return;
+}
+
 const mongoose = require('mongoose');
 
 const EVENT_TYPES = [

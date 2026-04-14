@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Admin Customer Chat - Yeshi</title>
+  <script>window.__yeshiWarnPatch=window.__yeshiWarnPatch||(()=>{const w=console.warn;console.warn=function(...a){if(String(a[0]||'').includes('cdn.tailwindcss.com should not be used in production'))return;return w.apply(console,a);};return true;})();</script>
   <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700&family=Inter:wght@400;500;600;700&family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
   <style>
@@ -256,6 +257,13 @@
     let pollId = null;
     let selectedAttachmentFile = null;
 
+    function resolveId(value) {
+      if (!value || typeof value !== 'object') {
+        return String(value || '').trim();
+      }
+      return String(value._id || value.id || '').trim();
+    }
+
     function getDeviceFingerprint() {
         let fp = localStorage.getItem('device_fingerprint');
         if (!fp) {
@@ -343,7 +351,7 @@
         if (!replyId) return '';
 
         const target = Array.isArray(list)
-          ? list.find((item) => String((item && item._id) || '') === replyId)
+          ? list.find((item) => resolveId(item) === replyId)
           : null;
         return target && target.message ? String(target.message) : '';
       }
@@ -449,7 +457,7 @@
             return;
         }
         contactsEl.innerHTML = filtered.map(function (c) {
-            const id = String(c._id || '');
+            const id = resolveId(c);
             const activeClass = id === selectedId ? 'sidebar-item-active' : '';
           const displayName = getContactDisplayName(c);
           const initials = displayName.slice(0, 2).toUpperCase();
@@ -545,7 +553,8 @@
               replyHtml = `<div class="border-l-2 border-gold-300 pl-2 mb-1 text-xs text-gold-700">${escapeHtml(replyLabel)}</div>`;
             }
             // Reply button
-            let replyBtn = `<button class="reply-btn text-gold-700 ml-2 text-xs underline" data-reply-id="${m._id}">↩️ Reply</button>`;
+            const messageId = resolveId(m);
+            let replyBtn = messageId ? `<button class="reply-btn text-gold-700 ml-2 text-xs underline" data-reply-id="${messageId}">↩️ Reply</button>` : '';
             return `<div class="flex ${mine ? 'flex-row-reverse self-end' : ''} items-start gap-4 max-w-[80%]">
   <div class="w-8 h-8 rounded-full bg-black flex items-center justify-center text-gold-500 text-[10px] font-bold mt-1">${avatar}</div>
   <div class="bg-white p-4 rounded-2xl shadow-sm border border-cream-200">
@@ -558,7 +567,7 @@
         messagesEl.querySelectorAll('.reply-btn').forEach(function(btn) {
             btn.addEventListener('click', function() {
                 const replyId = btn.getAttribute('data-reply-id');
-                const msg = list.find(m => String(m._id) === String(replyId));
+            const msg = list.find(m => resolveId(m) === String(replyId));
                 if (msg && messageInput) {
                     messageInput.focus();
               setReplyTarget(replyId, msg.message || '');
@@ -570,11 +579,15 @@
 
     async function loadContacts() {
         contactList = await api('/api/workflow/chat/contacts');
+      contactList = (Array.isArray(contactList) ? contactList : []).map(function (contact) {
+        const id = resolveId(contact);
+        return id ? Object.assign({}, contact, { _id: id, id: id }) : contact;
+      });
         contactList = contactList.filter(function (c) {
             return String(c.role || '').toLowerCase() !== 'admin';
         });
         if (!selectedId && contactList.length) {
-            selectedId = String(contactList[0]._id || '');
+        selectedId = resolveId(contactList[0]);
         }
         renderContacts(searchInput.value);
     }
@@ -586,7 +599,7 @@
           messagesEl.innerHTML = '<p class="text-gray-400">Messages will appear here.</p>';
           return;
         }
-        const selected = contactList.find(function (c) { return String(c._id) === selectedId; });
+        const selected = contactList.find(function (c) { return resolveId(c) === selectedId; });
         const selectedName = selected ? getContactDisplayName(selected) : 'Customer';
         chatTitle.textContent = selectedName;
         const profileImage = getImgUrl(selected?.profileImage || '');
@@ -603,7 +616,10 @@
           chatStatus.innerHTML = `<span class="text-xs text-gray-500">${escapeHtml(meta || 'No contact info')}</span><span class="text-xs text-gray-400">Age: ${escapeHtml(ageText)} · Sex: ${escapeHtml(sexText)}</span>`;
         }
         const messages = await api('/api/workflow/chat/messages?other_user_id=' + encodeURIComponent(selectedId));
-        renderMessages(messages);
+        renderMessages((Array.isArray(messages) ? messages : []).map(function (message) {
+            const messageId = resolveId(message);
+            return messageId ? Object.assign({}, message, { _id: messageId, id: messageId }) : message;
+        }));
     }
 
     async function sendMessage(text) {

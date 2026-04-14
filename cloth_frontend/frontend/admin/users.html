@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>User Management - Yeshi Admin</title>
+    <script>window.__yeshiWarnPatch=window.__yeshiWarnPatch||(()=>{const w=console.warn;console.warn=function(...a){if(String(a[0]||'').includes('cdn.tailwindcss.com should not be used in production'))return;return w.apply(console,a);};return true;})();</script>
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
     <link rel="icon" type="image/png" href="/images/logo.png">
@@ -162,6 +163,11 @@
         let __activeUserForDevices = null;
         let __allDevices = [];
 
+        function resolveUserId(user) {
+            if (!user || typeof user !== 'object') return '';
+            return String(user._id || user.id || '').trim();
+        }
+
         document.getElementById('changePasswordLink').addEventListener('click', (e) => {
             e.preventDefault();
             document.getElementById('changePasswordModal').style.display = 'flex';
@@ -220,13 +226,14 @@
             }
 
             container.innerHTML = list.map((u) => {
+                const userId = resolveUserId(u);
                 const status = (u.status || 'active');
                 const role = u.role || 'customer';
                 const provider = u.authProvider || 'local';
                 const badgeColor = status === 'banned' ? '#b91c1c' : (status === 'inactive' ? '#b45309' : 'var(--accent-color)');
 
                 return `
-                    <tr data-user-id="${escapeHtml(u._id)}" style="border-top: 1px solid rgba(0,0,0,0.06);">
+                    <tr data-user-id="${escapeHtml(userId)}" style="border-top: 1px solid rgba(0,0,0,0.06);">
                         <td style="padding: 12px;">
                             <div style="display:flex; align-items:flex-start; gap:10px; min-width:220px;">
                                 ${u.profileImage
@@ -251,8 +258,8 @@
                                     <option value="inactive" ${status === 'inactive' ? 'selected' : ''}>inactive</option>
                                     <option value="banned" ${status === 'banned' ? 'selected' : ''}>banned</option>
                                 </select>
-                                <button class="btn" type="button" onclick="updateUserStatusAdmin('${escapeHtml(u._id)}')">Update</button>
-                                <button class="btn-secondary" type="button" onclick="openUserDevices('${escapeHtml(u._id)}')">Devices</button>
+                                <button class="btn" type="button" onclick="updateUserStatusAdmin('${escapeHtml(userId)}')">Update</button>
+                                <button class="btn-secondary" type="button" onclick="openUserDevices('${escapeHtml(userId)}')">Devices</button>
                             </div>
                         </td>
                     </tr>
@@ -280,7 +287,7 @@
             if (!listEl) return;
 
             listEl.textContent = 'Loading devices...';
-            const user = (__allUsers || []).find((u) => String(u._id) === String(userId));
+            const user = (__allUsers || []).find((u) => resolveUserId(u) === String(userId));
             if (subtitleEl) {
                 subtitleEl.textContent = user ? `${user.fullName || 'User'} · ${user.email || ''}` : '';
             }
@@ -476,7 +483,10 @@
                 const res = await apiFetch('/api/admin/users');
                 const data = await res.json();
                 if (!res.ok) throw new Error(data?.msg || 'Failed to load users');
-                __allUsers = Array.isArray(data) ? data : [];
+                __allUsers = (Array.isArray(data) ? data : []).map((user) => {
+                    const userId = resolveUserId(user);
+                    return userId ? { ...user, _id: userId, id: userId } : user;
+                });
                 renderUsersAdmin(__allUsers);
             } catch (err) {
                 console.error(err);

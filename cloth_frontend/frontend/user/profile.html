@@ -634,7 +634,7 @@
             }
 
             profileLoadPromise = (async function () {
-                if (window.YeshiAuth && typeof window.YeshiAuth.resolveSession === 'function') {
+                if (!(options && options.skipResolve) && window.YeshiAuth && typeof window.YeshiAuth.resolveSession === 'function') {
                     await window.YeshiAuth.resolveSession({ force: !!(options && options.force) }).catch(() => null);
                 }
 
@@ -651,6 +651,13 @@
                     });
 
                     if (!response.ok) {
+                        if (response.status === 429) {
+                            const fallbackUser = safeParseJson(localStorage.getItem('user')) || null;
+                            if (fallbackUser) {
+                                applyUserProfileHeader(fallbackUser);
+                            }
+                            return fallbackUser;
+                        }
                         if (response.status === 401 || response.status === 403) {
                             clearProfileSessionState();
                             redirectToLoginPage();
@@ -1244,11 +1251,15 @@
                         redirectToLoginPage();
                         return;
                     }
-                    loadProfileFromServer({ force: true });
+                    if (currentProfileUser && String(currentProfileUser.id || currentProfileUser._id || '') === String((detail.user && (detail.user.id || detail.user._id)) || '')) {
+                        applyUserProfileHeader(detail.user || currentProfileUser);
+                        return;
+                    }
+                    loadProfileFromServer({ skipResolve: true });
                 });
             }
             initShippingCountrySelect();
-            await loadProfileFromServer({ force: true });
+            await loadProfileFromServer({ force: true, skipResolve: true });
             bindAvatarUpload();
             bindSettingsPanel();
             loadCuratedRecommendations();

@@ -30,6 +30,11 @@ const authLimiter = rateLimit({
     max: Number(process.env.AUTH_RATE_LIMIT_MAX || 20),
     standardHeaders: true,
     legacyHeaders: false,
+    skip: (req) => {
+        const path = String(req.originalUrl || req.url || '').split('?')[0];
+        if (req.method === 'GET') return true;
+        return path === '/api/auth/firebase/session' || path === '/api/auth/logout';
+    },
     message: { msg: 'Too many authentication attempts. Please try again later.' }
 });
 

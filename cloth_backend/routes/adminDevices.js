@@ -4,6 +4,7 @@ const crypto = require('crypto');
 const auth = require('../middleware/authMiddleware');
 const BlockedDevice = require('../models/BlockedDevice');
 const UserDevice = require('../models/UserDevice');
+const User = require('../models/User');
 
 const router = express.Router();
 
@@ -39,10 +40,17 @@ router.get('/all', auth, async (req, res) => {
         }
 
         const devices = await UserDevice.find({})
-            .populate('userId', 'fullName email phone role status')
             .select('userId deviceHash userAgent firstSeenAt lastSeenAt')
             .sort({ lastSeenAt: -1 })
             .lean();
+
+        const userIds = Array.from(new Set((devices || []).map((device) => String(device.userId || '')).filter(Boolean)));
+        const users = userIds.length
+            ? await User.find({ _id: { $in: userIds } })
+                .select('_id fullName email phone role status')
+                .lean()
+            : [];
+        const userMap = new Map((users || []).map((user) => [String(user._id || user.id || ''), user]));
 
         const hashes = (devices || []).map((device) => String(device.deviceHash || '')).filter(Boolean);
         const blockedDocs = hashes.length
@@ -60,13 +68,13 @@ router.get('/all', auth, async (req, res) => {
                 firstSeenAt: device.firstSeenAt,
                 lastSeenAt: device.lastSeenAt,
                 blocked: blockedSet.has(String(device.deviceHash || '')),
-                user: device.userId ? {
-                    id: device.userId._id || device.userId.id,
-                    fullName: device.userId.fullName || '',
-                    email: device.userId.email || '',
-                    phone: device.userId.phone || '',
-                    role: device.userId.role || '',
-                    status: device.userId.status || ''
+                user: userMap.has(String(device.userId || '')) ? {
+                    id: userMap.get(String(device.userId || ''))._id || userMap.get(String(device.userId || '')).id,
+                    fullName: userMap.get(String(device.userId || '')).fullName || '',
+                    email: userMap.get(String(device.userId || '')).email || '',
+                    phone: userMap.get(String(device.userId || '')).phone || '',
+                    role: userMap.get(String(device.userId || '')).role || '',
+                    status: userMap.get(String(device.userId || '')).status || ''
                 } : null
             }))
         });

@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <script>window.__yeshiWarnPatch=window.__yeshiWarnPatch||(()=>{const w=console.warn;console.warn=function(...a){if(String(a[0]||'').includes('cdn.tailwindcss.com should not be used in production'))return;return w.apply(console,a);};return true;})();</script>
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -633,7 +634,7 @@
             const res = await apiFetch('/api/admin/devices/block', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ fingerprint: raw })
+                body: JSON.stringify({ deviceHash: raw })
             });
             const data = await res.json();
             if (!res.ok) throw new Error(data?.msg || 'Failed to block');
@@ -652,7 +653,7 @@
             const res = await apiFetch('/api/admin/devices/unblock', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ fingerprint: raw })
+                body: JSON.stringify({ deviceHash: raw })
             });
             const data = await res.json();
             if (!res.ok) throw new Error(data?.msg || 'Failed to unblock');
@@ -791,6 +792,7 @@
             const data = await res.json();
             if (!res.ok) throw new Error(data?.msg || 'Failed to save auto backup config');
             setBackupStatus(`Auto backup set to ${data?.autoBackup?.frequency || 'off'}.`);
+            loadBackupHistory();
         } catch (err) {
             console.error(err);
             alert(err?.message || 'Failed to save auto backup config');

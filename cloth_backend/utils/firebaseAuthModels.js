@@ -423,6 +423,25 @@ class FirebaseUserDevice {
         return getFirestore().collection('user_devices');
     }
 
+    static find(query) {
+        return queryBuilder(async (state) => {
+            const snap = await FirebaseUserDevice.collection().get();
+            let list = snap.docs
+                .map((d) => ({ _id: d.id, id: d.id, ...d.data() }))
+                .filter((doc) => matches(doc, query || {}));
+
+            list = applySortToArray(list, state && state.sort);
+            if (state && Number.isFinite(state.limit) && state.limit > 0) {
+                list = list.slice(0, state.limit);
+            }
+
+            return list.map((doc) => {
+                const projected = applySelect(normalizeId(doc), state && state.select);
+                return state && state.lean ? clone(projected) : projected;
+            });
+        });
+    }
+
     static async findOneAndUpdate(filter, update, options = {}) {
         const userId = String(filter && filter.userId ? filter.userId : '');
         const deviceHash = String(filter && filter.deviceHash ? filter.deviceHash : '');
@@ -457,6 +476,25 @@ class FirebaseBlockedDevice {
         return getFirestore().collection('blocked_devices');
     }
 
+    static find(query) {
+        return queryBuilder(async (state) => {
+            const snap = await FirebaseBlockedDevice.collection().get();
+            let list = snap.docs
+                .map((d) => ({ _id: d.id, id: d.id, ...d.data() }))
+                .filter((doc) => matches(doc, query || {}));
+
+            list = applySortToArray(list, state && state.sort);
+            if (state && Number.isFinite(state.limit) && state.limit > 0) {
+                list = list.slice(0, state.limit);
+            }
+
+            return list.map((doc) => {
+                const projected = applySelect(normalizeId(doc), state && state.select);
+                return state && state.lean ? clone(projected) : projected;
+            });
+        });
+    }
+
     static findOne(query) {
         return queryBuilder(async (state) => {
             const snap = await FirebaseBlockedDevice.collection().get();
@@ -467,6 +505,165 @@ class FirebaseBlockedDevice {
             const projected = applySelect(normalizeId(hit), state && state.select);
             return state && state.lean ? clone(projected) : projected;
         });
+    }
+
+    static async findOneAndUpdate(filter, update, options = {}) {
+        const rawHash = String((filter && (filter.deviceHash || filter._id || filter.id)) || '').trim();
+        if (!rawHash) return null;
+
+        const ref = FirebaseBlockedDevice.collection().doc(rawHash);
+        const prev = await ref.get();
+        const current = prev.exists ? { _id: prev.id, ...prev.data() } : {};
+        const setValues = clone((update && update.$set) || {});
+        const setOnInsert = clone((update && update.$setOnInsert) || {});
+        const payload = {
+            ...current,
+            deviceHash: rawHash,
+            ...setValues
+        };
+
+        if (!prev.exists) {
+            Object.assign(payload, setOnInsert);
+        }
+
+        await ref.set(payload, { merge: true });
+        const next = await ref.get();
+        if (!next.exists) return null;
+        const out = normalizeId({ _id: next.id, ...next.data() });
+        return options && options.lean ? clone(out) : out;
+    }
+}
+
+class FirebaseAnalyticsEvent {
+    constructor(data = {}) {
+        Object.assign(this, data);
+    }
+
+    static collection() {
+        return getFirestore().collection('analytics');
+    }
+
+    static makeDocument(data) {
+        const src = data && typeof data === 'object' ? clone(data) : {};
+        return {
+            userId: src.userId ? String(src.userId) : null,
+            deviceId: src.deviceId ? String(src.deviceId) : '',
+            deviceType: String(src.deviceType || 'desktop').trim() || 'desktop',
+            eventType: String(src.eventType || 'page_view').trim() || 'page_view',
+            eventData: src.eventData && typeof src.eventData === 'object' ? clone(src.eventData) : {},
+            sessionId: src.sessionId ? String(src.sessionId) : '',
+            timestamp: src.timestamp ? new Date(src.timestamp).toISOString() : nowIso()
+        };
+    }
+
+    static hydrate(doc, state) {
+        if (!doc) return null;
+        const projected = applySelect(normalizeId(doc), state && state.select);
+        return state && state.lean ? clone(projected) : new FirebaseAnalyticsEvent(projected);
+    }
+
+    static async create(data) {
+        const payload = FirebaseAnalyticsEvent.makeDocument(data);
+        const ref = await FirebaseAnalyticsEvent.collection().add(payload);
+        return new FirebaseAnalyticsEvent({ _id: ref.id, id: ref.id, ...payload });
+    }
+
+    static find(query) {
+        return queryBuilder(async (state) => {
+            const snap = await FirebaseAnalyticsEvent.collection().get();
+            let list = snap.docs
+                .map((d) => ({ _id: d.id, ...d.data() }))
+                .filter((doc) => matches(doc, query || {}));
+
+            list = applySortToArray(list, state && state.sort);
+            if (state && Number.isFinite(state.limit) && state.limit > 0) {
+                list = list.slice(0, state.limit);
+            }
+            return list.map((doc) => FirebaseAnalyticsEvent.hydrate(doc, state));
+        });
+    }
+
+    static async deleteMany(query) {
+        const docs = await FirebaseAnalyticsEvent.find(query || {}).lean();
+        await Promise.all((docs || []).map((doc) => FirebaseAnalyticsEvent.collection().doc(String(doc._id)).delete()));
+        return { deletedCount: Array.isArray(docs) ? docs.length : 0 };
+    }
+
+    static async insertMany(items) {
+        const list = Array.isArray(items) ? items : [];
+        const out = [];
+        for (const item of list) {
+            out.push(await FirebaseAnalyticsEvent.create(item));
+        }
+        return out;
+    }
+}
+
+class FirebaseChatMessage {
+    constructor(data = {}) {
+        Object.assign(this, data);
+    }
+
+    static collection() {
+        return getFirestore().collection('chat_messages');
+    }
+
+    static makeDocument(data) {
+        const src = data && typeof data === 'object' ? clone(data) : {};
+        return {
+            sender_id: src.sender_id ? String(src.sender_id) : '',
+            receiver_id: src.receiver_id ? String(src.receiver_id) : '',
+            job_id: src.job_id ? String(src.job_id) : null,
+            delivery_id: src.delivery_id ? String(src.delivery_id) : null,
+            message: String(src.message || '').trim(),
+            reply_to: src.reply_to ? String(src.reply_to) : null,
+            timestamp: src.timestamp ? new Date(src.timestamp).toISOString() : nowIso(),
+            sent: src.sent !== false,
+            seen: !!src.seen,
+            seen_at: src.seen_at ? new Date(src.seen_at).toISOString() : null
+        };
+    }
+
+    static hydrate(doc, state) {
+        if (!doc) return null;
+        const projected = applySelect(normalizeId(doc), state && state.select);
+        return state && state.lean ? clone(projected) : new FirebaseChatMessage(projected);
+    }
+
+    static async create(data) {
+        const payload = FirebaseChatMessage.makeDocument(data);
+        const ref = await FirebaseChatMessage.collection().add(payload);
+        return new FirebaseChatMessage({ _id: ref.id, id: ref.id, ...payload });
+    }
+
+    static find(query) {
+        return queryBuilder(async (state) => {
+            const snap = await FirebaseChatMessage.collection().get();
+            let list = snap.docs
+                .map((d) => ({ _id: d.id, ...d.data() }))
+                .filter((doc) => matches(doc, query || {}));
+
+            list = applySortToArray(list, state && state.sort);
+            if (state && Number.isFinite(state.limit) && state.limit > 0) {
+                list = list.slice(0, state.limit);
+            }
+            return list.map((doc) => FirebaseChatMessage.hydrate(doc, state));
+        });
+    }
+
+    static async countDocuments(query) {
+        const list = await FirebaseChatMessage.find(query || {}).lean();
+        return Array.isArray(list) ? list.length : 0;
+    }
+
+    static async updateMany(query, update) {
+        const docs = await FirebaseChatMessage.find(query || {}).lean();
+        const setValues = clone((update && update.$set) || {});
+        await Promise.all((docs || []).map(async (doc) => {
+            const next = FirebaseChatMessage.makeDocument({ ...doc, ...setValues });
+            await FirebaseChatMessage.collection().doc(String(doc._id)).set(next, { merge: true });
+        }));
+        return { modifiedCount: Array.isArray(docs) ? docs.length : 0 };
     }
 }
 
@@ -885,6 +1082,41 @@ class FirebaseProduct {
         return getFirestore().collection('products');
     }
 
+    static hydrate(doc, state) {
+        if (!doc) return null;
+        const projected = applySelect(normalizeId(doc), state && state.select);
+        return state && state.lean ? clone(projected) : new FirebaseProduct(projected);
+    }
+
+    static find(query) {
+        return queryBuilder(async (state) => {
+            const snap = await FirebaseProduct.collection().get();
+            let list = snap.docs
+                .map((d) => ({ _id: d.id, ...d.data() }))
+                .filter((doc) => matches(doc, query || {}));
+
+            list = applySortToArray(list, state && state.sort);
+            if (state && Number.isFinite(state.limit) && state.limit > 0) {
+                list = list.slice(0, state.limit);
+            }
+            return list.map((doc) => FirebaseProduct.hydrate(doc, state));
+        });
+    }
+
+    static findOne(query) {
+        return queryBuilder(async (state) => {
+            const list = await FirebaseProduct.find(query || {}).lean();
+            const first = Array.isArray(list) && list.length ? list[0] : null;
+            return FirebaseProduct.hydrate(first, state);
+        });
+    }
+
+    static async create(data) {
+        const payload = clone(data || {});
+        const ref = await FirebaseProduct.collection().add(payload);
+        return new FirebaseProduct({ _id: ref.id, id: ref.id, ...payload });
+    }
+
     static findById(id) {
         return queryBuilder(async () => {
             if (!id) return null;
@@ -1166,6 +1398,8 @@ module.exports = {
     FirebaseOTPCode,
     FirebaseUserDevice,
     FirebaseBlockedDevice,
+    FirebaseAnalyticsEvent,
+    FirebaseChatMessage,
     FirebaseUpload,
     FirebaseOrder,
     FirebasePost,

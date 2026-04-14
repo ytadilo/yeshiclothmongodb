@@ -21,6 +21,9 @@
     const USER_SCOPED_SESSION_STORAGE_KEYS = [
         'yeshi_auth_flash'
     ];
+    const FIREBASE_CONFIG_CACHE_KEY = 'yeshi_firebase_public_config_cache';
+    const FIREBASE_CONFIG_CACHE_TTL_MS = 60 * 60 * 1000;
+    const FIREBASE_SESSION_SYNC_COOLDOWN_MS = 30 * 1000;
 
     const state = {
         readyPromise: null,
@@ -30,7 +33,8 @@
         config: null,
         currentUser: null,
         syncPromise: null,
-        manualAction: false
+        manualAction: false,
+        lastSessionSyncAt: 0
     };
 
     function safeParseJson(value) {
@@ -62,6 +66,34 @@
         } catch (_) {
             // Ignore storage failures.
         }
+    }
+
+    function readCachedFirebaseConfig() {
+        const raw = safeParseJson(localStorage.getItem(FIREBASE_CONFIG_CACHE_KEY));
+        if (!raw || typeof raw !== 'object') return null;
+        const cachedAt = Number(raw.cachedAt || 0);
+        const config = raw.config && typeof raw.config === 'object' ? raw.config : null;
+        if (!config || !cachedAt) return null;
+        if ((Date.now() - cachedAt) > FIREBASE_CONFIG_CACHE_TTL_MS) return null;
+        return config;
+    }
+
+    function writeCachedFirebaseConfig(config) {
+        try {
+            localStorage.setItem(FIREBASE_CONFIG_CACHE_KEY, JSON.stringify({
+                cachedAt: Date.now(),
+                config
+            }));
+        } catch (_) {
+            // Ignore storage failures.
+        }
+    }
+
+    function readCurrentAppSession() {
+        const token = String(localStorage.getItem('token') || '').trim();
+        const user = safeParseJson(localStorage.getItem('user'));
+        if (!token || !user || typeof user !== 'object') return null;
+        return { token, user };
     }
 
     function clearUserScopedStorage() {
@@ -220,6 +252,12 @@
             return state.config;
         }
 
+        const cachedConfig = readCachedFirebaseConfig();
+        if (cachedConfig) {
+            state.config = { ...cachedConfig };
+            return state.config;
+        }
+
         const response = await fetch('/api/auth/firebase/config', {
             method: 'GET',
             credentials: 'same-origin'
@@ -227,10 +265,15 @@
         const data = await readResponsePayload(response);
 
         if (!response.ok) {
+            if (response.status === 429 && cachedConfig) {
+                state.config = { ...cachedConfig };
+                return state.config;
+            }
             throw new Error((data && data.msg) || 'Firebase configuration is missing');
         }
 
         state.config = data;
+        writeCachedFirebaseConfig(data);
         return state.config;
     }
 
@@ -317,6 +360,16 @@
             const auth = state.auth;
             const authModule = state.authModule;
             let user = auth && auth.currentUser ? auth.currentUser : null;
+            const currentSession = readCurrentAppSession();
+
+            if (!options.force && currentSession && (Date.now() - Number(state.lastSessionSyncAt || 0)) < FIREBASE_SESSION_SYNC_COOLDOWN_MS) {
+                return {
+                    ok: true,
+                    token: currentSession.token,
+                    user: currentSession.user,
+                    cached: true
+                };
+            }
 
             if (!user) {
                 setFirebaseHint(null);
@@ -355,6 +408,16 @@
             const payload = await readResponsePayload(response);
 
             if (!response.ok) {
+                if (response.status === 429 && currentSession) {
+                    state.lastSessionSyncAt = Date.now();
+                    return {
+                        ok: true,
+                        token: currentSession.token,
+                        user: currentSession.user,
+                        cached: true,
+                        rateLimited: true
+                    };
+                }
                 if (response.status === 401 || response.status === 403) {
                     clearAppSession();
                     await authModule.signOut(auth).catch(() => {});
@@ -370,6 +433,7 @@
             }
 
             setAppSession(payload.token, payload.user);
+            state.lastSessionSyncAt = Date.now();
             return {
                 ok: true,
                 token: payload.token,

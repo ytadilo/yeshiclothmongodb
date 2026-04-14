@@ -1531,6 +1531,9 @@ async function autoSaveProfileSettingsFromOrder(shippingRow, measurementRow) {
 }
 
 const form = document.getElementById('orderForm');
+if (form) {
+    form.noValidate = true;
+}
 form.addEventListener('submit', async function(e) {
     e.preventDefault();
     const refundAgreement = document.getElementById('refundAgreement');

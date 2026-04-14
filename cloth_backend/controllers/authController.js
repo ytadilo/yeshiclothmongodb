@@ -560,6 +560,7 @@ exports.firebaseConfig = async (_req, res) => {
         });
     }
 
+    res.set('Cache-Control', 'public, max-age=3600');
     return res.json(config);
 };
 

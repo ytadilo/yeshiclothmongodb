@@ -114,7 +114,7 @@
             return `
                 <div style="border:1px solid rgba(0,0,0,0.08); border-radius:10px; padding:10px; margin-top:8px;">
                     <strong>${escapeHtml(title)}</strong>
-                    <div style="color:#666; margin-top:6px;">No ${escapeHtml(itemLabel)} analytics data.</div>
+                    <div style="color:#666; margin-top:6px;">No data available yet.</div>
                 </div>
             `;
         }
@@ -234,7 +234,7 @@
 
         // User Analytics
         if (userAnalyticsEl) {
-            userAnalyticsEl.innerHTML = renderUserAnalytics(data.userActivity);
+            userAnalyticsEl.innerHTML = renderUserAnalytics(data.userActivity, data.userSummary);
         }
         userTableRaw = Array.isArray(data.userActivity) ? data.userActivity.slice() : [];
         userTablePage = 1;
@@ -245,6 +245,7 @@
         if (productAnalyticsEl) {
             productAnalyticsEl.innerHTML = `
                 <h3>Product Analytics</h3>
+                ${renderProductSummary(data.productSummary)}
                 ${renderMetricCanvas('orderedProductsChart', 'Ordered Products')}
                 ${renderMetricAllTable(data.orderedProducts, 'Ordered Products Table (All Data)', 'Product', 'product')}
 
@@ -280,6 +281,7 @@
 
             engagementAnalyticsEl.innerHTML = `
                 <h3>Engagement Analytics</h3>
+                ${renderLinkSummary(data.linkAnalytics)}
                 ${renderMetricCanvas('engagementClicksChart', 'Clicked Links')}
                 ${renderMetricAllTable(clickRows, 'Link Clicks Table (All Data)', 'Product Name / Link', 'linkWithName')}
             `;
@@ -492,8 +494,12 @@
     }
 
     // Renderers
-    function renderUserAnalytics(users) {
-        if (!users || users.length === 0) return '<div>No user activity data.</div>';
+    function renderUserAnalytics(users, summary) {
+        const totalUsers = Number(summary?.totalUsers || 0);
+        const active24h = Number(summary?.activeLast24h || 0);
+        const active7d = Number(summary?.activeLast7d || 0);
+        const newUsersPerDay = Array.isArray(summary?.newUsersPerDay) ? summary.newUsersPerDay : [];
+        if ((!users || users.length === 0) && totalUsers === 0) return '<div>No data available yet.</div>';
         let total = users.length;
         // Sort by sessionCount
         users = users.sort((a, b) => b.sessionCount - a.sessionCount);
@@ -502,12 +508,57 @@
         const medium = users.slice(Math.ceil(total * 0.3), Math.ceil(total * 0.7));
         const least = users.slice(Math.ceil(total * 0.7));
         return `
+            <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:10px; margin-bottom:14px;">
+                <div style="border:1px solid rgba(0,0,0,0.08); border-radius:10px; padding:10px;"><strong>Total Users</strong><div style="margin-top:6px; font-size:1.35rem; font-weight:800;">${totalUsers}</div></div>
+                <div style="border:1px solid rgba(0,0,0,0.08); border-radius:10px; padding:10px;"><strong>Active Last 24h</strong><div style="margin-top:6px; font-size:1.35rem; font-weight:800;">${active24h}</div><div style="color:#666;">${Number(summary?.activeLast24hPercent || 0).toFixed(1)}%</div></div>
+                <div style="border:1px solid rgba(0,0,0,0.08); border-radius:10px; padding:10px;"><strong>Active Last 7d</strong><div style="margin-top:6px; font-size:1.35rem; font-weight:800;">${active7d}</div><div style="color:#666;">${Number(summary?.activeLast7dPercent || 0).toFixed(1)}%</div></div>
+            </div>
+            <div style="border:1px solid rgba(0,0,0,0.08); border-radius:10px; padding:10px; margin-bottom:14px;">
+                <strong>New Users Per Day</strong>
+                <div style="margin-top:8px; color:#333;">${newUsersPerDay.length ? newUsersPerDay.map((row) => `${escapeHtml(row._id)}: ${Number(row.count || 0)}`).join(' | ') : 'No data available yet.'}</div>
+            </div>
             <h4>Most Active Users</h4>
             <ul>${most.map(u => `<li>User: ${escapeHtml(u.userId || u.deviceId || 'Guest')} - Sessions: ${u.sessionCount} (${percent(u.sessionCount, total)})</li>`).join('')}</ul>
             <h4>Medium Activity Users</h4>
             <ul>${medium.map(u => `<li>User: ${escapeHtml(u.userId || u.deviceId || 'Guest')} - Sessions: ${u.sessionCount} (${percent(u.sessionCount, total)})</li>`).join('')}</ul>
             <h4>Least Active Users</h4>
             <ul>${least.map(u => `<li>User: ${escapeHtml(u.userId || u.deviceId || 'Guest')} - Sessions: ${u.sessionCount} (${percent(u.sessionCount, total)})</li>`).join('')}</ul>
+        `;
+    }
+
+    function renderProductSummary(summary) {
+        const totalProducts = Number(summary?.totalProducts || 0);
+        if (totalProducts === 0) {
+            return '<div style="margin-bottom:10px; color:#666;">No data available yet.</div>';
+        }
+
+        const mostViewed = Array.isArray(summary?.mostViewedProducts) ? summary.mostViewedProducts : [];
+        const mostClicked = Array.isArray(summary?.mostClickedProducts) ? summary.mostClickedProducts : [];
+        return `
+            <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:10px; margin-bottom:14px;">
+                <div style="border:1px solid rgba(0,0,0,0.08); border-radius:10px; padding:10px;"><strong>Total Products</strong><div style="margin-top:6px; font-size:1.35rem; font-weight:800;">${totalProducts}</div></div>
+                <div style="border:1px solid rgba(0,0,0,0.08); border-radius:10px; padding:10px;"><strong>Total Views</strong><div style="margin-top:6px; font-size:1.35rem; font-weight:800;">${Number(summary?.totalTrackedViews || 0)}</div></div>
+                <div style="border:1px solid rgba(0,0,0,0.08); border-radius:10px; padding:10px;"><strong>Total Clicks</strong><div style="margin-top:6px; font-size:1.35rem; font-weight:800;">${Number(summary?.totalTrackedClicks || 0)}</div></div>
+            </div>
+            <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:10px; margin-bottom:14px;">
+                <div style="border:1px solid rgba(0,0,0,0.08); border-radius:10px; padding:10px;"><strong>Top 5 Viewed Products</strong><div style="margin-top:8px;">${mostViewed.length ? mostViewed.map((row) => `${escapeHtml(row.label || row._id)} (${Number(row.count || 0)})`).join('<br>') : 'No data available yet.'}</div></div>
+                <div style="border:1px solid rgba(0,0,0,0.08); border-radius:10px; padding:10px;"><strong>Top 5 Clicked Products</strong><div style="margin-top:8px;">${mostClicked.length ? mostClicked.map((row) => `${escapeHtml(row.label || row._id)} (${Number(row.count || 0)})`).join('<br>') : 'No data available yet.'}</div></div>
+            </div>
+        `;
+    }
+
+    function renderLinkSummary(summary) {
+        const clicksPerProduct = Array.isArray(summary?.clicksPerProduct) ? summary.clicksPerProduct : [];
+        const clickTrendDaily = Array.isArray(summary?.clickTrendDaily) ? summary.clickTrendDaily : [];
+        if (!Number(summary?.totalClicks || 0) && !clicksPerProduct.length && !clickTrendDaily.length) {
+            return '<div style="margin-bottom:10px; color:#666;">No data available yet.</div>';
+        }
+        return `
+            <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:10px; margin-bottom:14px;">
+                <div style="border:1px solid rgba(0,0,0,0.08); border-radius:10px; padding:10px;"><strong>Total Link Clicks</strong><div style="margin-top:6px; font-size:1.35rem; font-weight:800;">${Number(summary?.totalClicks || 0)}</div></div>
+                <div style="border:1px solid rgba(0,0,0,0.08); border-radius:10px; padding:10px;"><strong>Clicks Per Product</strong><div style="margin-top:8px;">${clicksPerProduct.length ? clicksPerProduct.slice(0, 5).map((row) => `${escapeHtml(row.label || row._id)} (${Number(row.count || 0)})`).join('<br>') : 'No data available yet.'}</div></div>
+                <div style="border:1px solid rgba(0,0,0,0.08); border-radius:10px; padding:10px;"><strong>Daily Click Trend</strong><div style="margin-top:8px;">${clickTrendDaily.length ? clickTrendDaily.map((row) => `${escapeHtml(row._id)}: ${Number(row.count || 0)}`).join('<br>') : 'No data available yet.'}</div></div>
+            </div>
         `;
     }
     function renderProductAnalytics(products, label) {

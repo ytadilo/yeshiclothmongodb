@@ -11,7 +11,8 @@ const YESHI_AUTH_STATE = {
     ready: false,
     token: '',
     user: null,
-    resolving: null
+    resolving: null,
+    lastResolvedAt: 0
 };
 
 let yeshiMainFirebaseBridgePromise = null;
@@ -153,6 +154,7 @@ function clearStoredAuthSession(options = {}) {
     YESHI_AUTH_STATE.token = '';
     YESHI_AUTH_STATE.user = null;
     YESHI_AUTH_STATE.ready = options.preserveReady ? true : YESHI_AUTH_STATE.ready;
+    YESHI_AUTH_STATE.lastResolvedAt = Date.now();
 
     clearUserScopedBrowserState();
 
@@ -184,6 +186,7 @@ function setStoredAuthSession(token, user, options = {}) {
     YESHI_AUTH_STATE.ready = true;
     YESHI_AUTH_STATE.token = safeToken;
     YESHI_AUTH_STATE.user = safeUser;
+    YESHI_AUTH_STATE.lastResolvedAt = Date.now();
 
     try {
         localStorage.setItem('token', safeToken);
@@ -210,7 +213,19 @@ async function resolveAuthSession(options = {}) {
 
     YESHI_AUTH_STATE.resolving = (async () => {
         const storedToken = String(localStorage.getItem('token') || '').trim();
+        const cachedUser = getStoredAuthUser();
+        const recentlyResolved = (Date.now() - Number(YESHI_AUTH_STATE.lastResolvedAt || 0)) < 30000;
         let firebaseBridge = null;
+
+        if (!options.force && YESHI_AUTH_STATE.ready && recentlyResolved) {
+            if (!storedToken) {
+                return getCurrentAuthSnapshot();
+            }
+            if (storedToken === String(YESHI_AUTH_STATE.token || '').trim() && (YESHI_AUTH_STATE.user || cachedUser)) {
+                YESHI_AUTH_STATE.user = YESHI_AUTH_STATE.user || cachedUser;
+                return getCurrentAuthSnapshot();
+            }
+        }
 
         try {
             firebaseBridge = await ensureFirebaseAuthBridge().catch(() => null);
@@ -231,6 +246,7 @@ async function resolveAuthSession(options = {}) {
                 YESHI_AUTH_STATE.ready = true;
                 YESHI_AUTH_STATE.token = '';
                 YESHI_AUTH_STATE.user = null;
+                YESHI_AUTH_STATE.lastResolvedAt = Date.now();
                 emitAuthStateChanged();
                 return getCurrentAuthSnapshot();
             }
@@ -242,6 +258,15 @@ async function resolveAuthSession(options = {}) {
             });
 
             if (!res.ok) {
+                if (res.status === 429) {
+                    YESHI_AUTH_STATE.ready = true;
+                    YESHI_AUTH_STATE.token = storedToken;
+                    YESHI_AUTH_STATE.user = cachedUser;
+                    YESHI_AUTH_STATE.lastResolvedAt = Date.now();
+                    emitAuthStateChanged();
+                    return getCurrentAuthSnapshot();
+                }
+
                 clearStoredAuthSession({ preserveReady: true });
 
                 if (firebaseBridge && typeof firebaseBridge.ensureAppSession === 'function') {
@@ -268,7 +293,8 @@ async function resolveAuthSession(options = {}) {
         } catch (_) {
             YESHI_AUTH_STATE.ready = true;
             YESHI_AUTH_STATE.token = storedToken;
-            YESHI_AUTH_STATE.user = getStoredAuthUser();
+            YESHI_AUTH_STATE.user = cachedUser;
+            YESHI_AUTH_STATE.lastResolvedAt = Date.now();
             emitAuthStateChanged();
             return getCurrentAuthSnapshot();
         } finally {

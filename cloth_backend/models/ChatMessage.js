@@ -1,3 +1,10 @@
+const { isFirebaseMode, FirebaseChatMessage } = require('../utils/firebaseAuthModels');
+
+if (isFirebaseMode()) {
+    module.exports = FirebaseChatMessage;
+    return;
+}
+
 const mongoose = require('mongoose');
 
 const ChatMessageSchema = new mongoose.Schema({
