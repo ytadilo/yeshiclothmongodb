@@ -1,10 +1,14 @@
 document.addEventListener('DOMContentLoaded', () => {
     (async () => {
+        let resolvedSession = null;
         if (window.YeshiAuth && typeof window.YeshiAuth.resolveSession === 'function') {
-            await window.YeshiAuth.resolveSession().catch(() => null);
+            resolvedSession = await window.YeshiAuth.resolveSession().catch(() => null);
         }
 
-        const token = localStorage.getItem('token');
+        let token = localStorage.getItem('token');
+        if (!token && resolvedSession && resolvedSession.token) {
+            token = resolvedSession.token;
+        }
         if (!token) {
             const next = encodeURIComponent('/my-orders');
             window.location.href = `/auth/login?next=${next}`;
@@ -453,7 +457,7 @@ async function loadMyOrders(options = {}) {
         return;
     }
 
-    const token = localStorage.getItem('token');
+    let token = String(localStorage.getItem('token') || '').trim();
     if (!token) {
         container.innerHTML = '<p style="text-align:center; width:100%;">Login to see your orders.</p>';
         return;
@@ -461,9 +465,20 @@ async function loadMyOrders(options = {}) {
 
     try {
         ensureOrderHighlightStyles();
-        const res = await fetch('/api/orders', {
+        let res = await fetch('/api/orders', {
             headers: { 'x-auth-token': token }
         });
+
+        if ((res.status === 401 || res.status === 403) && window.YeshiAuth && typeof window.YeshiAuth.resolveSession === 'function') {
+            const restored = await window.YeshiAuth.resolveSession({ force: true }).catch(() => null);
+            const refreshedToken = String(localStorage.getItem('token') || restored?.token || '').trim();
+            if (refreshedToken && refreshedToken !== token) {
+                token = refreshedToken;
+                res = await fetch('/api/orders', {
+                    headers: { 'x-auth-token': token }
+                });
+            }
+        }
 
         const raw = await res.text();
         let payload = [];
@@ -795,6 +810,6 @@ async function loadMyOrders(options = {}) {
             window.location.href = `/auth/login?next=${next}`;
             return;
         }
-        container.innerHTML = '<p style="text-align:center; width:100%;">Failed to load orders. Please refresh.</p>';
+        container.innerHTML = '<p style="text-align:center; width:100%;">Failed to load orders. Please refresh. If this keeps happening, your session needs to be re-synced.</p>';
     }
 }

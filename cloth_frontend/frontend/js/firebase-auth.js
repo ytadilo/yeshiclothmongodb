@@ -96,6 +96,10 @@
         return { token, user };
     }
 
+    function normalizeEmail(value) {
+        return String(value || '').trim().toLowerCase();
+    }
+
     function clearUserScopedStorage() {
         try {
             USER_SCOPED_LOCAL_STORAGE_KEYS.forEach((key) => localStorage.removeItem(key));
@@ -399,6 +403,7 @@
             }
 
             const idToken = await user.getIdToken(!!options.forceIdTokenRefresh);
+            const firebaseEmail = normalizeEmail(user.email);
             const response = await fetch('/api/auth/firebase/session', {
                 method: 'POST',
                 credentials: 'same-origin',
@@ -418,6 +423,24 @@
                         rateLimited: true
                     };
                 }
+                const currentSessionEmail = normalizeEmail(currentSession && currentSession.user && currentSession.user.email);
+                const canReuseCurrentSession = currentSession
+                    && currentSession.token
+                    && firebaseEmail
+                    && currentSessionEmail
+                    && currentSessionEmail === firebaseEmail;
+
+                if (canReuseCurrentSession && (response.status === 401 || response.status === 403 || response.status >= 500)) {
+                    state.lastSessionSyncAt = Date.now();
+                    return {
+                        ok: true,
+                        token: currentSession.token,
+                        user: currentSession.user,
+                        cached: true,
+                        degraded: true
+                    };
+                }
+
                 if (response.status === 401 || response.status === 403) {
                     clearAppSession();
                     await authModule.signOut(auth).catch(() => {});

@@ -572,7 +572,7 @@ exports.firebaseSession = async (req, res) => {
 
     try {
         const admin = getFirebaseAdmin();
-        const decoded = await admin.auth().verifyIdToken(idToken, true);
+        const decoded = await admin.auth().verifyIdToken(idToken);
         const userRecord = await admin.auth().getUser(decoded.uid);
         const normalizedEmail = normalizeEmail(userRecord?.email || decoded?.email);
         const providerIds = normalizeProviderIds([
@@ -629,7 +629,10 @@ exports.firebaseSession = async (req, res) => {
         return issueJwt(res, user);
     } catch (err) {
         console.error('firebaseSession error:', err?.message || err);
-        return res.status(401).json({ msg: 'Invalid Firebase session' });
+        if (String(err?.code || '').includes('auth/')) {
+            return res.status(401).json({ msg: 'Invalid Firebase session', code: String(err.code || '') });
+        }
+        return res.status(500).json({ msg: 'Failed to sync Firebase session' });
     }
 };
 

@@ -1085,82 +1085,93 @@ exports.getOrders = async (req, res) => {
             .filter(Boolean);
 
         if (orderIds.length) {
-            const uploads = await Upload.find({
-                order_id: { $in: orderIds },
-                purpose: 'order_payment_screenshot'
-            })
-                .select('_id order_id owner_user_id created_at')
-                .sort({ created_at: -1 })
-                .lean();
+            try {
+                const uploads = await Upload.find({
+                    order_id: { $in: orderIds },
+                    purpose: 'order_payment_screenshot'
+                })
+                    .select('_id order_id owner_user_id created_at')
+                    .sort({ created_at: -1 })
+                    .lean();
 
-            const latestByOrder = new Map();
-            const usedUploadIds = new Set();
-            uploads.forEach((u) => {
-                const key = String(u.order_id || '');
-                if (!key || latestByOrder.has(key)) return;
-                const uploadId = String(u._id || '').trim();
-                if (!uploadId) return;
-                latestByOrder.set(key, '/api/uploads/' + uploadId);
-                usedUploadIds.add(uploadId);
-            });
+                const latestByOrder = new Map();
+                const usedUploadIds = new Set();
+                uploads.forEach((u) => {
+                    const key = String(u && u.order_id || '').trim();
+                    if (!key || latestByOrder.has(key)) return;
+                    const uploadId = String(u && u._id || '').trim();
+                    if (!uploadId) return;
+                    latestByOrder.set(key, '/api/uploads/' + uploadId);
+                    usedUploadIds.add(uploadId);
+                });
 
-            orders = orders.map((order) => {
-                const key = String(order && order._id || '');
-                const paymentInfo = (order && order.payment_info && typeof order.payment_info === 'object')
-                    ? order.payment_info
-                    : {};
+                orders = orders.map((order) => {
+                    try {
+                        const key = String(order && order._id || '').trim();
+                        const paymentInfo = (order && order.payment_info && typeof order.payment_info === 'object')
+                            ? order.payment_info
+                            : {};
 
-                const fallback = latestByOrder.get(key)
-                    || resolveApproximatePaymentUploadUrl(order, uploads, usedUploadIds)
-                    || '';
-                const resolvedScreenshotUrl = getOrderPaymentScreenshotUrl(order) || fallback;
-                const resolvedComment = getOrderPaymentComment(order);
-                if (!resolvedScreenshotUrl) return order;
+                        const fallback = latestByOrder.get(key)
+                            || resolveApproximatePaymentUploadUrl(order, uploads, usedUploadIds)
+                            || '';
+                        const resolvedScreenshotUrl = getOrderPaymentScreenshotUrl(order) || fallback;
+                        const resolvedComment = getOrderPaymentComment(order);
+                        if (!resolvedScreenshotUrl) return order;
 
-                return {
-                    ...order,
-                    payment_info: {
-                        ...paymentInfo,
-                        screenshot_url: resolvedScreenshotUrl,
-                        comment: resolvedComment
-                    },
-                    payment_screenshot_url: resolvedScreenshotUrl,
-                    payment_comment: resolvedComment
-                };
-            });
+                        return {
+                            ...order,
+                            payment_info: {
+                                ...paymentInfo,
+                                screenshot_url: resolvedScreenshotUrl,
+                                comment: resolvedComment
+                            },
+                            payment_screenshot_url: resolvedScreenshotUrl,
+                            payment_comment: resolvedComment
+                        };
+                    } catch (orderAugmentErr) {
+                        console.error('getOrders payment augmentation error:', orderAugmentErr?.message || orderAugmentErr);
+                        return order;
+                    }
+                });
 
-            const refUploads = await Upload.find({
-                order_id: { $in: orderIds },
-                purpose: 'order_reference_image'
-            })
-                .select('_id order_id created_at')
-                .sort({ created_at: -1 })
-                .lean();
+                const refUploads = await Upload.find({
+                    order_id: { $in: orderIds },
+                    purpose: 'order_reference_image'
+                })
+                    .select('_id order_id created_at')
+                    .sort({ created_at: -1 })
+                    .lean();
 
-            const refsByOrder = new Map();
-            refUploads.forEach((u) => {
-                const key = String(u.order_id || '');
-                if (!key) return;
-                const next = '/api/uploads/' + String(u._id);
-                const existing = refsByOrder.get(key) || [];
-                if (existing.length < 6) {
-                    existing.push(next);
-                    refsByOrder.set(key, existing);
-                }
-            });
+                const refsByOrder = new Map();
+                refUploads.forEach((u) => {
+                    const key = String(u && u.order_id || '').trim();
+                    if (!key) return;
+                    const nextId = String(u && u._id || '').trim();
+                    if (!nextId) return;
+                    const next = '/api/uploads/' + nextId;
+                    const existing = refsByOrder.get(key) || [];
+                    if (existing.length < 6) {
+                        existing.push(next);
+                        refsByOrder.set(key, existing);
+                    }
+                });
 
-            orders = orders.map((order) => {
-                const key = String(order && order._id || '');
-                if (!key) return order;
-                const existingRefs = Array.isArray(order.reference_images) ? order.reference_images.filter(Boolean) : [];
-                if (existingRefs.length) return order;
-                const fallbackRefs = refsByOrder.get(key) || [];
-                if (!fallbackRefs.length) return order;
-                return {
-                    ...order,
-                    reference_images: fallbackRefs
-                };
-            });
+                orders = orders.map((order) => {
+                    const key = String(order && order._id || '').trim();
+                    if (!key) return order;
+                    const existingRefs = Array.isArray(order.reference_images) ? order.reference_images.filter(Boolean) : [];
+                    if (existingRefs.length) return order;
+                    const fallbackRefs = refsByOrder.get(key) || [];
+                    if (!fallbackRefs.length) return order;
+                    return {
+                        ...order,
+                        reference_images: fallbackRefs
+                    };
+                });
+            } catch (uploadLookupErr) {
+                console.error('getOrders upload lookup failed:', uploadLookupErr?.message || uploadLookupErr);
+            }
         }
 
         if (req.user.role === 'admin' && Array.isArray(orders) && orders.length) {
