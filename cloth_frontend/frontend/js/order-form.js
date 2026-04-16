@@ -31,6 +31,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const urlParams = new URLSearchParams(window.location.search);
     const postId = urlParams.get('postId');
     const title = urlParams.get('title');
+    const telebirrOrderId = String(urlParams.get('telebirrOrderId') || '').trim();
 
     if (postId) {
         // Add visual indicator
@@ -47,6 +48,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     } else {
         applyProductOrderMode(false);
     }
+
+    if (telebirrOrderId) {
+        setTelebirrStatus('Checking Telebirr payment status...', 'info');
+        startTelebirrStatusPolling(telebirrOrderId);
+    }
 });
 
 function applyProductOrderMode(isProductOrder) {
@@ -58,6 +64,7 @@ function applyProductOrderMode(isProductOrder) {
     const paymentMethodInput = document.getElementById('paymentMethod');
     const paymentDetailsCard = document.getElementById('productPaymentDetailsCard');
     const paymentScreenshotInput = document.getElementById('paymentScreenshot');
+    const paymentScreenshotGroup = document.getElementById('paymentScreenshotGroup');
     const paymentCommentInput = document.getElementById('paymentComment');
     const productQuantityGroup = document.getElementById('productQuantityGroup');
 
@@ -89,10 +96,13 @@ function applyProductOrderMode(isProductOrder) {
         if (!isProductOrder) paymentMethodInput.value = '';
     }
     if (paymentScreenshotInput) {
-        paymentScreenshotInput.required = !!isProductOrder;
+        paymentScreenshotInput.required = !!isProductOrder && String(paymentMethodInput?.value || '').trim() === 'bank_transfer';
     }
     if (!isProductOrder && paymentScreenshotInput) {
         paymentScreenshotInput.value = '';
+    }
+    if (!isProductOrder && paymentScreenshotGroup) {
+        paymentScreenshotGroup.style.display = 'none';
     }
     if (!isProductOrder && paymentCommentInput) {
         paymentCommentInput.value = '';
@@ -270,12 +280,26 @@ function updatePaymentDetailsVisibility() {
     const paymentMethod = String(document.getElementById('paymentMethod')?.value || '').trim();
     const bankTransferDetails = document.getElementById('bankTransferDetails');
     const telebirrDetails = document.getElementById('telebirrDetails');
+    const paymentScreenshotGroup = document.getElementById('paymentScreenshotGroup');
+    const paymentScreenshotInput = document.getElementById('paymentScreenshot');
 
     if (bankTransferDetails) {
         bankTransferDetails.style.display = paymentMethod === 'bank_transfer' ? 'block' : 'none';
     }
     if (telebirrDetails) {
         telebirrDetails.style.display = paymentMethod === 'telebirr' ? 'block' : 'none';
+    }
+    if (paymentScreenshotGroup) {
+        paymentScreenshotGroup.style.display = paymentMethod === 'bank_transfer' ? 'block' : 'none';
+    }
+    if (paymentScreenshotInput) {
+        paymentScreenshotInput.required = paymentMethod === 'bank_transfer';
+        if (paymentMethod !== 'bank_transfer') {
+            paymentScreenshotInput.value = '';
+        }
+    }
+    if (paymentMethod !== 'telebirr') {
+        resetTelebirrCheckoutState();
     }
     updateProductPaymentDetailsSummary();
 }
@@ -329,8 +353,15 @@ function updateProductPaymentDetailsSummary() {
 
 function initPaymentMethodUI() {
     const paymentMethodInput = document.getElementById('paymentMethod');
+    const telebirrPayNowBtn = document.getElementById('telebirrPayNowBtn');
     if (!paymentMethodInput) return;
     paymentMethodInput.addEventListener('change', updatePaymentDetailsVisibility);
+    if (telebirrPayNowBtn) {
+        telebirrPayNowBtn.addEventListener('click', () => {
+            const submitEvent = new Event('submit', { cancelable: true, bubbles: true });
+            form.dispatchEvent(submitEvent);
+        });
+    }
     updatePaymentDetailsVisibility();
 }
 
@@ -377,6 +408,98 @@ let savedShippingAddresses = [];
 let savedMeasurementProfiles = [];
 let useSavedShipping = true;
 let useSavedMeasurements = true;
+let telebirrPollingId = null;
+let telebirrCheckoutWindow = null;
+let latestTelebirrOrderId = '';
+
+function setTelebirrStatus(message, tone = 'info') {
+    const box = document.getElementById('telebirrStatusBox');
+    if (!box) return;
+    const palette = {
+        info: { bg: '#f7f1df', border: 'rgba(116,91,24,0.2)', color: '#4f4320' },
+        success: { bg: '#e8f6ea', border: 'rgba(22,117,57,0.22)', color: '#175d2d' },
+        error: { bg: '#fdecec', border: 'rgba(186,26,26,0.18)', color: '#8a1212' }
+    };
+    const chosen = palette[tone] || palette.info;
+    box.style.display = message ? 'block' : 'none';
+    box.style.background = chosen.bg;
+    box.style.borderColor = chosen.border;
+    box.style.color = chosen.color;
+    box.textContent = message || '';
+}
+
+function stopTelebirrStatusPolling() {
+    if (telebirrPollingId) {
+        window.clearInterval(telebirrPollingId);
+        telebirrPollingId = null;
+    }
+}
+
+function resetTelebirrCheckoutState() {
+    stopTelebirrStatusPolling();
+    latestTelebirrOrderId = '';
+    setTelebirrStatus('');
+}
+
+function launchTelebirrBridge(rawRequest) {
+    if (!rawRequest) return false;
+    if (!window.consumerapp || typeof window.consumerapp.evaluate !== 'function') {
+        return false;
+    }
+
+    window.handleYeshiTelebirrCallback = function () {
+        setTelebirrStatus('Telebirr checkout opened. Complete the payment in the app, then return here.', 'info');
+    };
+
+    const payload = JSON.stringify({
+        functionName: 'js_fun_start_pay',
+        params: {
+            rawRequest,
+            functionCallBackName: 'handleYeshiTelebirrCallback'
+        }
+    });
+
+    window.consumerapp.evaluate(payload);
+    return true;
+}
+
+async function pollTelebirrPaymentStatus(orderId) {
+    const token = localStorage.getItem('token');
+    if (!token || !orderId) return;
+
+    try {
+        const res = await fetch(`/api/orders/${encodeURIComponent(orderId)}/telebirr/status`, {
+            headers: { 'x-auth-token': token }
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) return;
+
+        if (data.confirmed || String(data.paymentStatus || '').toLowerCase() === 'confirmed') {
+            stopTelebirrStatusPolling();
+            setTelebirrStatus('Payment status confirmed.', 'success');
+            loadMyOrders();
+            alert('Payment status confirmed. Your order is now marked as paid.');
+            return;
+        }
+
+        if (String(data.paymentStatus || '').toLowerCase() === 'failed') {
+            stopTelebirrStatusPolling();
+            setTelebirrStatus('Telebirr reported a failed payment. Please try again.', 'error');
+        }
+    } catch (_) {
+        // Ignore intermittent polling errors.
+    }
+}
+
+function startTelebirrStatusPolling(orderId) {
+    latestTelebirrOrderId = String(orderId || '').trim();
+    stopTelebirrStatusPolling();
+    if (!latestTelebirrOrderId) return;
+    pollTelebirrPaymentStatus(latestTelebirrOrderId);
+    telebirrPollingId = window.setInterval(() => {
+        pollTelebirrPaymentStatus(latestTelebirrOrderId);
+    }, 3000);
+}
 
 function normalizeStoredList(value) {
     return Array.isArray(value) ? value : [];
@@ -1665,6 +1788,7 @@ form.addEventListener('submit', async function(e) {
     const paymentComment = String(document.getElementById('paymentComment')?.value || '').trim();
     const referenceFiles = Array.from(document.getElementById('referenceImages')?.files || []);
     const quantity = currentProductQuantity;
+    const isTelebirrFlow = isProductOrder && paymentMethod === 'telebirr';
     // Fabric type removed
     
     // Delivery
@@ -1766,6 +1890,10 @@ form.addEventListener('submit', async function(e) {
         proposedPriceETB: proposedPriceETB === undefined ? 0 : proposedPriceETB
     };
 
+    if (isTelebirrFlow) {
+        payload.telebirrCheckout = true;
+    }
+
     try {
         const submitBtn = document.getElementById('orderPrimaryBtn');
         if (submitBtn) submitBtn.disabled = true;
@@ -1777,7 +1905,7 @@ form.addEventListener('submit', async function(e) {
             return;
         }
 
-        if (isProductOrder && !paymentFile) {
+        if (isProductOrder && paymentMethod === 'bank_transfer' && !paymentFile) {
             alert('Upload payment screenshot before placing the order.');
             if (submitBtn) submitBtn.disabled = false;
             return;
@@ -1821,6 +1949,18 @@ form.addEventListener('submit', async function(e) {
                 method: 'POST',
                 headers: { 'x-auth-token': token },
                 body: fd
+            });
+        } else if (isTelebirrFlow) {
+            resetTelebirrCheckoutState();
+            setTelebirrStatus('Creating your order and preparing Telebirr checkout...', 'info');
+
+            res = await fetch('/api/orders', {
+                method: 'POST',
+                headers: {
+                    'x-auth-token': token,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(payload)
             });
         } else if (paymentFile) {
             const fd = new FormData();
@@ -1912,6 +2052,36 @@ form.addEventListener('submit', async function(e) {
                 }
             );
 
+            if (isTelebirrFlow) {
+                const orderRecord = data?.order || data;
+                const telebirr = data?.telebirr || {};
+                const orderId = String(telebirr.orderId || orderRecord?._id || '').trim();
+                if (!orderId || !telebirr.checkoutUrl) {
+                    setTelebirrStatus('Telebirr checkout could not be prepared. Please try again.', 'error');
+                    alert('Telebirr checkout could not be prepared.');
+                    return;
+                }
+
+                latestTelebirrOrderId = orderId;
+                setTelebirrStatus('Order created. Opening Telebirr checkout...', 'info');
+
+                let openedInBridge = false;
+                try {
+                    openedInBridge = launchTelebirrBridge(telebirr.rawRequest);
+                } catch (_) {
+                    openedInBridge = false;
+                }
+
+                if (!openedInBridge) {
+                    telebirrCheckoutWindow = window.open(telebirr.checkoutUrl, '_blank', 'noopener,noreferrer');
+                    setTelebirrStatus('Telebirr checkout opened in a new tab. Complete the payment there, then return here.', 'info');
+                }
+
+                startTelebirrStatusPolling(orderId);
+                loadMyOrders();
+                return;
+            }
+
             // 3. Construct WhatsApp Message (Backup/Notification)
             let message = `*New Order Request - YESHI* %0A%0A`;
             message += `👤 *Customer:* ${name}%0A`;
@@ -1942,6 +2112,10 @@ form.addEventListener('submit', async function(e) {
         const submitBtn = document.getElementById('orderPrimaryBtn');
         if (submitBtn) submitBtn.disabled = false;
     }
+});
+
+window.addEventListener('beforeunload', () => {
+    stopTelebirrStatusPolling();
 });
 
 

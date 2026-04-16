@@ -123,11 +123,18 @@ const OrderSchema = new mongoose.Schema({
     // Payment Info
     payment_info: {
         method: String,  // 'bank_transfer', 'telebirr', 'cbe', 'chapa', 'cod'
+        provider: String,
         screenshot_url: String,
         comment: { type: String, default: '' },
         status: { type: String, default: 'Pending' },
         transaction_id: String,
-        paid_at: Date
+        paid_at: Date,
+        merchant_order_id: String,
+        prepay_id: String,
+        raw_request: String,
+        checkout_token: String,
+        callback_payload: mongoose.Schema.Types.Mixed,
+        confirmed_at: Date
     },
 
     payment_screenshot_url: { type: String, default: '' },
