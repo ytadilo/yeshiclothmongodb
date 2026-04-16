@@ -80,6 +80,9 @@
     </style>
 </head>
 <body class="home-page bg-brand-paper font-body text-brand-ink antialiased">
+    <div id="yeshiStaticLayout">
+        <div data-include="/components/navbar.html"></div>
+    </div>
 
     <div id="notification-overlay" class="fixed inset-0 z-[100] hidden">
         <div class="absolute inset-0 bg-black/40" data-close-notification></div>
@@ -148,7 +151,8 @@
         </section>
     </main>
 
-    <footer></footer>
+    <div data-include="/components/footer.html"></div>
+    <div data-include="/components/mobile-bottomnav.html"></div>
 
     <div id="videoModal" class="fixed inset-0 z-[120] hidden items-center justify-center bg-black/70 p-4">
         <div class="w-full max-w-4xl rounded-2xl bg-white p-4">
@@ -160,6 +164,7 @@
         </div>
     </div>
 
+    <script src="/js/include.js"></script>
     <script src="/js/main.js"></script>
     <script>
         const state = {
@@ -391,223 +396,6 @@
             if (!modal) return;
             modal.classList.remove('flex');
             modal.classList.add('hidden');
-        }
-
-        function escapeNotificationHtml(value) {
-            return String(value || '')
-                .replace(/&/g, '&amp;')
-                .replace(/</g, '&lt;')
-                .replace(/>/g, '&gt;')
-                .replace(/"/g, '&quot;')
-                .replace(/'/g, '&#39;');
-        }
-
-        function formatNotificationTime(input) {
-            const date = new Date(input || Date.now());
-            if (Number.isNaN(date.getTime())) return '';
-            return date.toLocaleString();
-        }
-
-        function buildNotificationHref(notification) {
-            const destination = notification && notification.destination && typeof notification.destination === 'object'
-                ? notification.destination
-                : null;
-            if (destination && destination.path) {
-                try {
-                    const url = new URL(String(destination.path), window.location.origin);
-                    const query = destination.query && typeof destination.query === 'object' ? destination.query : {};
-                    Object.entries(query).forEach(([key, value]) => {
-                        if (value === undefined || value === null) return;
-                        const normalized = String(value).trim();
-                        if (!normalized) return;
-                        url.searchParams.set(key, normalized);
-                    });
-                    return url.pathname + url.search + url.hash;
-                } catch (_) {
-                    return String(destination.path || '').trim();
-                }
-            }
-
-            const refId = String(notification && notification.reference_id || '').trim();
-            const type = String(notification && notification.type || '').toLowerCase();
-            const title = String(notification && notification.title || '').toLowerCase();
-            const body = String(notification && notification.body || '').toLowerCase();
-
-            if (type.includes('message')) return '/user/mychat.html' + (refId ? '?messageId=' + encodeURIComponent(refId) : '');
-            if (type.includes('order') || type.includes('payment') || type.includes('delivery') || title.includes('order') || body.includes('order')) {
-                return '/user/my-orders.html' + (refId ? '?highlight=' + encodeURIComponent(refId) : '');
-            }
-            if (refId) return '/user/post.html?id=' + encodeURIComponent(refId);
-            return '';
-        }
-
-        async function loadNotificationUnreadCount() {
-            const token = localStorage.getItem('token');
-            const dot = document.getElementById('notificationDot');
-            if (!dot) return;
-            if (!token) {
-                dot.classList.add('hidden');
-                dot.textContent = '';
-                return;
-            }
-
-            try {
-                const res = await fetch('/api/workflow/notifications/unread-count', {
-                    headers: { 'x-auth-token': token }
-                });
-                if (!res.ok) {
-                    dot.classList.add('hidden');
-                    return;
-                }
-                const data = await res.json();
-                const unread = Number((data && (data.unreadCount ?? data.unread)) || 0);
-                if (Number.isFinite(unread) && unread > 0) {
-                    dot.classList.remove('hidden');
-                    dot.textContent = unread > 99 ? '99+' : String(unread);
-                } else {
-                    dot.classList.add('hidden');
-                    dot.textContent = '';
-                }
-            } catch (_) {
-                dot.classList.add('hidden');
-                dot.textContent = '';
-            }
-        }
-
-        async function loadNotifications() {
-            const token = localStorage.getItem('token');
-            const list = document.getElementById('notificationList');
-            if (!list) return;
-
-            if (!token) {
-                list.innerHTML = '<p class="text-brand-muted">Login to see notifications.</p>';
-                return;
-            }
-
-            list.innerHTML = '<p class="text-brand-muted">Loading notifications...</p>';
-
-            try {
-                const res = await fetch('/api/workflow/notifications?limit=30', {
-                    headers: { 'x-auth-token': token }
-                });
-                if (!res.ok) {
-                    list.innerHTML = '<p class="text-brand-muted">Could not load notifications.</p>';
-                    return;
-                }
-
-                const data = await res.json();
-                const notifications = Array.isArray(data) ? data : [];
-                if (!notifications.length) {
-                    list.innerHTML = '<p class="text-brand-muted">No notifications yet.</p>';
-                    return;
-                }
-
-                list.innerHTML = notifications.map((n) => {
-                    const title = escapeNotificationHtml(n && n.title ? n.title : 'Notification');
-                    const body = escapeNotificationHtml(n && n.body ? n.body : '');
-                    const timeText = escapeNotificationHtml(formatNotificationTime(n && n.timestamp));
-                    const unreadClass = n && n.is_read ? 'border-transparent' : 'border-[#D4B468]';
-                    const notificationId = escapeNotificationHtml(n && n._id ? n._id : '');
-                    const href = escapeNotificationHtml(buildNotificationHref(n));
-                    const clickableClass = href ? ' cursor-pointer hover:bg-amber-50' : '';
-                    return [
-                        '<article class="rounded-xl border-l-4 ', unreadClass, ' bg-white p-3 shadow-sm', clickableClass, '" data-notification-id="', notificationId, '" data-href="', href, '">',
-                            '<div class="flex items-center justify-between gap-2">',
-                                '<p class="text-[11px] font-bold uppercase tracking-wider text-brand-primary">', title, '</p>',
-                                '<span class="text-[10px] text-brand-muted">', timeText, '</span>',
-                            '</div>',
-                            '<p class="mt-1 text-brand-muted">', body, '</p>',
-                        '</article>'
-                    ].join('');
-                }).join('');
-                bindNotificationItemActions(token);
-            } catch (_) {
-                list.innerHTML = '<p class="text-brand-muted">Could not load notifications.</p>';
-            }
-        }
-
-        function bindNotificationItemActions(token) {
-            document.querySelectorAll('#notificationList [data-href]').forEach((item) => {
-                item.addEventListener('click', async function () {
-                    const href = item.getAttribute('data-href');
-                    const notificationId = item.getAttribute('data-notification-id');
-                    if (!href) return;
-
-                    if (token && notificationId) {
-                        fetch('/api/workflow/notifications/' + encodeURIComponent(notificationId) + '/read', {
-                            method: 'PUT',
-                            headers: { 'x-auth-token': token }
-                        }).catch(function () {});
-                    }
-                    window.location.href = href;
-                });
-            });
-        }
-
-        function isUserLoggedIn() {
-            return !!localStorage.getItem('token');
-        }
-
-        function buildLoginRedirect(targetPath) {
-            const next = targetPath || (window.location.pathname + window.location.search);
-            return '/auth/login?next=' + encodeURIComponent(next);
-        }
-
-        function bindOrderLinkGuards() {
-            document.querySelectorAll('[data-order-link]').forEach((link) => {
-                link.addEventListener('click', function (e) {
-                    if (isUserLoggedIn()) return;
-                    e.preventDefault();
-                    const href = link.getAttribute('href') || '/user/order.html';
-                    window.location.href = buildLoginRedirect(href);
-                });
-            });
-        }
-
-        function applyMenuAuthState() {
-            const loginBtn = document.getElementById('mobileMenuLoginBtn');
-            const signupBtn = document.getElementById('mobileMenuSignupBtn');
-            const mobileMyOrdersBtn = document.getElementById('mobileMenuMyOrdersBtn');
-            const logoutBtn = document.getElementById('mobileMenuLogoutBtn');
-            const desktopMyOrders = document.getElementById('desktopMyOrdersItem');
-            const desktopLogin = document.getElementById('desktopLoginItem');
-            const desktopSignup = document.getElementById('desktopSignupItem');
-            const desktopProfileAction = document.getElementById('desktopProfileAction');
-            const desktopLogout = document.getElementById('desktopLogoutItem');
-            const shoppingBagLink = document.getElementById('shoppingBagLink');
-            const loggedIn = isUserLoggedIn();
-            const setVisible = (element, visible) => {
-                if (!element) return;
-                element.classList.toggle('hidden', !visible);
-                element.style.display = visible ? '' : 'none';
-                element.setAttribute('aria-hidden', visible ? 'false' : 'true');
-            };
-            setVisible(loginBtn, !loggedIn);
-            setVisible(signupBtn, !loggedIn);
-            setVisible(mobileMyOrdersBtn, loggedIn);
-            setVisible(logoutBtn, loggedIn);
-            setVisible(desktopMyOrders, loggedIn);
-            setVisible(desktopLogin, !loggedIn);
-            setVisible(desktopSignup, !loggedIn);
-            setVisible(desktopProfileAction, loggedIn);
-            setVisible(desktopLogout, loggedIn);
-            setVisible(shoppingBagLink, loggedIn);
-        }
-
-        function bindLogoutActions() {
-            document.querySelectorAll('[data-action="logout"]').forEach((el) => {
-                el.addEventListener('click', function (e) {
-                    e.preventDefault();
-                    if (window.YeshiAuth && typeof window.YeshiAuth.performLogout === 'function') {
-                        window.YeshiAuth.performLogout('/auth/login');
-                        return;
-                    }
-                    localStorage.removeItem('token');
-                    localStorage.removeItem('role');
-                    localStorage.removeItem('user');
-                    window.location.href = '/auth/login';
-                });
-            });
         }
 
         function formatPricePair(post) {
@@ -1038,48 +826,12 @@
             renderFeeds();
         }
 
-        document.addEventListener('DOMContentLoaded', function () {
+        document.addEventListener('DOMContentLoaded', async function () {
+            if (window.YeshiIncludes && typeof window.YeshiIncludes.ready === 'function') {
+                await window.YeshiIncludes.ready().catch(() => null);
+            }
             loadPosts();
-            loadNotificationUnreadCount();
             updateBagCountBadge();
-            bindOrderLinkGuards();
-            applyMenuAuthState();
-            bindLogoutActions();
-
-            const mobileToggle = document.getElementById('mobile-menu-toggle');
-            const mobileMenu = document.getElementById('mobile-menu');
-            if (mobileToggle && mobileMenu) {
-                mobileToggle.addEventListener('click', function () {
-                    mobileMenu.classList.toggle('hidden');
-                });
-            }
-
-            const overlay = document.getElementById('notification-overlay');
-            const drawer = document.getElementById('notification-drawer');
-            const notificationTrigger = document.getElementById('notification-trigger');
-            if (overlay && drawer && notificationTrigger) {
-                notificationTrigger.addEventListener('click', function () {
-                    overlay.classList.remove('hidden');
-                    setTimeout(function () {
-                        drawer.classList.remove('translate-x-full');
-                    }, 10);
-                    loadNotifications();
-                });
-
-                overlay.querySelectorAll('[data-close-notification]').forEach((el) => {
-                    el.addEventListener('click', function () {
-                        drawer.classList.add('translate-x-full');
-                        setTimeout(function () {
-                            overlay.classList.add('hidden');
-                        }, 250);
-                        fetch('/api/workflow/notifications/read-all', {
-                            method: 'PUT',
-                            headers: { 'x-auth-token': localStorage.getItem('token') || '' }
-                        }).catch(function () {});
-                        loadNotificationUnreadCount();
-                    });
-                });
-            }
 
             document.getElementById('closeVideoModal')?.addEventListener('click', closeVideoModal);
             document.getElementById('videoModal')?.addEventListener('click', function (e) {

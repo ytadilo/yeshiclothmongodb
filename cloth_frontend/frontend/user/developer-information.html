@@ -47,6 +47,9 @@
 </head>
 
 <body class="bg-brand-paper font-body text-brand-ink antialiased yeshi-has-bottom-nav">
+<div id="yeshiStaticLayout">
+        <div data-include="/components/navbar.html"></div>
+    </div>
 <div id="notification-overlay" class="fixed inset-0 z-[100] hidden">
         <div class="absolute inset-0 bg-black/40" data-close-notification></div>
         <aside id="notification-drawer" class="absolute right-0 top-0 h-full w-[86%] max-w-sm translate-x-full bg-white shadow-2xl transition-transform duration-300">
@@ -101,82 +104,11 @@
         </section>
     </main>
 
+    <div data-include="/components/footer.html"></div>
+    <div data-include="/components/mobile-bottomnav.html"></div>
+
+    <script src="/js/include.js"></script>
     <script src="/js/main.js"></script>
-    <script>
-        function isUserLoggedIn() {
-            return !!localStorage.getItem('token');
-        }
-
-        function applyMenuAuthState() {
-            const loginBtn = document.getElementById('mobileMenuLoginBtn');
-            const signupBtn = document.getElementById('mobileMenuSignupBtn');
-            const logoutBtn = document.getElementById('mobileMenuLogoutBtn');
-            const desktopLogin = document.getElementById('desktopLoginItem');
-            const desktopSignup = document.getElementById('desktopSignupItem');
-            const desktopLogout = document.getElementById('desktopLogoutItem');
-            const loggedIn = isUserLoggedIn();
-            const setVisible = (element, visible) => {
-                if (!element) return;
-                element.classList.toggle('hidden', !visible);
-                element.style.display = visible ? '' : 'none';
-                element.setAttribute('aria-hidden', visible ? 'false' : 'true');
-            };
-            setVisible(loginBtn, !loggedIn);
-            setVisible(signupBtn, !loggedIn);
-            setVisible(logoutBtn, loggedIn);
-            setVisible(desktopLogin, !loggedIn);
-            setVisible(desktopSignup, !loggedIn);
-            setVisible(desktopLogout, loggedIn);
-        }
-
-        function bindLogoutActions() {
-            document.querySelectorAll('[data-action="logout"]').forEach((el) => {
-                el.addEventListener('click', function (e) {
-                    e.preventDefault();
-                    localStorage.removeItem('token');
-                    localStorage.removeItem('role');
-                    localStorage.removeItem('user');
-                    window.location.href = '/auth/login';
-                });
-            });
-        }
-
-        function bindTopNavActions() {
-            const mobileToggle = document.getElementById('mobile-menu-toggle');
-            const mobileMenu = document.getElementById('mobile-menu');
-            if (mobileToggle && mobileMenu) {
-                mobileToggle.addEventListener('click', function () {
-                    mobileMenu.classList.toggle('hidden');
-                });
-            }
-
-            const overlay = document.getElementById('notification-overlay');
-            const drawer = document.getElementById('notification-drawer');
-            const notificationTrigger = document.getElementById('notification-trigger');
-            if (overlay && drawer && notificationTrigger) {
-                notificationTrigger.addEventListener('click', function () {
-                    overlay.classList.remove('hidden');
-                    setTimeout(function () {
-                        drawer.classList.remove('translate-x-full');
-                    }, 10);
-                });
-                overlay.querySelectorAll('[data-close-notification]').forEach((el) => {
-                    el.addEventListener('click', function () {
-                        drawer.classList.add('translate-x-full');
-                        setTimeout(function () {
-                            overlay.classList.add('hidden');
-                        }, 250);
-                    });
-                });
-            }
-        }
-
-        document.addEventListener('DOMContentLoaded', function () {
-            applyMenuAuthState();
-            bindLogoutActions();
-            bindTopNavActions();
-        });
-    </script>
 </body>
 </html>
 

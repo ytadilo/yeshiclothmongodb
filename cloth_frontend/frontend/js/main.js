@@ -400,6 +400,14 @@ function checkSessionExpiry() {
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
+    try {
+        if (window.YeshiIncludes && typeof window.YeshiIncludes.ready === 'function') {
+            await window.YeshiIncludes.ready();
+        }
+    } catch (_) {
+        // Continue with JS-generated fallback layout.
+    }
+
     bindGlobalLogoutDelegation();
     checkSessionExpiry();
     try {
@@ -1092,7 +1100,6 @@ function ensureHomepageNavForListedPages() {
         '/user/profile.html'
     ]);
     if (!targets.has(path)) return;
-    if (document.getElementById('yeshiHomeLikeNav')) return;
 
     const materialSymbolsHref = 'https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap';
     const hasMaterialSymbols = Array.from(document.querySelectorAll('link[rel="stylesheet"]')).some((link) => String(link.href || '').includes('Material+Symbols+Outlined'));
@@ -1299,11 +1306,14 @@ function ensureHomepageNavForListedPages() {
         document.head.appendChild(style);
     }
 
-    const firstHeader = document.querySelector('header');
-    if (firstHeader) firstHeader.remove();
+    let nav = document.getElementById('yeshiHomeLikeNav');
 
-    const navShell = document.createElement('div');
-    navShell.innerHTML = `
+    if (!nav) {
+        const firstHeader = document.querySelector('header');
+        if (firstHeader) firstHeader.remove();
+
+        const navShell = document.createElement('div');
+        navShell.innerHTML = `
         <nav id="yeshiHomeLikeNav" class="fixed top-0 z-50 w-full bg-white/80 shadow-nav backdrop-blur-md">
             <div class="yeshi-nav-inner mx-auto flex max-w-[1920px] items-center justify-between px-4 py-4 md:px-10">
                 <div class="yeshi-nav-left flex items-center gap-3">
@@ -1358,8 +1368,10 @@ function ensureHomepageNavForListedPages() {
             </div>
         </nav>
     `;
-    const nav = navShell.firstElementChild;
-    if (nav) document.body.prepend(nav);
+        nav = navShell.firstElementChild;
+        if (nav) document.body.prepend(nav);
+    }
+
     removeLegacyDesktopProfileIcons();
     document.body.classList.add('yeshi-home-nav-active');
 
@@ -2480,7 +2492,7 @@ function ensureUnifiedUserFooter() {
     const path = String(window.location.pathname || '').toLowerCase();
     if (path.startsWith('/admin') || path.startsWith('/auth')) return;
 
-    let footer = document.querySelector('footer');
+    let footer = document.querySelector('footer.yeshi-footer') || document.querySelector('footer');
     if (!footer) {
         footer = document.createElement('footer');
         document.body.appendChild(footer);
@@ -2559,7 +2571,14 @@ function ensureUnifiedUserFooter() {
         document.head.appendChild(style);
     }
 
+    const hasStaticFooterMarkup = footer.classList.contains('yeshi-footer') && !!footer.querySelector('.yeshi-footer__wrap');
+
     footer.className = 'yeshi-footer';
+
+    if (hasStaticFooterMarkup) {
+        return;
+    }
+
     footer.innerHTML = `
         <div class="yeshi-footer__wrap">
             <div class="footer-section">

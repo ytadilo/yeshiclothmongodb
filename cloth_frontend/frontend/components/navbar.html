@@ -1,0 +1,54 @@
+<nav id="yeshiHomeLikeNav" class="fixed top-0 z-50 w-full bg-white/80 shadow-nav backdrop-blur-md" data-component="navbar">
+    <div class="yeshi-nav-inner mx-auto flex max-w-[1920px] items-center justify-between px-4 py-4 md:px-10">
+        <div class="yeshi-nav-left flex items-center gap-3">
+            <button type="button" id="mobile-menu-toggle" class="rounded-md p-2 text-brand-muted hover:text-brand-primary lg:hidden" aria-label="Open menu">
+                <span class="material-symbols-outlined text-2xl">menu</span>
+            </button>
+            <div data-include="/components/mobile-topnav.html"></div>
+            <a aria-label="የሺ Home" class="logo inline-flex items-center gap-2" href="/user/" title="የሺ">
+                <img src="/images/logo.png" alt="የሺ" class="h-9 w-auto rounded-sm yeshi-logo-spin">
+                <span class="hidden text-xl font-bold tracking-tight sm:inline">Yeshi</span>
+            </a>
+        </div>
+
+        <ul class="yeshi-desktop-nav nav-links no-scrollbar hidden items-center gap-5 overflow-x-auto text-xs font-semibold uppercase tracking-wider lg:flex">
+            <li><a class="active text-brand-primary" href="/user/">Home</a></li>
+            <li id="desktopMyOrdersItem" class="hidden"><a href="/my-orders" class="hover:text-brand-primary">My Orders</a></li>
+            <li id="desktopLoginItem"><a href="/auth/login" class="hover:text-brand-primary">Login</a></li>
+            <li id="desktopSignupItem"><a href="/auth/register" class="hover:text-brand-primary">Sign Up</a></li>
+            <li id="desktopLogoutItem" class="hidden"><a href="#" data-action="logout" class="hover:text-brand-primary">Logout</a></li>
+        </ul>
+
+        <div class="yeshi-actions flex items-center gap-2 sm:gap-4">
+            <a class="yeshi-order-btn rounded-full bg-gradient-to-r from-brand-primary to-brand-accent px-3 py-1.5 text-xs font-bold uppercase tracking-wide text-white shadow-sm transition-opacity hover:opacity-90" data-order-link href="/user/order">Order</a>
+            <a aria-label="Favorites" class="yeshi-icon-btn rounded-full p-2 text-brand-muted hover:text-brand-primary" href="/user/favorites">
+                <span class="material-symbols-outlined">favorite</span>
+            </a>
+            <button type="button" id="notification-trigger" class="yeshi-icon-btn relative rounded-full p-2 text-brand-muted hover:text-brand-primary" aria-label="Notifications">
+                <span class="material-symbols-outlined">notifications</span>
+                <span id="notificationDot" class="absolute right-1 top-1 h-2 w-2 rounded-full bg-brand-accent hidden"></span>
+                <span id="notificationCountBadge" class="user-top-nav-badge"></span>
+            </button>
+            <a id="shoppingBagLink" href="/cart" class="yeshi-icon-btn relative rounded-full p-2 text-brand-muted hover:text-brand-primary" aria-label="Shopping bag">
+                <span class="material-symbols-outlined">shopping_bag</span>
+                <span id="bagCount" class="absolute -right-1 -top-1 min-w-[1rem] rounded-full bg-brand-primary px-1 text-center text-[10px] font-bold leading-4 text-white">0</span>
+            </a>
+            <a aria-label="Open MyChat" class="yeshi-icon-btn rounded-full p-2 text-brand-muted hover:text-brand-primary" href="/user/mychat" style="position: relative;">
+                <span class="material-symbols-outlined">chat</span>
+            </a>
+            <a id="desktopProfileAction" href="/profile" class="yeshi-icon-btn hidden rounded-full p-2 text-brand-muted hover:text-brand-primary" aria-label="Profile">
+                <span class="material-symbols-outlined">person</span>
+            </a>
+        </div>
+    </div>
+
+    <div id="mobile-menu" class="hidden bg-white lg:hidden">
+        <div class="yeshi-mobile-inner space-y-1 p-4 text-sm font-semibold uppercase tracking-wide">
+            <a class="active block rounded-md bg-amber-50 px-3 py-2 text-brand-primary" href="/user/">Home</a>
+            <a id="mobileMenuMyOrdersBtn" href="/my-orders" class="hidden rounded-md px-3 py-2 hover:bg-amber-50">My Orders</a>
+            <a id="mobileMenuLoginBtn" href="/auth/login" class="block rounded-md px-3 py-2 hover:bg-amber-50">Login</a>
+            <a id="mobileMenuSignupBtn" href="/auth/register" class="block rounded-md px-3 py-2 hover:bg-amber-50">Sign Up</a>
+            <a id="mobileMenuLogoutBtn" href="#" data-action="logout" class="hidden rounded-md px-3 py-2 hover:bg-amber-50">Logout</a>
+        </div>
+    </div>
+</nav>
