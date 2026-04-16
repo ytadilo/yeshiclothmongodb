@@ -1042,7 +1042,7 @@ function renderMeasurementBlocks() {
         const fieldsHtml = (Array.isArray(block.measurementFields) ? block.measurementFields : []).map((field) => `
             <div class="form-group" style="margin-bottom:8px;">
                 <label>${field.label}${field.amharicLabel ? ` | ${field.amharicLabel}` : ''}</label>
-                <input type="number" min="0" step="1" inputmode="numeric" class="form-control" data-measure-field="${field.key}" placeholder="cm" value="${escapeHtml(sanitizeMeasurementValue(old.measurements?.[field.key] || ''))}">
+                <input type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" class="form-control" data-measure-field="${field.key}" placeholder="cm" value="${escapeHtml(sanitizeMeasurementValue(old.measurements?.[field.key] || ''))}">
             </div>
         `).join('');
         return `

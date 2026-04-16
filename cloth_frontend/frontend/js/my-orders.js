@@ -266,6 +266,19 @@ function getOrderPaymentScreenshot(order) {
     );
 }
 
+function getOrderReferenceImages(order) {
+    const refs = Array.isArray(order?.reference_images)
+        ? order.reference_images
+        : Array.isArray(order?.referenceImages)
+            ? order.referenceImages
+            : [];
+
+    return refs
+        .map((value) => getImgUrl(value))
+        .filter(Boolean)
+        .slice(0, 3);
+}
+
 function getOrderPaymentComment(order) {
     const paymentInfo = order && order.payment_info && typeof order.payment_info === 'object'
         ? order.payment_info
@@ -520,7 +533,8 @@ async function loadMyOrders(options = {}) {
             const title = cloth.post_title || order?.productName || cloth.design_type || cloth.category || 'Custom Order';
             const color = cloth.color ? ` · ${cloth.color}` : '';
             const category = cloth.category || '—';
-            const image = getImgUrl(cloth.post_image || order?.productImage || '');
+            const referenceImages = getOrderReferenceImages(order);
+            const image = getImgUrl(cloth.post_image || order?.productImage || referenceImages[0] || '');
             const itemLabel = buildItemLabel(cloth, order);
             const price = Number(cloth.post_price_etb ?? order?.productPrice);
             const shippingPrice = Number(cloth.post_shipping_price_etb ?? order?.shippingPrice);
@@ -573,6 +587,19 @@ async function loadMyOrders(options = {}) {
                                 <div style="margin-top:3px; color:#ba1a1a; font-weight:700;">Product Price (per 1): ${escapeHtml(toPriceText(price))}</div>
                                 <div style="margin-top:2px; color:#745B18; font-weight:700;">Shipping (per 1): ${freeShipping ? 'Free shipping' : (Number.isFinite(shippingPrice) && shippingPrice >= 0 ? `${escapeHtml(shippingPrice.toLocaleString())} ETB` : 'Shipping: —')}</div>
                                 <div style="margin-top:2px; color:#0f2f21; font-weight:800;">${Number.isFinite(payableTotal) && payableTotal >= 0 ? `Total payable: ${escapeHtml(payableTotal.toLocaleString())} ETB (you should pay total price)` : ''}</div>
+                            </div>
+                        </div>
+                    ` : ''}
+
+                    ${(referenceImages.length && !isProductAsIsOrder) ? `
+                        <div style="margin-top:12px; padding:12px; border:1px solid rgba(0,0,0,0.08); border-radius:12px; background:#fff;">
+                            <div style="font-weight:800; color:#1a1c1c; margin-bottom:8px;">Reference Images</div>
+                            <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                                ${referenceImages.map((ref, index) => `
+                                    <a href="${escapeHtml(ref)}" target="_blank" rel="noopener noreferrer" style="display:inline-block;">
+                                        <img src="${escapeHtml(ref)}" alt="Reference image ${index + 1}" style="width:88px; height:88px; object-fit:cover; border-radius:12px; border:1px solid rgba(0,0,0,0.1); box-shadow:0 6px 16px rgba(0,0,0,0.06);">
+                                    </a>
+                                `).join('')}
                             </div>
                         </div>
                     ` : ''}

@@ -204,6 +204,20 @@
             return (unitPrice + unitShipping) * quantity;
         }
 
+        function sanitizeWholeNumberText(value) {
+            const raw = String(value ?? '').trim();
+            if (!raw) return '';
+            const matched = raw.replace(/,/g, '').match(/\d+/);
+            if (!matched) return '';
+            return matched[0];
+        }
+
+        function parseWholeNumberInputValue(value) {
+            const sanitized = sanitizeWholeNumberText(value);
+            if (!sanitized) return NaN;
+            return Number(sanitized);
+        }
+
         function getOrderPaymentScreenshot(order) {
             const paymentInfo = order?.payment_info && typeof order.payment_info === 'object'
                 ? order.payment_info
@@ -606,8 +620,8 @@
 
                                     ${!isProductAsIsOrder ? `
                                     <div style="margin-top: 12px; display:flex; gap: 10px; align-items:center; flex-wrap:wrap;">
-                                        <input type="number" min="0" step="1" class="form-control" style="max-width: 160px;" aria-label="Set cloth price ETB" data-price-etb placeholder="Cloth ETB" value="${Number.isFinite(clothPrice) && clothPrice >= 0 ? String(clothPrice) : ''}">
-                                        <input type="number" min="0" step="1" class="form-control" style="max-width: 160px;" aria-label="Set shipping price ETB" data-shipping-etb placeholder="Shipping ETB" value="${Number.isFinite(clothShippingPrice) && clothShippingPrice >= 0 ? String(clothShippingPrice) : ''}">
+                                        <input type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" class="form-control" style="max-width: 160px;" aria-label="Set cloth price ETB" data-price-etb placeholder="Cloth ETB" value="${Number.isFinite(clothPrice) && clothPrice >= 0 ? String(clothPrice) : ''}">
+                                        <input type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" class="form-control" style="max-width: 160px;" aria-label="Set shipping price ETB" data-shipping-etb placeholder="Shipping ETB" value="${Number.isFinite(clothShippingPrice) && clothShippingPrice >= 0 ? String(clothShippingPrice) : ''}">
                                         <button type="button" class="btn-secondary" onclick="updatePricing('${orderId}')">Set Price</button>
                                     </div>
                                     ` : ''}
@@ -762,8 +776,11 @@
             const host = document.querySelector(`.order-card[data-order-id="${CSS.escape(normalizedOrderId)}"]`);
             const priceInput = host ? host.querySelector('[data-price-etb]') : null;
             const shippingInput = host ? host.querySelector('[data-shipping-etb]') : null;
-            const price = Number(priceInput ? priceInput.value : '');
-            const shipping = Number(shippingInput ? shippingInput.value : '');
+            const price = parseWholeNumberInputValue(priceInput ? priceInput.value : '');
+            const shipping = parseWholeNumberInputValue(shippingInput ? shippingInput.value : '');
+
+            if (priceInput) priceInput.value = Number.isFinite(price) && price >= 0 ? String(price) : '';
+            if (shippingInput) shippingInput.value = Number.isFinite(shipping) && shipping >= 0 ? String(shipping) : '';
 
             if (!Number.isFinite(price) || price < 0) {
                 alert('Please enter a valid cloth price.');
