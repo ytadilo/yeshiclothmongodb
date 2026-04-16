@@ -49,7 +49,7 @@ function getSavedPaymentMethod(orderId) {
     if (!key) return '';
     const state = readPaymentMethodState();
     const value = String(state[key] || '').trim();
-    return ['bank_transfer', 'telebirr', 'telebirr_now'].includes(value) ? value : '';
+    return ['bank_transfer', 'telebirr'].includes(value) ? value : '';
 }
 
 function setSavedPaymentMethod(orderId, method) {
@@ -291,7 +291,6 @@ function formatPaymentMethodLabel(value) {
     const normalized = String(value || '').trim().toLowerCase();
     if (normalized === 'bank_transfer') return 'Bank transfer';
     if (normalized === 'telebirr') return 'Telebirr';
-    if (normalized === 'telebirr_now') return 'Pay Now with Telebirr';
     return normalized ? normalized.replace(/_/g, ' ') : 'Not selected';
 }
 
@@ -307,8 +306,16 @@ function computeQuantityTotal(price, shipping, qty) {
     return (unitPrice + unitShipping) * quantity;
 }
 
+function getClothCategoryLabel(cloth) {
+    const categories = Array.isArray(cloth?.categories)
+        ? cloth.categories.map((row) => String(row || '').trim()).filter(Boolean)
+        : [];
+    if (categories.length) return categories.join(', ');
+    return String(cloth?.category || '').trim();
+}
+
 function buildItemLabel(cloth, order) {
-    const category = String(cloth?.category || '').trim();
+    const category = getClothCategoryLabel(cloth);
     const title = String(cloth?.post_title || order?.productName || cloth?.design_type || '').trim();
     const eventType = String(cloth?.event_type || '').trim();
     const bits = [title || category || 'Custom Cloth'];
@@ -338,23 +345,22 @@ function renderMeasurementSummary(order) {
             const productIndex = Number(entry?.productIndex || 1);
             const label = String(entry?.label || 'Measurement');
             const person = String(entry?.personName || '—');
+            const fieldDefs = Array.isArray(entry?.measurementFields) && entry.measurementFields.length
+                ? entry.measurementFields
+                : Object.keys(entry?.measurementDetails || {}).map((key) => ({ key, label: key }));
             const detailsObj = entry?.measurementDetails && typeof entry.measurementDetails === 'object'
                 ? entry.measurementDetails
                 : {};
-            const details = [
-                ['Height', detailsObj.height],
-                ['Shoulder', detailsObj.shoulder],
-                ['Chest', detailsObj.chest],
-                ['Waist', detailsObj.waist],
-                ['Hip', detailsObj.hip],
-                ['Length', detailsObj.length],
-                ['Sleeve', detailsObj.sleeve]
-            ].map(([k, v]) => `${k}: ${v || '—'}`).join(' · ');
+            const details = fieldDefs
+                .map((field) => `${field.label || field.key}: ${detailsObj[field.key] || '—'}`)
+                .join(' · ');
+            const notes = String(entry?.notes || '').trim();
             return `
                 <div style="margin-top:6px; padding:8px; border:1px solid rgba(0,0,0,0.08); border-radius:8px; background:#fafafa;">
                     <div style="font-weight:700; color:#1a1c1c;">Product ${escapeHtml(String(productIndex))} · ${escapeHtml(label)}</div>
                     <div style="margin-top:3px; font-size:0.88rem;"><span style="color:var(--light-text);">Person:</span> ${escapeHtml(person)}</div>
                     <div style="margin-top:3px; font-size:0.88rem;"><span style="color:var(--light-text);">Details:</span> ${escapeHtml(details)}</div>
+                    ${notes ? `<div style="margin-top:3px; font-size:0.88rem;"><span style="color:var(--light-text);">Notes:</span> ${escapeHtml(notes)}</div>` : ''}
                 </div>
             `;
         }).join('');

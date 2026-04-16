@@ -907,11 +907,21 @@ class FirebasePost {
         const current = nowIso();
         const hasDeliveryScope = ['ethiopia_only', 'selected_countries', 'all_countries'].includes(String(src.delivery_scope || '').trim());
         const normalizedDeliveryScope = hasDeliveryScope ? String(src.delivery_scope || '').trim() : 'ethiopia_only';
+        const categories = Array.isArray(src.categories)
+            ? Array.from(new Set(src.categories.map((row) => String(row || '').trim()).filter(Boolean)))
+            : [];
+        const categoryLabel = categories.length
+            ? categories.join(', ')
+            : (String(src.category || 'Women').trim() || 'Women');
 
         const doc = {
             title: String(src.title || '').trim(),
             description: String(src.description || '').trim(),
-            category: String(src.category || 'Women').trim() || 'Women',
+            category: categoryLabel,
+            categories,
+            measurement_profiles: Array.isArray(src.measurement_profiles)
+                ? Array.from(new Set(src.measurement_profiles.map((row) => String(row || '').trim()).filter(Boolean)))
+                : [],
             images: Array.isArray(src.images) ? src.images.map((row) => String(row || '').trim()).filter(Boolean) : [],
             videoUrl: String(src.videoUrl || '').trim(),
             videoUrls: Array.isArray(src.videoUrls)

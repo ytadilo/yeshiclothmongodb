@@ -9,10 +9,7 @@ const {
 	updateOrderPayment,
 	updateOrderStatusStep,
 	addNegotiationMessage,
-	uploadOrderPaymentProof,
-	getTelebirrPaymentStatus,
-	renderTelebirrCheckoutPage,
-	handleTelebirrNotification
+	uploadOrderPaymentProof
 } = require('../controllers/orderController');
 const { getOrderStats } = require('../controllers/orderStatsController');
 const auth = require('../middleware/authMiddleware');
@@ -49,13 +46,10 @@ router.post(
 	],
 	createOrder
 );
-router.post('/telebirr/notify', handleTelebirrNotification);
 router.get('/last-location', auth, getLastDeliveryLocation);
 router.get('/stats', auth, getOrderStats);
 router.get('/my', auth, getOrders); // Backward-compatible alias for user order history
 router.get('/', auth, getOrders); // Only admin/user should see history
-router.get('/:id/telebirr/status', auth, getTelebirrPaymentStatus);
-router.get('/:id/telebirr/checkout', renderTelebirrCheckoutPage);
 router.put('/:id', auth, updateOrder);
 router.put('/:id/payment', auth, updateOrderPayment);
 router.put('/:id/status', auth, updateOrderStatusStep);

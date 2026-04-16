@@ -13,6 +13,15 @@ function endOfDay(d) {
     return x;
 }
 
+function explodeCategoryValues(value) {
+    if (Array.isArray(value)) {
+        return value.map((row) => String(row || '').trim()).filter(Boolean);
+    }
+    const text = String(value || '').trim();
+    if (!text) return [];
+    return text.split(/\s*,\s*/).map((row) => String(row || '').trim()).filter(Boolean);
+}
+
 // @desc    Admin: order statistics (counts / breakdowns)
 // @route   GET /api/orders/stats
 // @access  Private (admin)
@@ -63,7 +72,9 @@ exports.getOrderStats = async (req, res) => {
             const byStatus = groupByCount(allOrders.map((o) => o && o.order_status));
             const byPaymentStatus = groupByCount(allOrders.map((o) => o && o.payment_status));
             const byDeliveryMethod = groupByCount(allOrders.map((o) => o && o.delivery_method));
-            const topCategories = groupByCount(allOrders.map((o) => o && o.cloth_details && o.cloth_details.category)).slice(0, 8);
+            const topCategories = groupByCount(
+                allOrders.flatMap((o) => explodeCategoryValues(o && o.cloth_details && (o.cloth_details.categories || o.cloth_details.category)))
+            ).slice(0, 8);
             const topRegions = groupByCount(allOrders.map((o) => o && o.customer_info && o.customer_info.region)).slice(0, 8);
 
             const last7Map = new Map();
@@ -133,8 +144,26 @@ exports.getOrderStats = async (req, res) => {
                 { $sort: { count: -1 } }
             ]),
             Order.aggregate([
-                { $group: { _id: '$cloth_details.category', count: { $sum: 1 } } },
-                { $match: { _id: { $ne: null } } },
+                {
+                    $project: {
+                        categoryValues: {
+                            $cond: [
+                                { $isArray: '$cloth_details.categories' },
+                                '$cloth_details.categories',
+                                {
+                                    $cond: [
+                                        { $and: [{ $ne: ['$cloth_details.category', null] }, { $ne: ['$cloth_details.category', ''] }] },
+                                        { $split: ['$cloth_details.category', ', '] },
+                                        []
+                                    ]
+                                }
+                            ]
+                        }
+                    }
+                },
+                { $unwind: '$categoryValues' },
+                { $match: { categoryValues: { $ne: null, $ne: '' } } },
+                { $group: { _id: '$categoryValues', count: { $sum: 1 } } },
                 { $sort: { count: -1 } },
                 { $limit: 8 }
             ]),

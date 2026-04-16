@@ -812,10 +812,19 @@
             ].join('');
         }
 
+        function getPostCategoryValues(post) {
+            const categories = Array.isArray(post?.categories)
+                ? post.categories.map((row) => String(row || '').trim()).filter(Boolean)
+                : [];
+            if (categories.length) return categories;
+            return String(post?.category || '').split(/\s*,\s*/).map((row) => String(row || '').trim()).filter(Boolean);
+        }
+
         function filterPosts(posts) {
             return posts.filter((post) => {
-                const inCategory = state.selectedCategory === 'All' || String(post.category || '').toLowerCase() === state.selectedCategory.toLowerCase();
-                const searchBase = [post.title, post.description, post.category].join(' ').toLowerCase();
+                const categoryValues = getPostCategoryValues(post);
+                const inCategory = state.selectedCategory === 'All' || categoryValues.some((value) => value.toLowerCase() === state.selectedCategory.toLowerCase());
+                const searchBase = [post.title, post.description, post.category, ...categoryValues].join(' ').toLowerCase();
                 const inSearch = !state.searchTerm || searchBase.includes(state.searchTerm);
                 return inCategory && inSearch;
             });

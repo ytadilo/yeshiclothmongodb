@@ -21,7 +21,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     await loadSavedProfileSettings();
     bindSavedSettingsChoices();
     bindRefundPolicyModal();
-    bindTelebirrPhoneModal();
     prefillOrderFromSavedProfile();
 
     // Load order history for the logged-in user
@@ -32,7 +31,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     const urlParams = new URLSearchParams(window.location.search);
     const postId = urlParams.get('postId');
     const title = urlParams.get('title');
-    const telebirrOrderId = String(urlParams.get('telebirrOrderId') || '').trim();
 
     if (postId) {
         // Add visual indicator
@@ -49,11 +47,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     } else {
         applyProductOrderMode(false);
     }
-
-    if (telebirrOrderId) {
-        setTelebirrStatus('Checking Telebirr payment status...', 'info');
-        startTelebirrStatusPolling(telebirrOrderId);
-    }
 });
 
 function applyProductOrderMode(isProductOrder) {
@@ -65,7 +58,6 @@ function applyProductOrderMode(isProductOrder) {
     const paymentMethodInput = document.getElementById('paymentMethod');
     const paymentDetailsCard = document.getElementById('productPaymentDetailsCard');
     const paymentScreenshotInput = document.getElementById('paymentScreenshot');
-    const paymentScreenshotGroup = document.getElementById('paymentScreenshotGroup');
     const paymentCommentInput = document.getElementById('paymentComment');
     const productQuantityGroup = document.getElementById('productQuantityGroup');
 
@@ -97,14 +89,10 @@ function applyProductOrderMode(isProductOrder) {
         if (!isProductOrder) paymentMethodInput.value = '';
     }
     if (paymentScreenshotInput) {
-        const selectedPaymentMethod = String(paymentMethodInput?.value || '').trim();
-        paymentScreenshotInput.required = !!isProductOrder && ['bank_transfer', 'telebirr'].includes(selectedPaymentMethod);
+        paymentScreenshotInput.required = !!isProductOrder;
     }
     if (!isProductOrder && paymentScreenshotInput) {
         paymentScreenshotInput.value = '';
-    }
-    if (!isProductOrder && paymentScreenshotGroup) {
-        paymentScreenshotGroup.style.display = 'none';
     }
     if (!isProductOrder && paymentCommentInput) {
         paymentCommentInput.value = '';
@@ -118,6 +106,9 @@ function applyProductOrderMode(isProductOrder) {
         const referenceImages = document.getElementById('referenceImages');
         if (eventType) eventType.value = '';
         if (referenceImages) referenceImages.value = '';
+    } else if (form) {
+        form.dataset.measurementProfiles = '[]';
+        form.dataset.postCategories = '[]';
     }
 }
 
@@ -282,30 +273,12 @@ function updatePaymentDetailsVisibility() {
     const paymentMethod = String(document.getElementById('paymentMethod')?.value || '').trim();
     const bankTransferDetails = document.getElementById('bankTransferDetails');
     const telebirrDetails = document.getElementById('telebirrDetails');
-    const telebirrNowDetails = document.getElementById('telebirrNowDetails');
-    const paymentScreenshotGroup = document.getElementById('paymentScreenshotGroup');
-    const paymentScreenshotInput = document.getElementById('paymentScreenshot');
 
     if (bankTransferDetails) {
         bankTransferDetails.style.display = paymentMethod === 'bank_transfer' ? 'block' : 'none';
     }
     if (telebirrDetails) {
         telebirrDetails.style.display = paymentMethod === 'telebirr' ? 'block' : 'none';
-    }
-    if (telebirrNowDetails) {
-        telebirrNowDetails.style.display = paymentMethod === 'telebirr_now' ? 'block' : 'none';
-    }
-    if (paymentScreenshotGroup) {
-        paymentScreenshotGroup.style.display = ['bank_transfer', 'telebirr'].includes(paymentMethod) ? 'block' : 'none';
-    }
-    if (paymentScreenshotInput) {
-        paymentScreenshotInput.required = ['bank_transfer', 'telebirr'].includes(paymentMethod);
-        if (!['bank_transfer', 'telebirr'].includes(paymentMethod)) {
-            paymentScreenshotInput.value = '';
-        }
-    }
-    if (paymentMethod !== 'telebirr_now') {
-        resetTelebirrCheckoutState();
     }
     updateProductPaymentDetailsSummary();
 }
@@ -359,20 +332,8 @@ function updateProductPaymentDetailsSummary() {
 
 function initPaymentMethodUI() {
     const paymentMethodInput = document.getElementById('paymentMethod');
-    const telebirrPayNowBtn = document.getElementById('telebirrPayNowBtn');
     if (!paymentMethodInput) return;
     paymentMethodInput.addEventListener('change', updatePaymentDetailsVisibility);
-    if (telebirrPayNowBtn) {
-        telebirrPayNowBtn.addEventListener('click', () => {
-            if (pendingTelebirrCheckout && pendingTelebirrCheckout.rawRequest) {
-                openTelebirrPhoneModal(pendingTelebirrCheckout);
-                return;
-            }
-            const submitEvent = new Event('submit', { cancelable: true, bubbles: true });
-            form.dispatchEvent(submitEvent);
-        });
-    }
-    updateTelebirrPayNowButton();
     updatePaymentDetailsVisibility();
 }
 
@@ -419,234 +380,129 @@ let savedShippingAddresses = [];
 let savedMeasurementProfiles = [];
 let useSavedShipping = true;
 let useSavedMeasurements = true;
-let telebirrPollingId = null;
-let latestTelebirrOrderId = '';
-let pendingTelebirrCheckout = null;
 
-function setTelebirrStatus(message, tone = 'info') {
-    const box = document.getElementById('telebirrStatusBox');
-    if (!box) return;
-    const palette = {
-        info: { bg: '#f7f1df', border: 'rgba(116,91,24,0.2)', color: '#4f4320' },
-        success: { bg: '#e8f6ea', border: 'rgba(22,117,57,0.22)', color: '#175d2d' },
-        error: { bg: '#fdecec', border: 'rgba(186,26,26,0.18)', color: '#8a1212' }
-    };
-    const chosen = palette[tone] || palette.info;
-    box.style.display = message ? 'block' : 'none';
-    box.style.background = chosen.bg;
-    box.style.borderColor = chosen.border;
-    box.style.color = chosen.color;
-    box.textContent = message || '';
-}
-
-function isValidTelebirrPhone(value) {
-    return /^\+[1-9]\d{0,3}[\s\-]?\d{5,14}$/.test(String(value || '').trim());
-}
-
-function normalizeTelebirrPhone(value) {
-    return String(value || '').replace(/[\s\-]+/g, ' ').trim();
-}
-
-function updateTelebirrPayNowButton() {
-    const btn = document.getElementById('telebirrPayNowBtn');
-    if (!btn) return;
-    btn.textContent = pendingTelebirrCheckout && pendingTelebirrCheckout.rawRequest
-        ? 'Continue Telebirr Payment'
-        : 'Pay Now with Telebirr';
-}
-
-function setTelebirrPhoneModalMessage(message, tone = 'info') {
-    const box = document.getElementById('telebirrPhoneModalMessage');
-    if (!box) return;
-    const palette = {
-        info: { bg: '#fff7e8', border: 'rgba(116,91,24,0.18)', color: '#5f4d0f' },
-        error: { bg: '#fdecec', border: 'rgba(186,26,26,0.18)', color: '#8a1212' }
-    };
-    const chosen = palette[tone] || palette.info;
-    box.style.display = message ? 'block' : 'none';
-    box.style.background = chosen.bg;
-    box.style.borderColor = chosen.border;
-    box.style.color = chosen.color;
-    box.textContent = message || '';
-}
-
-function closeTelebirrPhoneModal() {
-    const modal = document.getElementById('telebirrPhoneModal');
-    if (!modal) return;
-    modal.style.display = 'none';
-    setTelebirrPhoneModalMessage('');
-}
-
-function openTelebirrPhoneModal(session) {
-    const modal = document.getElementById('telebirrPhoneModal');
-    const input = document.getElementById('telebirrPhoneInput');
-    if (!modal || !input) return;
-
-    const currentPhone = normalizeTelebirrPhone(
-        session?.phone
-        || document.getElementById('phone')?.value
-        || getSavedProfileShipping()?.phone
-        || ''
-    );
-
-    input.value = currentPhone;
-    modal.style.display = 'flex';
-    setTelebirrPhoneModalMessage('');
-    window.setTimeout(() => {
-        input.focus();
-        input.select();
-    }, 0);
-}
-
-function bindTelebirrPhoneModal() {
-    const modal = document.getElementById('telebirrPhoneModal');
-    const cancelBtn = document.getElementById('telebirrPhoneModalCancelBtn');
-    const confirmBtn = document.getElementById('telebirrPhoneModalConfirmBtn');
-    const input = document.getElementById('telebirrPhoneInput');
-    if (!modal || !cancelBtn || !confirmBtn || !input) return;
-
-    cancelBtn.addEventListener('click', () => {
-        closeTelebirrPhoneModal();
-        if (pendingTelebirrCheckout?.orderId) {
-            setTelebirrStatus('Telebirr order created. Confirm the phone number and tap Pay Now with Telebirr to continue.', 'info');
+const MEASUREMENT_TEMPLATE_DEFS = {
+    general: {
+        key: 'general',
+        label: 'Measurements',
+        fields: [
+            { key: 'height', label: 'Height' },
+            { key: 'shoulder', label: 'Shoulder' },
+            { key: 'chest', label: 'Chest' },
+            { key: 'waist', label: 'Waist' },
+            { key: 'hip', label: 'Hip' },
+            { key: 'length', label: 'Length' },
+            { key: 'sleeve', label: 'Sleeve' }
+        ],
+        savedProfileMap: {
+            height: 'length',
+            shoulder: 'shoulder',
+            chest: 'chest',
+            waist: 'waist',
+            hip: 'hip',
+            length: 'length',
+            sleeve: 'sleeve_length'
         }
-    });
-
-    confirmBtn.addEventListener('click', () => {
-        const phone = normalizeTelebirrPhone(input.value);
-        if (!isValidTelebirrPhone(phone)) {
-            setTelebirrPhoneModalMessage('Enter a valid phone number with country code, for example +2519...', 'error');
-            input.focus();
-            return;
+    },
+    general_woman: {
+        key: 'general_woman',
+        label: 'Woman Measurement',
+        fields: [
+            { key: 'height', label: 'Height' },
+            { key: 'shoulder', label: 'Shoulder' },
+            { key: 'chest', label: 'Chest' },
+            { key: 'waist', label: 'Waist' },
+            { key: 'hip', label: 'Hip' },
+            { key: 'length', label: 'Length' },
+            { key: 'sleeve', label: 'Sleeve' }
+        ],
+        savedProfileMap: {
+            height: 'length',
+            shoulder: 'shoulder',
+            chest: 'chest',
+            waist: 'waist',
+            hip: 'hip',
+            length: 'length',
+            sleeve: 'sleeve_length'
         }
-        if (!pendingTelebirrCheckout?.rawRequest || !pendingTelebirrCheckout?.orderId) {
-            closeTelebirrPhoneModal();
-            setTelebirrStatus('Telebirr checkout is no longer available. Please try again.', 'error');
-            return;
+    },
+    general_man: {
+        key: 'general_man',
+        label: 'Man Measurement',
+        fields: [
+            { key: 'height', label: 'Height' },
+            { key: 'shoulder', label: 'Shoulder' },
+            { key: 'chest', label: 'Chest' },
+            { key: 'waist', label: 'Waist' },
+            { key: 'hip', label: 'Hip' },
+            { key: 'length', label: 'Length' },
+            { key: 'sleeve', label: 'Sleeve' }
+        ],
+        savedProfileMap: {
+            height: 'length',
+            shoulder: 'shoulder',
+            chest: 'chest',
+            waist: 'waist',
+            hip: 'hip',
+            length: 'length',
+            sleeve: 'sleeve_length'
         }
-
-        pendingTelebirrCheckout.phone = phone;
-        const shippingPhone = document.getElementById('phone');
-        if (shippingPhone) shippingPhone.value = phone;
-
-        closeTelebirrPhoneModal();
-        const openedInBridge = launchTelebirrBridge(pendingTelebirrCheckout.rawRequest, phone);
-        if (!openedInBridge) {
-            setTelebirrStatus('Telebirr pay now must be opened inside the Telebirr app browser. Open this order page inside Telebirr and try again.', 'error');
-            return;
+    },
+    women: {
+        key: 'women',
+        label: "Women's Measurements | የሴቶች ልብስ ልኬቶች",
+        fields: [
+            { key: 'shoulder', label: 'Shoulder', amharicLabel: 'ትክሻ' },
+            { key: 'bust', label: 'Bust', amharicLabel: 'ደረት' },
+            { key: 'waist', label: 'Waist', amharicLabel: 'ወገብ' },
+            { key: 'sleeve', label: 'Sleeve', amharicLabel: 'እጅጌ' },
+            { key: 'waist_height', label: 'Waist Height', amharicLabel: 'ወገብ ቁመት' },
+            { key: 'length_below_waist', label: 'Length (Below Waist)', amharicLabel: 'ከወገብ በታች ቁመት' }
+        ],
+        savedProfileMap: {
+            shoulder: 'shoulder',
+            bust: 'chest',
+            waist: 'waist',
+            sleeve: 'sleeve_length',
+            waist_height: 'length',
+            length_below_waist: 'length'
         }
-
-        setTelebirrStatus(`Telebirr opened for ${phone}. Complete the payment in the app, then return here.`, 'info');
-        startTelebirrStatusPolling(pendingTelebirrCheckout.orderId);
-    });
-
-    input.addEventListener('keydown', (event) => {
-        if (event.key === 'Enter') {
-            event.preventDefault();
-            confirmBtn.click();
+    },
+    men_tshirt: {
+        key: 'men_tshirt',
+        label: "Men's T-Shirt | የወንዶች ቲሸርት",
+        fields: [
+            { key: 'shoulder', label: 'Shoulder', amharicLabel: 'ትክሻ' },
+            { key: 'chest', label: 'Chest', amharicLabel: 'ደረት' },
+            { key: 'stomach', label: 'Stomach / Belly', amharicLabel: 'ቦርጭ' },
+            { key: 'tshirt_length', label: 'T-shirt Length', amharicLabel: 'ቲሸርት ቁመት' }
+        ],
+        savedProfileMap: {
+            shoulder: 'shoulder',
+            chest: 'chest',
+            stomach: 'waist',
+            tshirt_length: 'length'
         }
-        if (event.key === 'Escape') {
-            event.preventDefault();
-            cancelBtn.click();
+    },
+    men_trousers: {
+        key: 'men_trousers',
+        label: "Men's Trousers | የወንዶች ሱሪ",
+        fields: [
+            { key: 'waist', label: 'Waist', amharicLabel: 'ወገብ' },
+            { key: 'hips', label: 'Hips', amharicLabel: 'ዳሌ' },
+            { key: 'thigh', label: 'Thigh', amharicLabel: 'ጭን' },
+            { key: 'ankle', label: 'Ankle / Heel', amharicLabel: 'ተረከዝ' },
+            { key: 'length', label: 'Length', amharicLabel: 'ቁመት' }
+        ],
+        savedProfileMap: {
+            waist: 'waist',
+            hips: 'hip',
+            thigh: 'hip',
+            ankle: 'length',
+            length: 'length'
         }
-    });
-
-    modal.addEventListener('click', (event) => {
-        if (event.target === modal) {
-            cancelBtn.click();
-        }
-    });
-}
-
-function stopTelebirrStatusPolling() {
-    if (telebirrPollingId) {
-        window.clearInterval(telebirrPollingId);
-        telebirrPollingId = null;
     }
-}
-
-function resetTelebirrCheckoutState() {
-    stopTelebirrStatusPolling();
-    latestTelebirrOrderId = '';
-    pendingTelebirrCheckout = null;
-    closeTelebirrPhoneModal();
-    setTelebirrStatus('');
-    updateTelebirrPayNowButton();
-}
-
-function launchTelebirrBridge(rawRequest, phoneNumber) {
-    if (!rawRequest) return false;
-    if (!window.consumerapp || typeof window.consumerapp.evaluate !== 'function') {
-        return false;
-    }
-
-    window.handleYeshiTelebirrCallback = function () {
-        const displayPhone = String(phoneNumber || pendingTelebirrCheckout?.phone || '').trim();
-        const prefix = displayPhone ? `Telebirr checkout opened for ${displayPhone}.` : 'Telebirr checkout opened.';
-        setTelebirrStatus(`${prefix} Complete the payment in the app, then return here.`, 'info');
-    };
-
-    const payload = JSON.stringify({
-        functionName: 'js_fun_start_pay',
-        params: {
-            rawRequest,
-            functionCallBackName: 'handleYeshiTelebirrCallback'
-        }
-    });
-
-    window.consumerapp.evaluate(payload);
-    return true;
-}
-
-async function pollTelebirrPaymentStatus(orderId) {
-    const token = localStorage.getItem('token');
-    if (!token || !orderId) return;
-
-    try {
-        const res = await fetch(`/api/orders/${encodeURIComponent(orderId)}/telebirr/status`, {
-            headers: { 'x-auth-token': token }
-        });
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok) return;
-
-        if (data.confirmed || String(data.paymentStatus || '').toLowerCase() === 'confirmed') {
-            stopTelebirrStatusPolling();
-            rememberPendingTelebirrCheckout(null);
-            setTelebirrStatus('Payment status confirmed.', 'success');
-            loadMyOrders();
-            alert('Payment status confirmed. Your order is now marked as paid.');
-            return;
-        }
-
-        if (String(data.paymentStatus || '').toLowerCase() === 'failed') {
-            stopTelebirrStatusPolling();
-            setTelebirrStatus('Telebirr reported a failed payment. Please try again.', 'error');
-        }
-    } catch (_) {
-        // Ignore intermittent polling errors.
-    }
-}
-
-function startTelebirrStatusPolling(orderId) {
-    latestTelebirrOrderId = String(orderId || '').trim();
-    stopTelebirrStatusPolling();
-    if (!latestTelebirrOrderId) return;
-    pollTelebirrPaymentStatus(latestTelebirrOrderId);
-    telebirrPollingId = window.setInterval(() => {
-        pollTelebirrPaymentStatus(latestTelebirrOrderId);
-    }, 3000);
-}
-
-function rememberPendingTelebirrCheckout(session) {
-    pendingTelebirrCheckout = session && session.rawRequest && session.orderId
-        ? {
-            orderId: String(session.orderId || '').trim(),
-            rawRequest: String(session.rawRequest || '').trim(),
-            phone: normalizeTelebirrPhone(session.phone || '')
-        }
-        : null;
-    updateTelebirrPayNowButton();
-}
+};
 
 function normalizeStoredList(value) {
     return Array.isArray(value) ? value : [];
@@ -738,21 +594,7 @@ function renderSavedAddressPreview(item) {
 }
 
 function isValidSavedMeasurementProfile(profile) {
-    if (!profile) return false;
-    const personName = String(profile.profile_name || '').trim();
-    if (!personName) return false;
-
-    const mapped = {
-        height: profile.height ?? profile.length,
-        shoulder: profile.shoulder,
-        chest: profile.chest,
-        waist: profile.waist,
-        hip: profile.hip,
-        length: profile.length,
-        sleeve: profile.sleeve_length
-    };
-
-    return getMeasurementFieldDefs().every((field) => Number(mapped[field.key]) > 0);
+    return !!profile;
 }
 
 function renderSavedMeasurementPreview(profile) {
@@ -791,25 +633,35 @@ function renderSavedMeasurementPreview(profile) {
 
 function getMeasurementBlocks(category, quantity, normalMode) {
     const qty = Math.max(1, quantity);
-    const isCouple = isCoupleCategory(category);
     const blocks = [];
 
-    if (isCouple) {
-        if (qty > 1 && normalMode === 'same') {
-            blocks.push({ productIndex: 1, role: 'woman', label: 'Woman Measurement (Applied to All Products)', key: 'all-woman' });
-            blocks.push({ productIndex: 1, role: 'man', label: 'Man Measurement (Applied to All Products)', key: 'all-man' });
-        } else {
-            for (let i = 1; i <= qty; i += 1) {
-                blocks.push({ productIndex: i, role: 'woman', label: 'Woman Measurement', key: `p${i}-woman` });
-                blocks.push({ productIndex: i, role: 'man', label: 'Man Measurement', key: `p${i}-man` });
-            }
-        }
-    } else if (qty > 1 && normalMode === 'different') {
+    const templateKeys = getActiveMeasurementTemplateKeys(category);
+    if (qty > 1 && normalMode === 'different') {
         for (let i = 1; i <= qty; i += 1) {
-            blocks.push({ productIndex: i, role: 'single', label: 'Measurement', key: `p${i}-single` });
+            templateKeys.forEach((templateKey) => {
+                const template = getMeasurementTemplateDefinition(templateKey);
+                blocks.push({
+                    productIndex: i,
+                    templateKey,
+                    label: template.label,
+                    key: `p${i}-${templateKey}`,
+                    measurementFields: template.fields,
+                    savedProfileMap: template.savedProfileMap || {}
+                });
+            });
         }
     } else {
-        blocks.push({ productIndex: 1, role: 'single', label: qty > 1 ? 'Measurement (Applied to All Products)' : 'Measurement', key: 'all-single' });
+        templateKeys.forEach((templateKey) => {
+            const template = getMeasurementTemplateDefinition(templateKey);
+            blocks.push({
+                productIndex: 1,
+                templateKey,
+                label: qty > 1 ? `${template.label} (Applied to All Products)` : template.label,
+                key: `all-${templateKey}`,
+                measurementFields: template.fields,
+                savedProfileMap: template.savedProfileMap || {}
+            });
+        });
     }
 
     return blocks;
@@ -820,23 +672,20 @@ function buildMeasurementEntriesFromSavedProfile(profile, category, quantity) {
     const normalMode = getActiveNormalMeasurementMode();
     const blocks = getMeasurementBlocks(category, quantity, normalMode);
     const personName = String(profile.profile_name || '').trim();
-    const measurementDetails = {
-        height: sanitizeMeasurementValue(profile.height || profile.length || 0),
-        shoulder: sanitizeMeasurementValue(profile.shoulder || 0),
-        chest: sanitizeMeasurementValue(profile.chest || 0),
-        waist: sanitizeMeasurementValue(profile.waist || 0),
-        hip: sanitizeMeasurementValue(profile.hip || 0),
-        length: sanitizeMeasurementValue(profile.length || 0),
-        sleeve: sanitizeMeasurementValue(profile.sleeve_length || 0)
-    };
 
     return blocks.map((block) => ({
         key: block.key,
         productIndex: block.productIndex,
-        role: block.role,
+        templateKey: block.templateKey,
         label: block.label,
         personName,
-        measurementDetails: { ...measurementDetails }
+        measurementFields: block.measurementFields,
+        measurementDetails: block.measurementFields.reduce((acc, field) => {
+            const sourceKey = block.savedProfileMap && block.savedProfileMap[field.key] ? block.savedProfileMap[field.key] : field.key;
+            acc[field.key] = sanitizeMeasurementValue(profile[sourceKey] || '');
+            return acc;
+        }, {}),
+        notes: ''
     }));
 }
 
@@ -846,18 +695,11 @@ function fillMeasurementBlocksFromProfile(profile) {
     entries.forEach((entry) => {
         const personEl = entry.querySelector('[data-measure-person]');
         if (personEl) personEl.value = String(profile.profile_name || 'Saved profile').trim();
-        const map = {
-            chest: profile.chest,
-            waist: profile.waist,
-            hip: profile.hip,
-            shoulder: profile.shoulder,
-            length: profile.length,
-            sleeve: profile.sleeve_length,
-            height: profile.length
-        };
-        Object.entries(map).forEach(([key, value]) => {
-            const field = entry.querySelector(`[data-measure-field="${key}"]`);
-            const sanitized = sanitizeMeasurementValue(value);
+        const template = getMeasurementTemplateDefinition(entry.getAttribute('data-template-key'));
+        (Array.isArray(template.fields) ? template.fields : []).forEach((fieldDef) => {
+            const sourceKey = template.savedProfileMap && template.savedProfileMap[fieldDef.key] ? template.savedProfileMap[fieldDef.key] : fieldDef.key;
+            const field = entry.querySelector(`[data-measure-field="${fieldDef.key}"]`);
+            const sanitized = sanitizeMeasurementValue(profile[sourceKey] || '');
             if (field && sanitized) {
                 field.value = sanitized;
             }
@@ -1075,15 +917,30 @@ function getActiveNormalMeasurementMode() {
 }
 
 function getMeasurementFieldDefs() {
-    return [
-        { key: 'height', label: 'Height' },
-        { key: 'shoulder', label: 'Shoulder' },
-        { key: 'chest', label: 'Chest' },
-        { key: 'waist', label: 'Waist' },
-        { key: 'hip', label: 'Hip' },
-        { key: 'length', label: 'Length' },
-        { key: 'sleeve', label: 'Sleeve' }
-    ];
+    return MEASUREMENT_TEMPLATE_DEFS.general.fields;
+}
+
+function getMeasurementTemplateDefinition(templateKey) {
+    return MEASUREMENT_TEMPLATE_DEFS[String(templateKey || '').trim()] || MEASUREMENT_TEMPLATE_DEFS.general;
+}
+
+function getConfiguredMeasurementProfiles() {
+    const raw = String(form?.dataset?.measurementProfiles || '').trim();
+    if (!raw) return [];
+    try {
+        const parsed = JSON.parse(raw);
+        return Array.isArray(parsed)
+            ? parsed.map((row) => String(row || '').trim()).filter((row) => !!MEASUREMENT_TEMPLATE_DEFS[row])
+            : [];
+    } catch (_) {
+        return [];
+    }
+}
+
+function getActiveMeasurementTemplateKeys(categoryValue) {
+    const configured = getConfiguredMeasurementProfiles();
+    if (configured.length) return configured;
+    return isCoupleCategory(categoryValue) ? ['general_woman', 'general_man'] : ['general'];
 }
 
 function sanitizeMeasurementValue(value) {
@@ -1132,12 +989,14 @@ function collectExistingMeasurementValues() {
         const key = String(entry.getAttribute('data-measure-key') || '');
         if (!key) return;
         const personName = String(entry.querySelector('[data-measure-person]')?.value || '');
+        const notes = String(entry.querySelector('[data-measure-notes]')?.value || '');
         const measurements = {};
-        getMeasurementFieldDefs().forEach((field) => {
+        const template = getMeasurementTemplateDefinition(entry.getAttribute('data-template-key'));
+        (Array.isArray(template.fields) ? template.fields : []).forEach((field) => {
             const raw = String(entry.querySelector(`[data-measure-field="${field.key}"]`)?.value || '').trim();
             measurements[field.key] = sanitizeMeasurementValue(raw);
         });
-        map.set(key, { personName, measurements });
+        map.set(key, { personName, measurements, notes });
     });
     return map;
 }
@@ -1149,7 +1008,6 @@ function renderMeasurementBlocks() {
     if (!container) return;
 
     const qty = Math.max(1, currentProductQuantity);
-    const isCouple = isCoupleCategory(category);
     const saved = collectExistingMeasurementValues();
     const normalMode = getActiveNormalMeasurementMode();
 
@@ -1161,25 +1019,29 @@ function renderMeasurementBlocks() {
     const blocks = getMeasurementBlocks(category, qty, normalMode);
 
     const html = blocks.map((block) => {
-        const old = saved.get(block.key) || { personName: '', measurements: {} };
-        const productLabel = isCouple || (qty > 1 && normalMode === 'different')
+        const old = saved.get(block.key) || { personName: '', measurements: {}, notes: '' };
+        const productLabel = qty > 1 && normalMode === 'different'
             ? `<div style="font-size:0.84rem; color:#745B18; font-weight:700; margin-bottom:4px;">Product ${block.productIndex}</div>`
             : '';
-        const fieldsHtml = getMeasurementFieldDefs().map((field) => `
+        const fieldsHtml = (Array.isArray(block.measurementFields) ? block.measurementFields : []).map((field) => `
             <div class="form-group" style="margin-bottom:8px;">
-                <label>${field.label}</label>
+                <label>${field.label}${field.amharicLabel ? ` | ${field.amharicLabel}` : ''}</label>
                 <input type="number" min="0" step="1" inputmode="numeric" class="form-control" data-measure-field="${field.key}" placeholder="cm" value="${escapeHtml(sanitizeMeasurementValue(old.measurements?.[field.key] || ''))}">
             </div>
         `).join('');
         return `
-            <div class="measurement-entry" data-measure-key="${block.key}" data-product-index="${block.productIndex}" data-role="${block.role}" data-label="${block.label}" style="border:1px solid rgba(0,0,0,0.1); border-radius:10px; padding:12px; margin-bottom:10px; background:#fff;">
+            <div class="measurement-entry" data-measure-key="${block.key}" data-product-index="${block.productIndex}" data-template-key="${block.templateKey}" data-label="${block.label}" style="border:1px solid rgba(0,0,0,0.1); border-radius:10px; padding:12px; margin-bottom:10px; background:#fff;">
                 ${productLabel}
                 <div style="font-weight:800; color:#1a1c1c; margin-bottom:8px;">${block.label}</div>
                 <div class="form-group" style="margin-bottom:8px;">
-                    <label>Person Name</label>
+                    <label>Person Name (optional)</label>
                     <input type="text" class="form-control" data-measure-person placeholder="Enter person name" value="${escapeHtml(old.personName)}">
                 </div>
                 ${fieldsHtml}
+                <div class="form-group" style="margin-bottom:0;">
+                    <label>Measurement notes (optional)</label>
+                    <textarea class="form-control" rows="4" data-measure-notes placeholder="Add any detailed measurement text here">${escapeHtml(old.notes || '')}</textarea>
+                </div>
             </div>
         `;
     }).join('');
@@ -1197,71 +1059,28 @@ function renderMeasurementBlocks() {
 function collectMeasurementEntries() {
     const entries = [];
     document.querySelectorAll('.measurement-entry').forEach((entry) => {
+        const templateKey = String(entry.getAttribute('data-template-key') || 'general');
+        const template = getMeasurementTemplateDefinition(templateKey);
         entries.push({
             key: String(entry.getAttribute('data-measure-key') || ''),
             productIndex: Number(entry.getAttribute('data-product-index') || 1),
-            role: String(entry.getAttribute('data-role') || 'single'),
+            templateKey,
             label: String(entry.getAttribute('data-label') || 'Measurement'),
             personName: String(entry.querySelector('[data-measure-person]')?.value || '').trim(),
-            measurementDetails: getMeasurementFieldDefs().reduce((acc, field) => {
+            measurementFields: Array.isArray(template.fields) ? template.fields : [],
+            measurementDetails: (Array.isArray(template.fields) ? template.fields : []).reduce((acc, field) => {
                 const raw = String(entry.querySelector(`[data-measure-field="${field.key}"]`)?.value || '').trim();
                 acc[field.key] = sanitizeMeasurementValue(raw);
                 return acc;
-            }, {})
+            }, {}),
+            notes: String(entry.querySelector('[data-measure-notes]')?.value || '').trim()
         });
     });
     return entries;
 }
 
 function validateMeasurementEntries(category, quantity) {
-    const entries = collectMeasurementEntries();
-    const isCouple = isCoupleCategory(category);
-    const qty = Math.max(1, Math.floor(Number(quantity) || 1));
-    const normalMode = getActiveNormalMeasurementMode();
-    const expectedCount = isCouple
-        ? ((qty > 1 && normalMode === 'same') ? 2 : qty * 2)
-        : ((qty > 1 && normalMode === 'different') ? qty : 1);
-
-    if (entries.length !== expectedCount) {
-        const msg = isCouple
-            ? `Please provide Woman and Man measurements for each product. Required: ${expectedCount}`
-            : `Please provide ${expectedCount} measurement block(s).`;
-        return { ok: false, message: msg, entries: [] };
-    }
-
-    for (const e of entries) {
-        if (!e.personName) {
-            return { ok: false, message: 'Each measurement must include person name.', entries: [] };
-        }
-        const hasMissingField = getMeasurementFieldDefs().some((field) => {
-            const raw = String(e?.measurementDetails?.[field.key] || '').trim();
-            const n = Number(raw);
-            return !raw || !Number.isFinite(n) || n <= 0;
-        });
-        if (hasMissingField) {
-            return { ok: false, message: 'Each measurement must include valid Height, Shoulder, Chest, Waist, Hip, Length, and Sleeve values.', entries: [] };
-        }
-    }
-
-    if (isCouple) {
-        if (qty > 1 && normalMode === 'same') {
-            const woman = entries.find((e) => e.role === 'woman');
-            const man = entries.find((e) => e.role === 'man');
-            if (!woman || !man) {
-                return { ok: false, message: 'Couple order must include Woman Measurement and Man Measurement.', entries: [] };
-            }
-        } else {
-            for (let i = 1; i <= qty; i += 1) {
-                const woman = entries.find((e) => e.productIndex === i && e.role === 'woman');
-                const man = entries.find((e) => e.productIndex === i && e.role === 'man');
-                if (!woman || !man) {
-                    return { ok: false, message: `Product ${i} must include Woman Measurement and Man Measurement.`, entries: [] };
-                }
-            }
-        }
-    }
-
-    return { ok: true, message: '', entries };
+    return { ok: true, message: '', entries: collectMeasurementEntries() };
 }
 
 function setOrderStep(step) {
@@ -1379,29 +1198,6 @@ function validateStepOneInputs() {
         }
     }
 
-    const categoryValue = String(category.value || '').trim();
-    if (useSavedMeasurements) {
-        const selectedProfile = getSelectedSavedMeasurementProfile();
-        if (!isValidSavedMeasurementProfile(selectedProfile)) {
-            alert('Please select a valid saved measurement profile with person name and all required values.');
-            focusAndScrollToField(document.getElementById('savedMeasurementSelect'));
-            return false;
-        }
-    } else {
-        const measurementValidation = validateMeasurementEntries(categoryValue, currentProductQuantity);
-        if (!measurementValidation.ok) {
-            const invalid = findFirstInvalidMeasurementField();
-            alert(invalid?.message || measurementValidation.message || 'Please fill all measurement fields before continuing.');
-            if (invalid?.field) {
-                focusAndScrollToField(invalid.field);
-            } else {
-                const block = document.getElementById('measurementBlocksContainer');
-                if (block) focusAndScrollToField(block);
-            }
-            return false;
-        }
-    }
-
     return true;
 }
 
@@ -1498,22 +1294,6 @@ function validateStepTwoInputs() {
         return false;
     }
 
-    const category = String(document.getElementById('clothCategory')?.value || '').trim();
-    if (useSavedMeasurements) {
-        const selectedProfile = getSelectedSavedMeasurementProfile();
-        if (!isValidSavedMeasurementProfile(selectedProfile)) {
-            alert('Please select a valid saved measurement profile with person name and all required values.');
-            focusAndScrollToField(document.getElementById('savedMeasurementSelect'));
-            return false;
-        }
-    } else {
-        const measurementValidation = validateMeasurementEntries(category, currentProductQuantity);
-        if (!measurementValidation.ok) {
-            alert(measurementValidation.message);
-            return false;
-        }
-    }
-
     if (isProductOrder && (!paymentMethodInput || !String(paymentMethodInput.value || '').trim())) {
         alert('Please choose payment method for product order.');
         return false;
@@ -1589,12 +1369,24 @@ async function loadSelectedCloth(postId, fallbackTitle) {
             if (post.priceETB !== undefined) form.dataset.postPriceEtb = String(post.priceETB);
             if (post.shippingPriceETB !== undefined) form.dataset.postShippingPriceEtb = String(post.shippingPriceETB);
             if (post.freeShipping !== undefined) form.dataset.postFreeShipping = String(!!post.freeShipping);
+            form.dataset.measurementProfiles = JSON.stringify(Array.isArray(post.measurement_profiles) ? post.measurement_profiles : []);
+            form.dataset.postCategories = JSON.stringify(Array.isArray(post.categories) ? post.categories : []);
             if (post.category) {
                 const categorySelect = document.getElementById('clothCategory');
                 if (categorySelect) {
                     const hasOption = Array.from(categorySelect.options).some((opt) => String(opt.value).toLowerCase() === String(post.category).toLowerCase());
-                    if (hasOption) categorySelect.value = post.category;
-                    if (hasOption) categorySelect.dataset.lockedCategory = post.category;
+                    if (hasOption) {
+                        categorySelect.value = post.category;
+                        categorySelect.dataset.lockedCategory = post.category;
+                    } else {
+                        const dynamicOption = document.createElement('option');
+                        dynamicOption.value = post.category;
+                        dynamicOption.textContent = post.category;
+                        dynamicOption.dataset.dynamicCategoryOption = '1';
+                        categorySelect.appendChild(dynamicOption);
+                        categorySelect.value = post.category;
+                        categorySelect.dataset.lockedCategory = post.category;
+                    }
                 }
                 updateMeasurementFields();
             }
@@ -1621,6 +1413,14 @@ function formatDate(value) {
     const d = new Date(value);
     if (Number.isNaN(d.getTime())) return '';
     return d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+}
+
+function getClothCategoryLabel(cloth) {
+    const categories = Array.isArray(cloth?.categories)
+        ? cloth.categories.map((row) => String(row || '').trim()).filter(Boolean)
+        : [];
+    if (categories.length) return categories.join(', ');
+    return String(cloth?.category || '').trim();
 }
 
 function escapeHtml(str) {
@@ -1714,12 +1514,12 @@ async function loadMyOrders() {
             }
             const createdAt = formatDate(order?.created_at || order?.createdAt);
 
-            const title = cloth.post_title || order?.productName || cloth.design_type || cloth.category || 'Custom Order';
+            const title = cloth.post_title || order?.productName || cloth.design_type || getClothCategoryLabel(cloth) || 'Custom Order';
             const design = cloth.design_type ? ` · ${cloth.design_type}` : '';
             const color = cloth.color ? ` · ${cloth.color}` : '';
             const deadline = cloth.deadline_date ? `Deadline: ${formatDate(cloth.deadline_date)}` : '';
             const img = getImgUrl(cloth.post_image || order?.productImage || '');
-            const category = cloth.category || '—';
+            const category = getClothCategoryLabel(cloth) || '—';
             const price = Number(cloth.post_price_etb ?? order?.productPrice);
             const shippingPrice = Number(cloth.post_shipping_price_etb ?? order?.shippingPrice);
             const freeShipping = !!cloth.post_free_shipping;
@@ -1935,7 +1735,6 @@ form.addEventListener('submit', async function(e) {
     const paymentComment = String(document.getElementById('paymentComment')?.value || '').trim();
     const referenceFiles = Array.from(document.getElementById('referenceImages')?.files || []);
     const quantity = currentProductQuantity;
-    const isTelebirrFlow = isProductOrder && paymentMethod === 'telebirr_now';
     // Fabric type removed
     
     // Delivery
@@ -1944,32 +1743,23 @@ form.addEventListener('submit', async function(e) {
     const selectedMeasurementProfile = useSavedMeasurements ? getSelectedSavedMeasurementProfile() : null;
     let measurementEntries = [];
     if (useSavedMeasurements) {
-        if (!isValidSavedMeasurementProfile(selectedMeasurementProfile)) {
-            alert('Please select a valid saved measurement profile with person name and all required values.');
-            focusAndScrollToField(document.getElementById('savedMeasurementSelect'));
-            return;
-        }
         measurementEntries = buildMeasurementEntriesFromSavedProfile(selectedMeasurementProfile, category, quantity);
     } else {
         const measurementValidation = validateMeasurementEntries(category, quantity);
-        if (!measurementValidation.ok) {
-            alert(measurementValidation.message);
-            return;
-        }
         measurementEntries = measurementValidation.entries;
     }
-    const isCouple = isCoupleCategory(category);
     const normalMode = getActiveNormalMeasurementMode();
     const measurementPack = {
-        schemaVersion: 2,
-        rule: isCouple ? 'two-by-one' : 'one-by-one',
+        schemaVersion: 3,
+        rule: quantity > 1 && normalMode === 'different' ? 'per-product' : 'shared',
         category,
+        configuredProfiles: getActiveMeasurementTemplateKeys(category),
         quantity,
-        mode: isCouple ? (quantity > 1 ? `couple-${normalMode}` : 'couple-single') : (quantity > 1 ? normalMode : 'single'),
+        mode: quantity > 1 ? normalMode : 'single',
         entries: measurementEntries
     };
     const measurements = {
-        type: 'custom',
+        type: 'structured',
         size: JSON.stringify(measurementPack),
         height: Math.max(1, measurementEntries.length),
         shoulder: quantity
@@ -1980,7 +1770,10 @@ form.addEventListener('submit', async function(e) {
     customer_info.country_code = countryCode;
     customer_info.region_custom = regionCustom;
     customer_info.zip_code = zipCode;
-    const cloth_details = { category };
+    const cloth_details = {
+        category,
+        measurement_profiles: getActiveMeasurementTemplateKeys(category)
+    };
     if (!isProductOrder && eventType) cloth_details.event_type = eventType;
 
     if (form.dataset.postId) {
@@ -1990,6 +1783,11 @@ form.addEventListener('submit', async function(e) {
         cloth_details.post_price_etb = form.dataset.postPriceEtb ? Number(form.dataset.postPriceEtb) : undefined;
         cloth_details.post_shipping_price_etb = form.dataset.postShippingPriceEtb ? Number(form.dataset.postShippingPriceEtb) : undefined;
         cloth_details.post_free_shipping = String(form.dataset.postFreeShipping || '').toLowerCase() === 'true';
+        try {
+            cloth_details.categories = JSON.parse(String(form.dataset.postCategories || '[]'));
+        } catch (_) {
+            cloth_details.categories = [];
+        }
     }
     
     const productId = String(form.dataset.postId || '').trim();
@@ -2013,6 +1811,8 @@ form.addEventListener('submit', async function(e) {
         totalPrice: calculatedTotalPrice,
         clothDetails: {
             category,
+            categories: Array.isArray(cloth_details.categories) ? cloth_details.categories : [],
+            measurement_profiles: cloth_details.measurement_profiles,
             eventType: isProductOrder ? '' : eventType,
             measurementMode: measurementPack.mode
         },
@@ -2037,10 +1837,6 @@ form.addEventListener('submit', async function(e) {
         proposedPriceETB: proposedPriceETB === undefined ? 0 : proposedPriceETB
     };
 
-    if (isTelebirrFlow) {
-        payload.telebirrCheckout = true;
-    }
-
     try {
         const submitBtn = document.getElementById('orderPrimaryBtn');
         if (submitBtn) submitBtn.disabled = true;
@@ -2052,7 +1848,7 @@ form.addEventListener('submit', async function(e) {
             return;
         }
 
-        if (isProductOrder && !isTelebirrFlow && !paymentFile) {
+        if (isProductOrder && !paymentFile) {
             alert('Upload payment screenshot before placing the order.');
             if (submitBtn) submitBtn.disabled = false;
             return;
@@ -2085,6 +1881,7 @@ form.addEventListener('submit', async function(e) {
             fd.append('address', address);
             fd.append('category', category);
             fd.append('clothCategory', category);
+            fd.append('measurementProfiles', JSON.stringify(cloth_details.measurement_profiles || []));
             fd.append('event_type', eventType || '');
             fd.append('quantity', String(quantity));
 
@@ -2096,18 +1893,6 @@ form.addEventListener('submit', async function(e) {
                 method: 'POST',
                 headers: { 'x-auth-token': token },
                 body: fd
-            });
-        } else if (isTelebirrFlow) {
-            resetTelebirrCheckoutState();
-            setTelebirrStatus('Creating your order and preparing Telebirr checkout...', 'info');
-
-            res = await fetch('/api/orders', {
-                method: 'POST',
-                headers: {
-                    'x-auth-token': token,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(payload)
             });
         } else if (paymentFile) {
             const fd = new FormData();
@@ -2129,6 +1914,7 @@ form.addEventListener('submit', async function(e) {
             fd.append('address', address);
             fd.append('category', category);
             fd.append('clothCategory', category);
+            fd.append('measurementProfiles', JSON.stringify(cloth_details.measurement_profiles || []));
             fd.append('event_type', '');
             fd.append('post_id', productId);
             fd.append('quantity', String(quantity));
@@ -2189,37 +1975,15 @@ form.addEventListener('submit', async function(e) {
                 },
                 useSavedMeasurements ? null : {
                     profile_name: 'Order measurement',
-                    chest: Number(measurementEntries?.[0]?.measurementDetails?.chest || 0),
+                    chest: Number(measurementEntries?.[0]?.measurementDetails?.chest || measurementEntries?.[0]?.measurementDetails?.bust || 0),
                     waist: Number(measurementEntries?.[0]?.measurementDetails?.waist || 0),
-                    hip: Number(measurementEntries?.[0]?.measurementDetails?.hip || 0),
+                    hip: Number(measurementEntries?.[0]?.measurementDetails?.hip || measurementEntries?.[0]?.measurementDetails?.hips || 0),
                     shoulder: Number(measurementEntries?.[0]?.measurementDetails?.shoulder || 0),
-                    length: Number(measurementEntries?.[0]?.measurementDetails?.length || 0),
+                    length: Number(measurementEntries?.[0]?.measurementDetails?.length || measurementEntries?.[0]?.measurementDetails?.tshirt_length || measurementEntries?.[0]?.measurementDetails?.length_below_waist || 0),
                     sleeve_length: Number(measurementEntries?.[0]?.measurementDetails?.sleeve || 0),
                     is_default: false
                 }
             );
-
-            if (isTelebirrFlow) {
-                const orderRecord = data?.order || data;
-                const telebirr = data?.telebirr || {};
-                const orderId = String(telebirr.orderId || orderRecord?._id || '').trim();
-                if (!orderId || !telebirr.rawRequest) {
-                    setTelebirrStatus('Telebirr checkout could not be prepared. Please try again.', 'error');
-                    alert('Telebirr checkout could not be prepared.');
-                    return;
-                }
-
-                latestTelebirrOrderId = orderId;
-                rememberPendingTelebirrCheckout({
-                    orderId,
-                    rawRequest: telebirr.rawRequest,
-                    phone
-                });
-                setTelebirrStatus('Order created. Confirm the phone number in the Telebirr popup to continue payment.', 'info');
-                openTelebirrPhoneModal(pendingTelebirrCheckout);
-                loadMyOrders();
-                return;
-            }
 
             // 3. Construct WhatsApp Message (Backup/Notification)
             let message = `*New Order Request - YESHI* %0A%0A`;
@@ -2251,10 +2015,6 @@ form.addEventListener('submit', async function(e) {
         const submitBtn = document.getElementById('orderPrimaryBtn');
         if (submitBtn) submitBtn.disabled = false;
     }
-});
-
-window.addEventListener('beforeunload', () => {
-    stopTelebirrStatusPolling();
 });
 
 

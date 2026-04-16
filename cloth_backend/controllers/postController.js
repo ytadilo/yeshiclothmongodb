@@ -8,6 +8,9 @@ const Upload = require('../models/Upload');
 const Notification = require('../models/Notification');
 const { pushEvent } = require('../utils/realtime');
 
+const ALLOWED_POST_CATEGORIES = ['Women', 'Men', 'Couple', 'Kids', 'Wedding', 'Accessories'];
+const ALLOWED_MEASUREMENT_PROFILES = ['women', 'men_tshirt', 'men_trousers'];
+
 function parseImageLinks(rawValue) {
     if (rawValue === undefined || rawValue === null) return [];
     const text = String(rawValue).trim();
@@ -70,6 +73,61 @@ function parseCountryList(rawValue) {
                 .filter(Boolean)
         )
     );
+}
+
+function parseStringList(rawValue) {
+    if (rawValue === undefined || rawValue === null) return [];
+    if (Array.isArray(rawValue)) {
+        return Array.from(new Set(rawValue.map((row) => String(row || '').trim()).filter(Boolean)));
+    }
+    if (typeof rawValue === 'object') {
+        return [];
+    }
+
+    const text = String(rawValue || '').trim();
+    if (!text) return [];
+
+    if (text.startsWith('[')) {
+        try {
+            const parsed = JSON.parse(text);
+            if (Array.isArray(parsed)) {
+                return Array.from(new Set(parsed.map((row) => String(row || '').trim()).filter(Boolean)));
+            }
+        } catch (_) {
+            // fall through to delimiter parsing
+        }
+    }
+
+    return Array.from(
+        new Set(
+            text
+                .split(/[\n,]+/)
+                .map((row) => String(row || '').trim())
+                .filter(Boolean)
+        )
+    );
+}
+
+function parsePostCategories(rawCategory, rawCategories) {
+    const selected = [
+        ...parseStringList(rawCategories),
+        ...parseStringList(rawCategory)
+    ].filter((row) => ALLOWED_POST_CATEGORIES.includes(row));
+
+    return Array.from(new Set(selected));
+}
+
+function buildCategoryLabel(categories) {
+    const list = Array.isArray(categories) ? categories.map((row) => String(row || '').trim()).filter(Boolean) : [];
+    return list.join(', ');
+}
+
+function parseMeasurementProfiles(rawValue) {
+    return parseStringList(rawValue).filter((row) => ALLOWED_MEASUREMENT_PROFILES.includes(row));
+}
+
+function parseRemoveImageList(rawValue) {
+    return parseStringList(rawValue);
 }
 
 function isModelQueryReady(model) {
@@ -248,6 +306,9 @@ exports.createPost = async (req, res) => {
             title,
             description,
             category,
+            categories,
+            measurementProfiles,
+            measurement_profiles,
             videoUrl,
             videoUrls,
             priceETB,
@@ -312,10 +373,22 @@ exports.createPost = async (req, res) => {
             return res.status(400).json({ msg: 'Please select at least one allowed delivery country.' });
         }
 
+        const selectedCategories = parsePostCategories(category, categories);
+        if (!selectedCategories.length) {
+            return res.status(400).json({ msg: 'Please select at least one category.' });
+        }
+
+        const selectedMeasurementProfiles = Array.from(new Set([
+            ...parseMeasurementProfiles(measurementProfiles),
+            ...parseMeasurementProfiles(measurement_profiles)
+        ]));
+
         const newPost = new Post({
             title,
             description,
-            category,
+            category: buildCategoryLabel(selectedCategories),
+            categories: selectedCategories,
+            measurement_profiles: selectedMeasurementProfiles,
             images: [],
             videoUrl: parsedVideoUrls[0] || '',
             videoUrls: parsedVideoUrls,
@@ -392,12 +465,18 @@ exports.updatePost = async (req, res) => {
             title,
             description,
             category,
+            categories,
+            measurementProfiles,
+            measurement_profiles,
             videoUrl,
             videoUrls,
             priceETB,
             oldPriceETB,
             imageLink,
             imageLinks,
+            originalPrimaryImage,
+            replacePrimaryImage,
+            removeImages,
             shippingPriceETB,
             freeShipping,
             stockQuantity,
@@ -407,7 +486,20 @@ exports.updatePost = async (req, res) => {
         } = req.body;
         if (typeof title === 'string' && title.trim()) post.title = title.trim();
         if (typeof description === 'string' && description.trim()) post.description = description.trim();
-        if (typeof category === 'string' && category.trim()) post.category = category.trim();
+        if (category !== undefined || categories !== undefined) {
+            const selectedCategories = parsePostCategories(category, categories);
+            if (!selectedCategories.length) {
+                return res.status(400).json({ msg: 'Please select at least one category.' });
+            }
+            post.categories = selectedCategories;
+            post.category = buildCategoryLabel(selectedCategories);
+        }
+        if (measurementProfiles !== undefined || measurement_profiles !== undefined) {
+            post.measurement_profiles = Array.from(new Set([
+                ...parseMeasurementProfiles(measurementProfiles),
+                ...parseMeasurementProfiles(measurement_profiles)
+            ]));
+        }
         if (videoUrls !== undefined || videoUrl !== undefined) {
             const parsedVideoUrls = Array.from(new Set([
                 ...parseVideoLinks(videoUrls),
@@ -503,10 +595,16 @@ exports.updatePost = async (req, res) => {
             post.delivery_countries = countries;
         }
 
-        const linkedImages = [
-            ...parseImageLinks(imageLink),
-            ...parseImageLinks(imageLinks)
-        ];
+        const primaryLinkedImages = parseImageLinks(imageLink);
+        const primaryLinkedImage = primaryLinkedImages[0] || '';
+        const extraLinkedImages = parseImageLinks(imageLinks);
+        const imagesToRemove = parseRemoveImageList(removeImages);
+        let nextImages = Array.isArray(post.images) ? post.images.filter(Boolean) : [];
+
+        if (imagesToRemove.length) {
+            const removeSet = new Set(imagesToRemove);
+            nextImages = nextImages.filter((src) => !removeSet.has(String(src || '').trim()));
+        }
 
         let uploadedImages = [];
         if (Array.isArray(req.files) && req.files.length) {
@@ -527,10 +625,27 @@ exports.updatePost = async (req, res) => {
             uploadedImages = uploadDocs.map((u) => '/api/uploads/' + u._id);
         }
 
-        if (linkedImages.length || uploadedImages.length) {
-            const existingImages = Array.isArray(post.images) ? post.images : [];
-            post.images = Array.from(new Set([...existingImages, ...uploadedImages, ...linkedImages]));
+        const shouldReplacePrimaryImage = String(replacePrimaryImage || '').toLowerCase() === 'true' || replacePrimaryImage === true;
+        const oldPrimaryImage = String(originalPrimaryImage || '').trim();
+
+        if (shouldReplacePrimaryImage && oldPrimaryImage) {
+            nextImages = nextImages.filter((src) => String(src || '').trim() !== oldPrimaryImage);
         }
+
+        if (primaryLinkedImage) {
+            nextImages = nextImages.filter((src) => String(src || '').trim() !== primaryLinkedImage);
+            nextImages.unshift(primaryLinkedImage);
+        }
+
+        if (uploadedImages.length) {
+            nextImages = [...uploadedImages, ...nextImages];
+        }
+
+        if (extraLinkedImages.length) {
+            nextImages = [...nextImages, ...extraLinkedImages];
+        }
+
+        post.images = Array.from(new Set(nextImages.map((src) => String(src || '').trim()).filter(Boolean)));
 
         await post.save();
         res.json(post);

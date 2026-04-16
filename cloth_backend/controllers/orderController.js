@@ -7,7 +7,6 @@ const User = require('../models/User');
 const Notification = require('../models/Notification');
 const SiteSettings = require('../models/SiteSettings');
 const { getDatabaseProvider } = require('../utils/db');
-const { createCheckoutSession } = require('../services/telebirrService');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
@@ -111,14 +110,6 @@ function validateSimpleOrderPayload(body) {
 
     const deliveryMethod = String(body?.deliveryPayment?.deliveryMethod || '').trim();
     if (!deliveryMethod) errors.push('delivery method is required');
-
-    const measurements = body?.measurements && typeof body.measurements === 'object' ? body.measurements : {};
-    const measurementKeys = ['height', 'shoulder', 'chest', 'waist', 'hip', 'length', 'sleeve'];
-    const hasMeasurements = measurementKeys.some((k) => {
-        const n = Number(measurements[k]);
-        return Number.isFinite(n) && n > 0;
-    });
-    if (!hasMeasurements) errors.push('measurements are required');
 
     return errors;
 }
@@ -265,109 +256,6 @@ function markOrderPaymentInfoModified(order) {
     order.markModified('payment_info');
     order.markModified('payment_screenshot_url');
     order.markModified('payment_comment');
-}
-
-function isTelebirrCheckoutRequested(req) {
-    return req?.body?.telebirrCheckout === true
-        || String(req?.body?.telebirrCheckout || req?.body?.telebirr_checkout || '').trim().toLowerCase() === 'true';
-}
-
-function getRequestBaseUrl(req) {
-    const configured = String(process.env.PUBLIC_BASE_URL || '').trim();
-    if (configured) return configured.replace(/\/$/, '');
-    return `${req.protocol}://${req.get('host')}`;
-}
-
-function getOrderDocumentId(order) {
-    return String(order?._id || order?.id || '').trim();
-}
-
-function getTelebirrClientPayload(order, session) {
-    const orderId = getOrderDocumentId(order);
-    return {
-        orderId,
-        merchantOrderId: session.merchantOrderId,
-        prepayId: session.prepayId,
-        rawRequest: session.rawRequest,
-        requiresBridge: true,
-        checkoutUrl: `/api/orders/${encodeURIComponent(orderId)}/telebirr/checkout?token=${encodeURIComponent(session.checkoutToken)}`
-    };
-}
-
-async function attachTelebirrCheckoutToOrder(order, req) {
-    const orderId = getOrderDocumentId(order);
-    const title = String(
-        order?.cloth_details?.post_title
-        || order?.productName
-        || order?.cloth_details?.design_type
-        || order?.cloth_details?.category
-        || 'Yeshi Order'
-    ).trim();
-    const amount = Number(order?.totalPrice || order?.total || order?.cloth_details?.post_price_etb || 0);
-    const baseUrl = getRequestBaseUrl(req);
-    const session = await createCheckoutSession({
-        orderId,
-        title,
-        amount,
-        notifyUrl: `${baseUrl}/api/orders/telebirr/notify`,
-        redirectUrl: `${baseUrl}/user/order.html?telebirrOrderId=${encodeURIComponent(orderId)}`
-    });
-
-    order.payment_info = order.payment_info || {};
-    order.payment_info.provider = 'telebirr';
-    order.payment_info.method = 'telebirr_now';
-    order.payment_info.merchant_order_id = session.merchantOrderId;
-    order.payment_info.prepay_id = session.prepayId;
-    order.payment_info.raw_request = session.rawRequest;
-    order.payment_info.checkout_token = session.checkoutToken;
-    order.payment_info.status = 'Pending';
-    order.paymentStatus = 'pending';
-    order.payment_status = 'Pending';
-    markOrderPaymentInfoModified(order);
-    await order.save();
-
-    return getTelebirrClientPayload(order, session);
-}
-
-function hasOrderAccess(order, user) {
-    if (!order || !user) return false;
-    if (String(user.role || '').toLowerCase() === 'admin') return true;
-    return !!(order.user_id && String(order.user_id) === String(user.id || user._id || ''));
-}
-
-function escapeHtml(value) {
-    return String(value || '')
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#39;');
-}
-
-function extractTelebirrNotificationData(payload) {
-    const root = payload && typeof payload === 'object' ? payload : {};
-    const biz = root.biz_content && typeof root.biz_content === 'object' ? root.biz_content : {};
-    const read = (...keys) => {
-        for (const key of keys) {
-            const candidate = biz[key] ?? root[key];
-            if (candidate !== undefined && candidate !== null && String(candidate).trim()) {
-                return String(candidate).trim();
-            }
-        }
-        return '';
-    };
-
-    const statusText = read('trade_status', 'order_status', 'status', 'result', 'payment_status', 'code', 'result_code');
-    const normalizedStatus = statusText.toLowerCase();
-
-    return {
-        merchantOrderId: read('merch_order_id', 'merchOrderId', 'merchant_order_id', 'merchantOrderId', 'out_trade_no'),
-        prepayId: read('prepay_id', 'prepayId'),
-        transactionId: read('transaction_id', 'transactionId', 'trade_no', 'tradeNo'),
-        isSuccess: ['success', 'successful', 'paid', 'completed', 'confirmed', 'finish'].some((token) => normalizedStatus.includes(token)),
-        isFailure: ['fail', 'failed', 'cancel', 'closed', 'expired'].some((token) => normalizedStatus.includes(token)),
-        payload: root
-    };
 }
 
 async function savePrivateOrderUpload(file, ownerUserId, purpose, orderId) {
@@ -517,6 +405,32 @@ function buildClothDetailsFromRequest(req, parsedCloth) {
     const cloth = parsedCloth && typeof parsedCloth === 'object' ? { ...parsedCloth } : {};
 
     if (!cloth.category) cloth.category = req.body.category || req.body.clothCategory || '';
+    if (!Array.isArray(cloth.categories)) {
+        const rawCategories = req.body.categories;
+        if (typeof rawCategories === 'string' && rawCategories.trim()) {
+            try {
+                const parsed = JSON.parse(rawCategories);
+                if (Array.isArray(parsed)) {
+                    cloth.categories = parsed.map((row) => String(row || '').trim()).filter(Boolean);
+                }
+            } catch (_) {
+                cloth.categories = rawCategories.split(/[\n,]+/).map((row) => String(row || '').trim()).filter(Boolean);
+            }
+        }
+    }
+    if (!Array.isArray(cloth.measurement_profiles)) {
+        const rawProfiles = req.body.measurement_profiles || req.body.measurementProfiles;
+        if (typeof rawProfiles === 'string' && rawProfiles.trim()) {
+            try {
+                const parsed = JSON.parse(rawProfiles);
+                if (Array.isArray(parsed)) {
+                    cloth.measurement_profiles = parsed.map((row) => String(row || '').trim()).filter(Boolean);
+                }
+            } catch (_) {
+                cloth.measurement_profiles = rawProfiles.split(/[\n,]+/).map((row) => String(row || '').trim()).filter(Boolean);
+            }
+        }
+    }
     if (!cloth.color && req.body.color) cloth.color = req.body.color;
     if (!cloth.design_type && req.body.design_type) cloth.design_type = req.body.design_type;
     if (!cloth.event_type && req.body.event_type) cloth.event_type = req.body.event_type;
@@ -529,7 +443,6 @@ function buildClothDetailsFromRequest(req, parsedCloth) {
 exports.createOrder = async (req, res) => {
     try {
         let orderData = {};
-        const telebirrCheckoutRequested = isTelebirrCheckoutRequested(req);
         const currentUserId = req.user && req.user.id ? req.user.id : null;
         const globalDeliverySettings = await getGlobalDeliverySettings();
 
@@ -589,18 +502,18 @@ exports.createOrder = async (req, res) => {
                 return res.status(400).json({ msg: 'Reference image is required for custom orders.' });
             }
 
-            if (isProductAsIsOrder && !['bank_transfer', 'telebirr', 'telebirr_now'].includes(paymentMethod)) {
+            if (isProductAsIsOrder && !['bank_transfer', 'telebirr'].includes(paymentMethod)) {
                 return res.status(400).json({ msg: 'Payment method is required for product orders.' });
             }
 
-            if (isProductAsIsOrder && !(paymentMethod === 'telebirr_now' && telebirrCheckoutRequested)) {
+            if (isProductAsIsOrder) {
                 return res.status(400).json({ msg: 'Payment screenshot is required for product orders.' });
             }
 
             let selectedPost = null;
             if (isProductAsIsOrder) {
                 selectedPost = await Post.findById(rawProductId)
-                    .select('priceETB shippingPriceETB freeShipping stock_quantity unlimited_stock title images delivery_scope delivery_countries')
+                    .select('priceETB shippingPriceETB freeShipping stock_quantity unlimited_stock title images categories measurement_profiles delivery_scope delivery_countries')
                     .lean();
                 if (!selectedPost) {
                     return res.status(404).json({ msg: 'Selected product is not found' });
@@ -666,6 +579,8 @@ exports.createOrder = async (req, res) => {
                 },
                 cloth_details: {
                     category,
+                    categories: Array.isArray(clothDetails.categories) ? clothDetails.categories : [],
+                    measurement_profiles: Array.isArray(clothDetails.measurement_profiles) ? clothDetails.measurement_profiles : [],
                     color: String(req.body.customDetails?.color || req.body.color || '').trim(),
                     event_type: eventType,
                     design_type: isProductAsIsOrder ? String(req.body.productName || '').trim() : ''
@@ -710,21 +625,7 @@ exports.createOrder = async (req, res) => {
                 }
             }
 
-            let telebirrPayload = null;
-            if (isProductAsIsOrder && paymentMethod === 'telebirr_now' && telebirrCheckoutRequested) {
-                try {
-                    telebirrPayload = await attachTelebirrCheckoutToOrder(order, req);
-                } catch (telebirrErr) {
-                    await Order.deleteOne({ _id: order._id });
-                    await restorePostOrderStock(order);
-                    return res.status(502).json({ msg: telebirrErr?.message || 'Telebirr checkout setup failed' });
-                }
-            }
-
             await notifyAdminsAboutOrder(order);
-            if (telebirrPayload) {
-                return res.status(201).json({ order, telebirr: telebirrPayload });
-            }
             return res.status(201).json(order);
         }
 
@@ -839,7 +740,7 @@ exports.createOrder = async (req, res) => {
 
                 try {
                     const selectedPost = await Post.findById(incomingPostId)
-                        .select('title category description priceETB shippingPriceETB freeShipping images stock_quantity unlimited_stock delivery_scope delivery_countries')
+                        .select('title category categories measurement_profiles description priceETB shippingPriceETB freeShipping images stock_quantity unlimited_stock delivery_scope delivery_countries')
                         .lean();
 
                     if (selectedPost) {
@@ -861,6 +762,8 @@ exports.createOrder = async (req, res) => {
                         orderData.cloth_details = {
                             ...orderData.cloth_details,
                             category: selectedPost.category || orderData.cloth_details.category || '',
+                            categories: Array.isArray(selectedPost.categories) ? selectedPost.categories : (Array.isArray(orderData.cloth_details.categories) ? orderData.cloth_details.categories : []),
+                            measurement_profiles: Array.isArray(selectedPost.measurement_profiles) ? selectedPost.measurement_profiles : (Array.isArray(orderData.cloth_details.measurement_profiles) ? orderData.cloth_details.measurement_profiles : []),
                             design_type: orderData.cloth_details.design_type || selectedPost.title || '',
                             post_title: selectedPost.title || '',
                             post_image: firstImage || '',
@@ -886,6 +789,8 @@ exports.createOrder = async (req, res) => {
                         orderData.cloth_details = {
                             ...orderData.cloth_details,
                             category: orderData.cloth_details.category || req.body.category || req.body.clothCategory || '',
+                            categories: Array.isArray(orderData.cloth_details.categories) ? orderData.cloth_details.categories : [],
+                            measurement_profiles: Array.isArray(orderData.cloth_details.measurement_profiles) ? orderData.cloth_details.measurement_profiles : [],
                             post_title: orderData.cloth_details.post_title || req.body.post_title || req.body.title || '',
                             post_image: orderData.cloth_details.post_image || req.body.post_image || '',
                             post_description: orderData.cloth_details.post_description || req.body.post_description || '',
@@ -920,7 +825,7 @@ exports.createOrder = async (req, res) => {
         const paymentFile = req.files?.paymentScreenshot?.[0];
 
         let paymentInfo = {
-            method: ['bank_transfer', 'telebirr', 'telebirr_now'].includes(paymentMethod) ? paymentMethod : '',
+            method: ['bank_transfer', 'telebirr'].includes(paymentMethod) ? paymentMethod : '',
             comment: paymentComment,
             status: 'Pending'
         };
@@ -984,11 +889,11 @@ exports.createOrder = async (req, res) => {
             return res.status(400).json({ msg: 'Shipping address must include country, region, city, and ZIP code.' });
         }
 
-        if (orderData.post_id && !paymentFile && !(paymentMethod === 'telebirr_now' && telebirrCheckoutRequested)) {
+        if (orderData.post_id && !paymentFile) {
             return res.status(400).json({ msg: 'Payment screenshot is required for product orders.' });
         }
 
-        if (orderData.post_id && !['bank_transfer', 'telebirr', 'telebirr_now'].includes(paymentMethod)) {
+        if (orderData.post_id && !['bank_transfer', 'telebirr'].includes(paymentMethod)) {
             return res.status(400).json({ msg: 'Payment method is required for product orders.' });
         }
 
@@ -1057,25 +962,10 @@ exports.createOrder = async (req, res) => {
             console.error('post order-save enrichment failed:', postSaveErr.message || postSaveErr);
         }
 
-        let telebirrPayload = null;
-        if (orderData.post_id && paymentMethod === 'telebirr_now' && telebirrCheckoutRequested) {
-            try {
-                telebirrPayload = await attachTelebirrCheckoutToOrder(order, req);
-            } catch (telebirrErr) {
-                await Order.deleteOne({ _id: order._id });
-                await restorePostOrderStock(order);
-                return res.status(502).json({ msg: telebirrErr?.message || 'Telebirr checkout setup failed' });
-            }
-        }
-
         try {
             await notifyAdminsAboutOrder(order);
         } catch (notifyErr) {
             console.error('notify admin failed:', notifyErr.message || notifyErr);
-        }
-
-        if (telebirrPayload) {
-            return res.status(201).json({ order, telebirr: telebirrPayload });
         }
 
         res.json(order);
@@ -1097,167 +987,6 @@ exports.createOrder = async (req, res) => {
             return res.status(400).json({ msg: `Invalid ${err.path || 'field'} value` });
         }
         return res.status(500).json({ msg: err?.message || 'Server Error' });
-    }
-};
-
-exports.getTelebirrPaymentStatus = async (req, res) => {
-    try {
-        const order = await Order.findById(req.params.id);
-        if (!order) return res.status(404).json({ msg: 'Order not found' });
-        if (!hasOrderAccess(order, req.user)) return res.status(401).json({ msg: 'Not authorized' });
-
-        return res.json({
-            orderId: getOrderDocumentId(order),
-            paymentStatus: String(order.payment_status || order.payment_info?.status || 'Pending'),
-            orderStatus: String(order.order_status || order.orderStatus || 'Order Placed'),
-            transactionId: String(order.payment_info?.transaction_id || ''),
-            confirmed: String(order.payment_status || '').toLowerCase() === 'confirmed'
-        });
-    } catch (err) {
-        console.error('getTelebirrPaymentStatus error:', err?.message || err);
-        return res.status(500).json({ msg: 'Server Error' });
-    }
-};
-
-exports.renderTelebirrCheckoutPage = async (req, res) => {
-    try {
-        const order = await Order.findById(req.params.id);
-        if (!order) return res.status(404).send('Order not found');
-
-        const expectedToken = String(order.payment_info?.checkout_token || '').trim();
-        const providedToken = String(req.query.token || '').trim();
-        if (!expectedToken || !providedToken || expectedToken !== providedToken) {
-            return res.status(403).send('Invalid Telebirr checkout token');
-        }
-
-        const title = escapeHtml(order?.cloth_details?.post_title || order?.productName || 'Yeshi order');
-        const amount = escapeHtml(String(order?.totalPrice || order?.total || ''));
-        const rawRequest = JSON.stringify(String(order.payment_info?.raw_request || ''));
-
-        return res.type('html').send(`<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Telebirr Checkout</title>
-    <style>
-        body { font-family: Manrope, Arial, sans-serif; margin: 0; background: #f6efe0; color: #1a1c1c; }
-        .wrap { max-width: 560px; margin: 0 auto; min-height: 100vh; display: flex; align-items: center; padding: 24px; }
-        .card { width: 100%; background: #fff; border-radius: 20px; padding: 24px; box-shadow: 0 20px 60px rgba(0,0,0,0.10); }
-        h1 { margin: 0 0 10px; font-size: 1.5rem; }
-        p { line-height: 1.55; color: #514737; }
-        .meta { margin: 14px 0; padding: 14px; border-radius: 14px; background: #fbf7ee; }
-        .btn { width: 100%; border: 0; border-radius: 999px; padding: 14px 18px; font-size: 1rem; font-weight: 800; cursor: pointer; background: linear-gradient(180deg, #f3d976 0%, #d8b74a 100%); color: #5f4d0f; }
-        .status { margin-top: 14px; padding: 12px 14px; border-radius: 12px; background: #f5f5f5; color: #3f3f3f; }
-    </style>
-</head>
-<body>
-    <div class="wrap">
-        <div class="card">
-            <h1>Pay Now with Telebirr</h1>
-            <p>Order: ${title}</p>
-            <div class="meta"><strong>Total:</strong> ${amount} ETB</div>
-            <button id="launchBtn" class="btn" type="button">Launch Telebirr</button>
-            <div id="status" class="status">Preparing Telebirr checkout...</div>
-        </div>
-    </div>
-    <script>
-        const rawRequest = ${rawRequest};
-        const launchBtn = document.getElementById('launchBtn');
-        const statusEl = document.getElementById('status');
-
-        function setStatus(text) {
-            statusEl.textContent = text;
-        }
-
-        function launchTelebirr() {
-            if (!rawRequest) {
-                setStatus('Telebirr request is missing. Please go back and try again.');
-                return;
-            }
-
-            if (!window.consumerapp || typeof window.consumerapp.evaluate !== 'function') {
-                setStatus('This checkout needs the Telebirr in-app webview. Open this page from the Telebirr app or retry on a supported mobile device.');
-                return;
-            }
-
-            window.handleYeshiTelebirrCallback = function () {
-                setStatus('Telebirr checkout opened. Complete payment in the app, then return to your order page.');
-            };
-
-            const payload = JSON.stringify({
-                functionName: 'js_fun_start_pay',
-                params: {
-                    rawRequest,
-                    functionCallBackName: 'handleYeshiTelebirrCallback'
-                }
-            });
-
-            setStatus('Opening Telebirr checkout...');
-            try {
-                window.consumerapp.evaluate(payload);
-            } catch (error) {
-                setStatus('Telebirr checkout could not be opened. Please retry.');
-            }
-        }
-
-        launchBtn.addEventListener('click', launchTelebirr);
-        window.addEventListener('load', launchTelebirr);
-    </script>
-</body>
-</html>`);
-    } catch (err) {
-        console.error('renderTelebirrCheckoutPage error:', err?.message || err);
-        return res.status(500).send('Server Error');
-    }
-};
-
-exports.handleTelebirrNotification = async (req, res) => {
-    try {
-        const details = extractTelebirrNotificationData(req.body);
-        if (!details.merchantOrderId) {
-            return res.status(400).send('missing merch_order_id');
-        }
-
-        const order = await Order.findOne({ 'payment_info.merchant_order_id': details.merchantOrderId });
-        if (!order) {
-            return res.status(404).send('order not found');
-        }
-
-        order.payment_info = order.payment_info || {};
-        order.payment_info.provider = 'telebirr';
-        order.payment_info.callback_payload = details.payload;
-        if (details.prepayId) order.payment_info.prepay_id = details.prepayId;
-        if (details.transactionId) {
-            order.payment_info.transaction_id = details.transactionId;
-        }
-
-        if (details.isSuccess) {
-            order.paymentStatus = 'confirmed';
-            order.payment_status = 'Confirmed';
-            order.payment_info.status = 'Confirmed';
-            order.payment_info.confirmed_at = new Date();
-            order.payment_info.paid_at = order.payment_info.paid_at || new Date();
-            order.order_status = deriveOrderStatus(order.payment_status, order.sewing_status, order.order_status);
-
-            await notifyOrderOwner(
-                order,
-                'Telebirr payment confirmed',
-                'Your Telebirr payment has been confirmed.'
-            );
-        } else if (details.isFailure) {
-            order.paymentStatus = 'pending';
-            order.payment_status = 'Failed';
-            order.payment_info.status = 'Failed';
-            order.order_status = deriveOrderStatus(order.payment_status, order.sewing_status, order.order_status);
-        }
-
-        markOrderPaymentInfoModified(order);
-        await order.save();
-        return res.send('success');
-    } catch (err) {
-        console.error('handleTelebirrNotification error:', err?.message || err);
-        return res.status(500).send('error');
     }
 };
 
@@ -1385,26 +1114,18 @@ exports.getOrders = async (req, res) => {
                     order_id: { $in: orderIds },
                     purpose: 'order_payment_screenshot'
                 })
-                    .select('_id order_id owner_user_id created_at storage_path')
+                    .select('_id order_id owner_user_id created_at')
                     .sort({ created_at: -1 })
                     .lean();
 
                 const latestByOrder = new Map();
-                const validPaymentUploadUrls = new Set();
                 const usedUploadIds = new Set();
                 uploads.forEach((u) => {
                     const key = String(u && u.order_id || '').trim();
                     if (!key || latestByOrder.has(key)) return;
                     const uploadId = String(u && u._id || '').trim();
                     if (!uploadId) return;
-                    const storagePath = String(u && u.storage_path || '').trim();
-                    if (storagePath) {
-                        const absolutePath = path.join(__dirname, '..', 'uploads', ...storagePath.split('/'));
-                        if (!fs.existsSync(absolutePath)) return;
-                    }
-                    const uploadUrl = '/api/uploads/' + uploadId;
-                    latestByOrder.set(key, uploadUrl);
-                    validPaymentUploadUrls.add(uploadUrl);
+                    latestByOrder.set(key, '/api/uploads/' + uploadId);
                     usedUploadIds.add(uploadId);
                 });
 
@@ -1418,11 +1139,7 @@ exports.getOrders = async (req, res) => {
                         const fallback = latestByOrder.get(key)
                             || resolveApproximatePaymentUploadUrl(order, uploads, usedUploadIds)
                             || '';
-                        const existingScreenshotUrl = getOrderPaymentScreenshotUrl(order);
-                        const isKnownPrivateUpload = existingScreenshotUrl.startsWith('/api/uploads/')
-                            ? validPaymentUploadUrls.has(existingScreenshotUrl)
-                            : true;
-                        const resolvedScreenshotUrl = isKnownPrivateUpload ? (existingScreenshotUrl || fallback) : fallback;
+                        const resolvedScreenshotUrl = getOrderPaymentScreenshotUrl(order) || fallback;
                         const resolvedComment = getOrderPaymentComment(order);
                         if (!resolvedScreenshotUrl) return order;
 

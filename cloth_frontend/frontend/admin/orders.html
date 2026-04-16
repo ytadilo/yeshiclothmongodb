@@ -186,7 +186,9 @@
         }
 
         function buildItemLabel(cloth, fallbackCategory) {
-            const category = String(cloth?.category || fallbackCategory || '').trim();
+            const category = Array.isArray(cloth?.categories) && cloth.categories.length
+                ? cloth.categories.map((row) => String(row || '').trim()).filter(Boolean).join(', ')
+                : String(cloth?.category || fallbackCategory || '').trim();
             const designType = String(cloth?.design_type || cloth?.designType || '').trim();
             const eventType = String(cloth?.event_type || cloth?.eventType || '').trim();
             const bits = [category || 'Custom Cloth'];
@@ -254,23 +256,22 @@
                     const productIndex = Number(entry?.productIndex || 1);
                     const label = String(entry?.label || 'Measurement');
                     const personName = String(entry?.personName || '—');
+                    const fieldDefs = Array.isArray(entry?.measurementFields) && entry.measurementFields.length
+                        ? entry.measurementFields
+                        : Object.keys(entry?.measurementDetails || {}).map((key) => ({ key, label: key }));
                     const detailObj = entry?.measurementDetails && typeof entry.measurementDetails === 'object'
                         ? entry.measurementDetails
                         : {};
-                    const detailLines = [
-                        ['Height', detailObj.height],
-                        ['Shoulder', detailObj.shoulder],
-                        ['Chest', detailObj.chest],
-                        ['Waist', detailObj.waist],
-                        ['Hip', detailObj.hip],
-                        ['Length', detailObj.length],
-                        ['Sleeve', detailObj.sleeve]
-                    ].map(([k, v]) => `<div style="font-size:0.88rem;"><span style="color:var(--light-text);">${escapeHtml(String(k))}:</span> ${escapeHtml(String(v || '—'))}</div>`).join('');
+                    const detailLines = fieldDefs
+                        .map((field) => `<div style="font-size:0.88rem;"><span style="color:var(--light-text);">${escapeHtml(String(field.label || field.key))}:</span> ${escapeHtml(String(detailObj[field.key] || '—'))}</div>`)
+                        .join('');
+                    const notes = String(entry?.notes || '').trim();
                     return `
                         <div style="margin-top:8px; padding:10px; border-radius:8px; background:#f9f9f9; border:1px solid rgba(0,0,0,0.08);">
                             <div style="font-weight:800; color:#1a1c1c;">Product ${escapeHtml(String(productIndex))} · ${escapeHtml(label)}</div>
                             <div style="margin-top:4px;"><span style="color:var(--light-text);">Person Name:</span> ${escapeHtml(personName)}</div>
                             <div style="margin-top:6px; display:grid; grid-template-columns:1fr 1fr; gap:6px 10px;">${detailLines}</div>
+                            ${notes ? `<div style="margin-top:6px; font-size:0.88rem;"><span style="color:var(--light-text);">Notes:</span> ${escapeHtml(notes)}</div>` : ''}
                         </div>
                     `;
                 }).join('');
@@ -366,7 +367,9 @@
                         'Unknown customer';
 
                     const status = order?.order_status || order?.status || 'Received';
-                    const category = cloth?.category || order?.category || '—';
+                    const category = (Array.isArray(cloth?.categories) && cloth.categories.length
+                        ? cloth.categories.map((row) => String(row || '').trim()).filter(Boolean).join(', ')
+                        : (cloth?.category || order?.category || '—'));
                     const phone = userProfile.phone || customer.phone || order?.phone || '—';
                     const email = userProfile.email || '—';
                     const age = userProfile.age ?? '—';

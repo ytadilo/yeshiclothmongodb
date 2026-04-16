@@ -207,7 +207,6 @@
                         <option value="" selected disabled>Select payment method</option>
                         <option value="bank_transfer">Ethiopia Commercial Bank Transfer</option>
                         <option value="telebirr">Telebirr</option>
-                        <option value="telebirr_now">Pay Now with Telebirr</option>
                     </select>
                 </div>
 
@@ -220,14 +219,8 @@
                     <div id="telebirrDetails" style="display:none;">
                         <p><strong>Telebirr:</strong> +251933797981 (Haileyesus Tadilo)</p>
                     </div>
-                    <div id="telebirrNowDetails" style="display:none;">
-                        <p><strong>Telebirr:</strong> +251933797981 (Haileyesus Tadilo)</p>
-                        <p style="margin:6px 0 0; color:#5b4b1d; font-size:0.92rem;">Use the button below to confirm your phone number and open the official Telebirr checkout for this order.</p>
-                        <button type="button" id="telebirrPayNowBtn" class="btn" style="margin-top:10px; max-width:280px; background:linear-gradient(180deg,#f1d66f 0%,#d8b649 100%); color:#5f4d0f;">Pay Now with Telebirr</button>
-                        <div id="telebirrStatusBox" style="display:none; margin-top:10px; padding:10px 12px; border-radius:10px; background:#f7f1df; border:1px solid rgba(116,91,24,0.2); color:#4f4320; font-size:0.9rem;"></div>
-                    </div>
                     <div id="productPriceSummary" style="margin-top:10px; padding:10px; border-radius:8px; background:#fff7e8; border:1px solid rgba(116,91,24,0.2); color:#1a1c1c; font-size:0.92rem;"></div>
-                    <div id="paymentScreenshotGroup" class="form-group" style="margin-top: 10px; margin-bottom:0;">
+                    <div class="form-group" style="margin-top: 10px; margin-bottom:0;">
                         <label for="paymentScreenshot">Upload Payment Screenshot (Required)</label>
                         <input type="file" id="paymentScreenshot" name="paymentScreenshot" class="form-control" accept="image/*">
                     </div>
@@ -276,23 +269,6 @@
             <p><strong>7. Contact:</strong> Use <a href="/user/mychat.html" target="_blank" rel="noopener noreferrer">Chat with admin</a> for refund communication.</p>
             <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:12px;">
                 <button type="button" id="closeRefundPolicyBtn" class="btn">Back to Order Page</button>
-            </div>
-        </div>
-    </div>
-
-    <div id="telebirrPhoneModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.48); z-index:1001; align-items:center; justify-content:center; padding:16px;">
-        <div style="width:min(460px, 100%); background:#fff; border-radius:16px; padding:18px; box-shadow:0 18px 44px rgba(0,0,0,0.18); border:1px solid rgba(116,91,24,0.14);">
-            <h3 style="margin:0 0 8px; color:#5f4d0f;">Pay Now with Telebirr</h3>
-            <p style="margin:0 0 12px; color:#4f4320; line-height:1.5;">Confirm the phone number that will be used for this Telebirr payment. After you continue, the Telebirr payment prompt will open from this page.</p>
-            <div class="form-group" style="margin-bottom:10px;">
-                <label for="telebirrPhoneInput">Telebirr Phone Number</label>
-                <input type="tel" id="telebirrPhoneInput" class="form-control" placeholder="+251 9...">
-            </div>
-            <p style="margin:0; color:#745b18; font-size:0.9rem;">Telebirr USSD: *127#</p>
-            <div id="telebirrPhoneModalMessage" style="display:none; margin-top:12px; padding:10px 12px; border-radius:10px; background:#fff7e8; border:1px solid rgba(116,91,24,0.18); color:#5f4d0f; font-size:0.9rem;"></div>
-            <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:16px; flex-wrap:wrap;">
-                <button type="button" id="telebirrPhoneModalCancelBtn" class="btn" style="background:#ececec; color:#1a1c1c;">Cancel</button>
-                <button type="button" id="telebirrPhoneModalConfirmBtn" class="btn" style="background:linear-gradient(180deg,#f1d66f 0%,#d8b649 100%); color:#5f4d0f;">Continue to Telebirr</button>
             </div>
         </div>
     </div>

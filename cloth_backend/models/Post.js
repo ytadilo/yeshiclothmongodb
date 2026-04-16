@@ -7,6 +7,9 @@ if (isFirebaseMode()) {
 
 const mongoose = require('mongoose');
 
+const ALLOWED_POST_CATEGORIES = ['Women', 'Men', 'Couple', 'Kids', 'Wedding', 'Accessories'];
+const ALLOWED_MEASUREMENT_PROFILES = ['women', 'men_tshirt', 'men_trousers'];
+
 const PostSchema = new mongoose.Schema({
     title: {
         type: String,
@@ -18,9 +21,20 @@ const PostSchema = new mongoose.Schema({
     },
     category: {
         type: String,
-        enum: ['Women', 'Men', 'Couple', 'Kids', 'Wedding', 'Accessories'],
         required: true
     },
+    categories: [
+        {
+            type: String,
+            enum: ALLOWED_POST_CATEGORIES
+        }
+    ],
+    measurement_profiles: [
+        {
+            type: String,
+            enum: ALLOWED_MEASUREMENT_PROFILES
+        }
+    ],
     images: [
         {
             type: String // URL/Path to image
@@ -145,6 +159,29 @@ const PostSchema = new mongoose.Schema({
         type: Date,
         default: Date.now
     }
+});
+
+PostSchema.pre('validate', function syncPostCategoryMetadata(next) {
+    const categories = Array.isArray(this.categories)
+        ? Array.from(new Set(this.categories.map((row) => String(row || '').trim()).filter((row) => ALLOWED_POST_CATEGORIES.includes(row))))
+        : [];
+
+    if (categories.length) {
+        this.categories = categories;
+        this.category = categories.join(', ');
+    } else {
+        const fallback = String(this.category || '').trim();
+        this.categories = fallback && ALLOWED_POST_CATEGORIES.includes(fallback) ? [fallback] : [];
+        if (this.categories.length) {
+            this.category = this.categories.join(', ');
+        }
+    }
+
+    const measurementProfiles = Array.isArray(this.measurement_profiles)
+        ? Array.from(new Set(this.measurement_profiles.map((row) => String(row || '').trim()).filter((row) => ALLOWED_MEASUREMENT_PROFILES.includes(row))))
+        : [];
+    this.measurement_profiles = measurementProfiles;
+    next();
 });
 
 module.exports = mongoose.model('Post', PostSchema);

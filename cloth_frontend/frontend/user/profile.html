@@ -1079,8 +1079,8 @@
                         is_default: !!document.getElementById('measureIsDefault')?.checked
                     };
 
-                    if (!row.profile_name || row.chest <= 0 || row.waist <= 0 || row.hip <= 0 || row.shoulder <= 0 || row.length <= 0 || row.sleeve_length <= 0) {
-                        measureStatus.textContent = 'Please fill all measurement fields with valid values.';
+                    if (!row.profile_name) {
+                        measureStatus.textContent = 'Please enter a profile name.';
                         measureStatus.style.color = '#ba1a1a';
                         return;
                     }

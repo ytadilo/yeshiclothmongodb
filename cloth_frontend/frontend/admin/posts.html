@@ -23,6 +23,11 @@
         .image-link-row { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center; }
         .image-link-remove { border: 1px solid rgba(0,0,0,0.12); background: #fff; border-radius: 8px; padding: 8px 10px; cursor: pointer; }
         .image-link-add { border: 1px dashed rgba(0,0,0,0.25); background: #fff; border-radius: 10px; padding: 8px 12px; font-weight: 700; cursor: pointer; }
+        .option-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+        .option-pill { display: flex; gap: 8px; align-items: flex-start; border: 1px solid rgba(0,0,0,0.1); border-radius: 10px; padding: 10px 12px; background: #fff; }
+        .image-chip { width: 92px; }
+        .image-chip img { width: 92px; height: 92px; object-fit: cover; border-radius: 10px; border: 1px solid rgba(0,0,0,0.08); display: block; }
+        .image-chip button { margin-top: 6px; width: 100%; }
     </style>
 </head>
 <body class="admin-page">
@@ -112,14 +117,24 @@
                 </div>
                 <div class="form-group">
                     <label>Category</label>
-                    <select id="postCategory" class="form-control">
-                        <option value="Women">Women</option>
-                        <option value="Men">Men</option>
-                        <option value="Couple">Couple</option>
-                        <option value="Kids">Kids</option>
-                        <option value="Wedding">Wedding</option>
-                        <option value="Accessories">Accessories</option>
-                    </select>
+                    <div id="postCategoryOptions" class="option-grid">
+                        <label class="option-pill"><input type="checkbox" value="Women" data-post-category> <span>Women</span></label>
+                        <label class="option-pill"><input type="checkbox" value="Men" data-post-category> <span>Men</span></label>
+                        <label class="option-pill"><input type="checkbox" value="Couple" data-post-category> <span>Couple</span></label>
+                        <label class="option-pill"><input type="checkbox" value="Kids" data-post-category> <span>Kids</span></label>
+                        <label class="option-pill"><input type="checkbox" value="Wedding" data-post-category> <span>Wedding</span></label>
+                        <label class="option-pill"><input type="checkbox" value="Accessories" data-post-category> <span>Accessories</span></label>
+                    </div>
+                    <small style="display:block; margin-top:6px; color: var(--light-text);">Choose one or more categories. The post will appear in every selected category.</small>
+                </div>
+                <div class="form-group">
+                    <label>Measurement setup (optional)</label>
+                    <div id="postMeasurementProfileOptions" class="option-grid">
+                        <label class="option-pill"><input type="checkbox" value="women" data-post-measurement-profile> <span>Women's Measurements</span></label>
+                        <label class="option-pill"><input type="checkbox" value="men_tshirt" data-post-measurement-profile> <span>Men's T-Shirt</span></label>
+                        <label class="option-pill"><input type="checkbox" value="men_trousers" data-post-measurement-profile> <span>Men's Trousers</span></label>
+                    </div>
+                    <small style="display:block; margin-top:6px; color: var(--light-text);">These options are optional and control which measurement sections users see on the order page.</small>
                 </div>
                 <div class="form-group">
                     <label>Description</label>
@@ -217,20 +232,31 @@
             <h3>Edit Post</h3>
             <form id="editPostForm">
                 <input type="hidden" id="editPostId">
+                <input type="hidden" id="editOriginalPrimaryImage">
                 <div class="form-group">
                     <label for="editTitle">Title</label>
                     <input type="text" id="editTitle" class="form-control" required>
                 </div>
                 <div class="form-group">
                     <label for="editCategory">Category</label>
-                    <select id="editCategory" class="form-control">
-                        <option value="Women">Women</option>
-                        <option value="Men">Men</option>
-                        <option value="Couple">Couple</option>
-                        <option value="Kids">Kids</option>
-                        <option value="Wedding">Wedding</option>
-                        <option value="Accessories">Accessories</option>
-                    </select>
+                    <div id="editCategoryOptions" class="option-grid">
+                        <label class="option-pill"><input type="checkbox" value="Women" data-edit-category> <span>Women</span></label>
+                        <label class="option-pill"><input type="checkbox" value="Men" data-edit-category> <span>Men</span></label>
+                        <label class="option-pill"><input type="checkbox" value="Couple" data-edit-category> <span>Couple</span></label>
+                        <label class="option-pill"><input type="checkbox" value="Kids" data-edit-category> <span>Kids</span></label>
+                        <label class="option-pill"><input type="checkbox" value="Wedding" data-edit-category> <span>Wedding</span></label>
+                        <label class="option-pill"><input type="checkbox" value="Accessories" data-edit-category> <span>Accessories</span></label>
+                    </div>
+                    <small style="display:block; margin-top:6px; color: var(--light-text);">Choose one or more categories for this post.</small>
+                </div>
+                <div class="form-group">
+                    <label>Measurement setup (optional)</label>
+                    <div id="editMeasurementProfileOptions" class="option-grid">
+                        <label class="option-pill"><input type="checkbox" value="women" data-edit-measurement-profile> <span>Women's Measurements</span></label>
+                        <label class="option-pill"><input type="checkbox" value="men_tshirt" data-edit-measurement-profile> <span>Men's T-Shirt</span></label>
+                        <label class="option-pill"><input type="checkbox" value="men_trousers" data-edit-measurement-profile> <span>Men's Trousers</span></label>
+                    </div>
+                    <small style="display:block; margin-top:6px; color: var(--light-text);">Users can also type free-text measurements, so this remains optional.</small>
                 </div>
                 <div class="form-group">
                     <label for="editDescription">Description</label>
@@ -307,6 +333,7 @@
                 <div class="form-group">
                     <label>Current Images</label>
                     <div id="editCurrentImages" style="display:flex; flex-wrap:wrap; gap:8px;"></div>
+                    <small style="color: var(--light-text); display:block; margin-top:6px;">Remove deletes that image. Changing Image link replaces only the previous primary image link.</small>
                 </div>
                 <div class="modal__actions">
                     <button type="submit" class="btn">Save</button>
@@ -333,6 +360,11 @@
     <script>
         const { ensureAdmin, escapeHtml, apiFetch } = window.AdminCommon;
         const modalFocusMap = {};
+        const editPostImageState = {
+            currentImages: [],
+            removedImages: new Set(),
+            originalPrimaryImage: ''
+        };
 
         function openModal(id) {
             const el = document.getElementById(id);
@@ -368,6 +400,64 @@
         function resolveCommentId(comment) {
             if (!comment || typeof comment !== 'object') return '';
             return String(comment._id || comment.id || comment.commentId || comment.comment_id || '').trim();
+        }
+
+        function getCategoryList(post) {
+            const fromArray = Array.isArray(post?.categories)
+                ? post.categories.map((row) => String(row || '').trim()).filter(Boolean)
+                : [];
+            if (fromArray.length) return fromArray;
+            return String(post?.category || '')
+                .split(/\s*,\s*/)
+                .map((row) => String(row || '').trim())
+                .filter(Boolean);
+        }
+
+        function getMeasurementProfileList(post) {
+            return Array.isArray(post?.measurement_profiles)
+                ? post.measurement_profiles.map((row) => String(row || '').trim()).filter(Boolean)
+                : [];
+        }
+
+        function formatPostCategoryLabel(post) {
+            const categories = getCategoryList(post);
+            return categories.length ? categories.join(', ') : '—';
+        }
+
+        function getCheckedValues(selector) {
+            return Array.from(document.querySelectorAll(selector))
+                .filter((input) => input.checked)
+                .map((input) => String(input.value || '').trim())
+                .filter(Boolean);
+        }
+
+        function setCheckedValues(selector, values) {
+            const chosen = new Set((Array.isArray(values) ? values : []).map((row) => String(row || '').trim()));
+            document.querySelectorAll(selector).forEach((input) => {
+                input.checked = chosen.has(String(input.value || '').trim());
+            });
+        }
+
+        function renderEditCurrentImages() {
+            const currentImages = document.getElementById('editCurrentImages');
+            if (!currentImages) return;
+
+            const images = editPostImageState.currentImages.filter((src) => !editPostImageState.removedImages.has(String(src || '').trim()));
+            if (!images.length) {
+                currentImages.innerHTML = '<small style="color: var(--light-text);">No images</small>';
+                return;
+            }
+
+            currentImages.innerHTML = images.map((src) => {
+                const safe = escapeHtml(src || '');
+                const encoded = encodeURIComponent(String(src || '').trim());
+                return `
+                    <div class="image-chip">
+                        <a href="${safe}" target="_blank" rel="noopener noreferrer"><img src="${safe}" alt="Post image"></a>
+                        <button type="button" class="btn-secondary" data-remove-current-image="${encoded}">Remove</button>
+                    </div>
+                `;
+            }).join('');
         }
 
         document.querySelectorAll('.modal').forEach((el) => {
@@ -448,7 +538,7 @@
                             <div class="order-card__header">
                                 <div>
                                     <h4 class="order-card__name">${escapeHtml(post.title)}</h4>
-                                    <div class="order-card__status">${escapeHtml(post.category)}</div>
+                                    <div class="order-card__status">${escapeHtml(formatPostCategoryLabel(post))}</div>
                                 </div>
                             </div>
                             <p style="color: var(--light-text); font-size: 0.9rem;">${escapeHtml((post.description || '').slice(0, 120))}${post.description && post.description.length > 120 ? '…' : ''}</p>
@@ -501,7 +591,7 @@
 
                 document.getElementById('editPostId').value = normalizedPostId;
                 document.getElementById('editTitle').value = post.title || '';
-                document.getElementById('editCategory').value = post.category || 'Women';
+                setCheckedValues('[data-edit-category]', getCategoryList(post));
                 document.getElementById('editDescription').value = post.description || '';
                 document.getElementById('editOldPrice').value = post.oldPriceETB ?? '';
                 document.getElementById('editPrice').value = post.priceETB ?? '';
@@ -520,24 +610,17 @@
                 document.getElementById('editTikTokUrl').value = allVideoUrls.find((v) => /tiktok\.com/i.test(v)) || '';
                 document.getElementById('editInstagramUrl').value = allVideoUrls.find((v) => /instagram\.com\/(reel|p)\//i.test(v)) || '';
                 document.getElementById('editVideoUrl').value = allVideoUrls.find((v) => !/tiktok\.com/i.test(v) && !/instagram\.com\/(reel|p)\//i.test(v)) || '';
+                setCheckedValues('[data-edit-measurement-profile]', getMeasurementProfileList(post));
                 const existingExternalImages = (Array.isArray(post.images) ? post.images : []).filter((src) => /^https?:\/\//i.test(String(src || '')));
                 document.getElementById('editImageLink').value = existingExternalImages[0] || '';
                 document.getElementById('editImageLinks').value = existingExternalImages.length > 1 ? existingExternalImages.slice(1).join('\n') : '';
                 setImageLinkInputs('editImageLinkList', existingExternalImages.slice(1));
                 document.getElementById('editImages').value = '';
-
-                const currentImages = document.getElementById('editCurrentImages');
-                const images = Array.isArray(post.images) ? post.images : [];
-                if (currentImages) {
-                    if (!images.length) {
-                        currentImages.innerHTML = '<small style="color: var(--light-text);">No images</small>';
-                    } else {
-                        currentImages.innerHTML = images.map((src) => {
-                            const safe = escapeHtml(src || '');
-                            return `<a href="${safe}" target="_blank" rel="noopener noreferrer"><img src="${safe}" alt="Post image" style="width:56px;height:56px;object-fit:cover;border-radius:8px;border:1px solid rgba(0,0,0,0.08);"></a>`;
-                        }).join('');
-                    }
-                }
+                editPostImageState.currentImages = Array.isArray(post.images) ? post.images.slice() : [];
+                editPostImageState.removedImages = new Set();
+                editPostImageState.originalPrimaryImage = existingExternalImages[0] || '';
+                document.getElementById('editOriginalPrimaryImage').value = editPostImageState.originalPrimaryImage;
+                renderEditCurrentImages();
                 openModal('editPostModal');
             } catch (err) {
                 console.error(err);
@@ -551,7 +634,12 @@
 
             const id = document.getElementById('editPostId').value;
             const title = document.getElementById('editTitle').value;
-            const category = document.getElementById('editCategory').value;
+            const selectedCategories = getCheckedValues('[data-edit-category]');
+            const selectedMeasurementProfiles = getCheckedValues('[data-edit-measurement-profile]');
+            if (!selectedCategories.length) {
+                alert('Select at least one category.');
+                return;
+            }
             const description = document.getElementById('editDescription').value;
             const oldPriceETB = document.getElementById('editOldPrice').value;
             const priceETB = document.getElementById('editPrice').value;
@@ -571,12 +659,16 @@
             const imageLink = editLinks[0] || '';
             const imageLinks = editLinks.slice(1).join('\n');
             const editImages = document.getElementById('editImages');
+            const originalPrimaryImage = String(document.getElementById('editOriginalPrimaryImage').value || '').trim();
+            const replacePrimaryImage = !!(imageLink && imageLink !== originalPrimaryImage);
 
             try {
                 const formData = new FormData();
                 const allEditVideoUrls = getAllVideoUrls(videoUrl, tiktokUrl, instagramUrl);
                 formData.append('title', title);
-                formData.append('category', category);
+                formData.append('category', selectedCategories[0] || '');
+                formData.append('categories', JSON.stringify(selectedCategories));
+                formData.append('measurementProfiles', JSON.stringify(selectedMeasurementProfiles));
                 formData.append('description', description);
                 formData.append('videoUrl', getPreferredVideoUrl(videoUrl, tiktokUrl, instagramUrl));
                 formData.append('videoUrls', allEditVideoUrls.join('\n'));
@@ -590,6 +682,9 @@
                 formData.append('deliveryCountries', deliveryCountries.join('\n'));
                 formData.append('imageLink', imageLink);
                 formData.append('imageLinks', imageLinks);
+                formData.append('originalPrimaryImage', originalPrimaryImage);
+                formData.append('replacePrimaryImage', String(replacePrimaryImage));
+                formData.append('removeImages', Array.from(editPostImageState.removedImages).join('\n'));
                 for (let i = 0; i < editImages.files.length; i++) {
                     formData.append('images', editImages.files[i]);
                 }
@@ -995,13 +1090,31 @@
             return Array.from(new Set([...base, ...extras]));
         }
 
+        document.addEventListener('click', (event) => {
+            const removeBtn = event.target.closest('[data-remove-current-image]');
+            if (!removeBtn) return;
+            const encoded = String(removeBtn.getAttribute('data-remove-current-image') || '').trim();
+            if (!encoded) return;
+            editPostImageState.removedImages.add(decodeURIComponent(encoded));
+            renderEditCurrentImages();
+        });
+
         document.getElementById('createPostForm')?.addEventListener('submit', async (e) => {
             e.preventDefault();
             if (!ensureAdmin()) return;
 
+            const selectedCategories = getCheckedValues('[data-post-category]');
+            if (!selectedCategories.length) {
+                alert('Select at least one category.');
+                return;
+            }
+            const selectedMeasurementProfiles = getCheckedValues('[data-post-measurement-profile]');
+
             const formData = new FormData();
             formData.append('title', document.getElementById('postTitle').value);
-            formData.append('category', document.getElementById('postCategory').value);
+            formData.append('category', selectedCategories[0] || '');
+            formData.append('categories', JSON.stringify(selectedCategories));
+            formData.append('measurementProfiles', JSON.stringify(selectedMeasurementProfiles));
             formData.append('description', document.getElementById('postDescription').value);
             const postOldPriceValue = document.getElementById('postOldPrice').value;
             const postNewPriceValue = document.getElementById('postPrice').value;
@@ -1042,6 +1155,8 @@
                 if (res.ok) {
                     alert('Post Created Successfully!');
                     e.target.reset();
+                    setCheckedValues('[data-post-category]', []);
+                    setCheckedValues('[data-post-measurement-profile]', []);
                     setImageLinkInputs('postImageLinkList', []);
                     loadPostsAdmin();
                 } else {
