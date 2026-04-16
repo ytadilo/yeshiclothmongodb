@@ -49,7 +49,7 @@ function getSavedPaymentMethod(orderId) {
     if (!key) return '';
     const state = readPaymentMethodState();
     const value = String(state[key] || '').trim();
-    return ['bank_transfer', 'telebirr'].includes(value) ? value : '';
+    return ['bank_transfer', 'telebirr', 'telebirr_now'].includes(value) ? value : '';
 }
 
 function setSavedPaymentMethod(orderId, method) {
@@ -291,6 +291,7 @@ function formatPaymentMethodLabel(value) {
     const normalized = String(value || '').trim().toLowerCase();
     if (normalized === 'bank_transfer') return 'Bank transfer';
     if (normalized === 'telebirr') return 'Telebirr';
+    if (normalized === 'telebirr_now') return 'Pay Now with Telebirr';
     return normalized ? normalized.replace(/_/g, ' ') : 'Not selected';
 }
 

@@ -96,7 +96,8 @@ function applyProductOrderMode(isProductOrder) {
         if (!isProductOrder) paymentMethodInput.value = '';
     }
     if (paymentScreenshotInput) {
-        paymentScreenshotInput.required = !!isProductOrder && String(paymentMethodInput?.value || '').trim() === 'bank_transfer';
+        const selectedPaymentMethod = String(paymentMethodInput?.value || '').trim();
+        paymentScreenshotInput.required = !!isProductOrder && ['bank_transfer', 'telebirr'].includes(selectedPaymentMethod);
     }
     if (!isProductOrder && paymentScreenshotInput) {
         paymentScreenshotInput.value = '';
@@ -280,6 +281,7 @@ function updatePaymentDetailsVisibility() {
     const paymentMethod = String(document.getElementById('paymentMethod')?.value || '').trim();
     const bankTransferDetails = document.getElementById('bankTransferDetails');
     const telebirrDetails = document.getElementById('telebirrDetails');
+    const telebirrNowDetails = document.getElementById('telebirrNowDetails');
     const paymentScreenshotGroup = document.getElementById('paymentScreenshotGroup');
     const paymentScreenshotInput = document.getElementById('paymentScreenshot');
 
@@ -289,16 +291,19 @@ function updatePaymentDetailsVisibility() {
     if (telebirrDetails) {
         telebirrDetails.style.display = paymentMethod === 'telebirr' ? 'block' : 'none';
     }
+    if (telebirrNowDetails) {
+        telebirrNowDetails.style.display = paymentMethod === 'telebirr_now' ? 'block' : 'none';
+    }
     if (paymentScreenshotGroup) {
-        paymentScreenshotGroup.style.display = paymentMethod === 'bank_transfer' ? 'block' : 'none';
+        paymentScreenshotGroup.style.display = ['bank_transfer', 'telebirr'].includes(paymentMethod) ? 'block' : 'none';
     }
     if (paymentScreenshotInput) {
-        paymentScreenshotInput.required = paymentMethod === 'bank_transfer';
-        if (paymentMethod !== 'bank_transfer') {
+        paymentScreenshotInput.required = ['bank_transfer', 'telebirr'].includes(paymentMethod);
+        if (!['bank_transfer', 'telebirr'].includes(paymentMethod)) {
             paymentScreenshotInput.value = '';
         }
     }
-    if (paymentMethod !== 'telebirr') {
+    if (paymentMethod !== 'telebirr_now') {
         resetTelebirrCheckoutState();
     }
     updateProductPaymentDetailsSummary();
@@ -1788,7 +1793,7 @@ form.addEventListener('submit', async function(e) {
     const paymentComment = String(document.getElementById('paymentComment')?.value || '').trim();
     const referenceFiles = Array.from(document.getElementById('referenceImages')?.files || []);
     const quantity = currentProductQuantity;
-    const isTelebirrFlow = isProductOrder && paymentMethod === 'telebirr';
+    const isTelebirrFlow = isProductOrder && paymentMethod === 'telebirr_now';
     // Fabric type removed
     
     // Delivery
@@ -1905,7 +1910,7 @@ form.addEventListener('submit', async function(e) {
             return;
         }
 
-        if (isProductOrder && paymentMethod === 'bank_transfer' && !paymentFile) {
+        if (isProductOrder && !isTelebirrFlow && !paymentFile) {
             alert('Upload payment screenshot before placing the order.');
             if (submitBtn) submitBtn.disabled = false;
             return;

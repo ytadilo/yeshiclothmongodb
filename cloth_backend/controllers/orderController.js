@@ -315,7 +315,7 @@ async function attachTelebirrCheckoutToOrder(order, req) {
 
     order.payment_info = order.payment_info || {};
     order.payment_info.provider = 'telebirr';
-    order.payment_info.method = 'telebirr';
+    order.payment_info.method = 'telebirr_now';
     order.payment_info.merchant_order_id = session.merchantOrderId;
     order.payment_info.prepay_id = session.prepayId;
     order.payment_info.raw_request = session.rawRequest;
@@ -589,11 +589,11 @@ exports.createOrder = async (req, res) => {
                 return res.status(400).json({ msg: 'Reference image is required for custom orders.' });
             }
 
-            if (isProductAsIsOrder && !['bank_transfer', 'telebirr'].includes(paymentMethod)) {
+            if (isProductAsIsOrder && !['bank_transfer', 'telebirr', 'telebirr_now'].includes(paymentMethod)) {
                 return res.status(400).json({ msg: 'Payment method is required for product orders.' });
             }
 
-            if (isProductAsIsOrder && !(paymentMethod === 'telebirr' && telebirrCheckoutRequested)) {
+            if (isProductAsIsOrder && !(paymentMethod === 'telebirr_now' && telebirrCheckoutRequested)) {
                 return res.status(400).json({ msg: 'Payment screenshot is required for product orders.' });
             }
 
@@ -711,7 +711,7 @@ exports.createOrder = async (req, res) => {
             }
 
             let telebirrPayload = null;
-            if (isProductAsIsOrder && paymentMethod === 'telebirr' && telebirrCheckoutRequested) {
+            if (isProductAsIsOrder && paymentMethod === 'telebirr_now' && telebirrCheckoutRequested) {
                 try {
                     telebirrPayload = await attachTelebirrCheckoutToOrder(order, req);
                 } catch (telebirrErr) {
@@ -920,7 +920,7 @@ exports.createOrder = async (req, res) => {
         const paymentFile = req.files?.paymentScreenshot?.[0];
 
         let paymentInfo = {
-            method: ['bank_transfer', 'telebirr'].includes(paymentMethod) ? paymentMethod : '',
+            method: ['bank_transfer', 'telebirr', 'telebirr_now'].includes(paymentMethod) ? paymentMethod : '',
             comment: paymentComment,
             status: 'Pending'
         };
@@ -984,11 +984,11 @@ exports.createOrder = async (req, res) => {
             return res.status(400).json({ msg: 'Shipping address must include country, region, city, and ZIP code.' });
         }
 
-        if (orderData.post_id && !paymentFile && !(paymentMethod === 'telebirr' && telebirrCheckoutRequested)) {
+        if (orderData.post_id && !paymentFile && !(paymentMethod === 'telebirr_now' && telebirrCheckoutRequested)) {
             return res.status(400).json({ msg: 'Payment screenshot is required for product orders.' });
         }
 
-        if (orderData.post_id && !['bank_transfer', 'telebirr'].includes(paymentMethod)) {
+        if (orderData.post_id && !['bank_transfer', 'telebirr', 'telebirr_now'].includes(paymentMethod)) {
             return res.status(400).json({ msg: 'Payment method is required for product orders.' });
         }
 
@@ -1058,7 +1058,7 @@ exports.createOrder = async (req, res) => {
         }
 
         let telebirrPayload = null;
-        if (orderData.post_id && paymentMethod === 'telebirr' && telebirrCheckoutRequested) {
+        if (orderData.post_id && paymentMethod === 'telebirr_now' && telebirrCheckoutRequested) {
             try {
                 telebirrPayload = await attachTelebirrCheckoutToOrder(order, req);
             } catch (telebirrErr) {
@@ -1385,18 +1385,26 @@ exports.getOrders = async (req, res) => {
                     order_id: { $in: orderIds },
                     purpose: 'order_payment_screenshot'
                 })
-                    .select('_id order_id owner_user_id created_at')
+                    .select('_id order_id owner_user_id created_at storage_path')
                     .sort({ created_at: -1 })
                     .lean();
 
                 const latestByOrder = new Map();
+                const validPaymentUploadUrls = new Set();
                 const usedUploadIds = new Set();
                 uploads.forEach((u) => {
                     const key = String(u && u.order_id || '').trim();
                     if (!key || latestByOrder.has(key)) return;
                     const uploadId = String(u && u._id || '').trim();
                     if (!uploadId) return;
-                    latestByOrder.set(key, '/api/uploads/' + uploadId);
+                    const storagePath = String(u && u.storage_path || '').trim();
+                    if (storagePath) {
+                        const absolutePath = path.join(__dirname, '..', 'uploads', ...storagePath.split('/'));
+                        if (!fs.existsSync(absolutePath)) return;
+                    }
+                    const uploadUrl = '/api/uploads/' + uploadId;
+                    latestByOrder.set(key, uploadUrl);
+                    validPaymentUploadUrls.add(uploadUrl);
                     usedUploadIds.add(uploadId);
                 });
 
@@ -1410,7 +1418,11 @@ exports.getOrders = async (req, res) => {
                         const fallback = latestByOrder.get(key)
                             || resolveApproximatePaymentUploadUrl(order, uploads, usedUploadIds)
                             || '';
-                        const resolvedScreenshotUrl = getOrderPaymentScreenshotUrl(order) || fallback;
+                        const existingScreenshotUrl = getOrderPaymentScreenshotUrl(order);
+                        const isKnownPrivateUpload = existingScreenshotUrl.startsWith('/api/uploads/')
+                            ? validPaymentUploadUrls.has(existingScreenshotUrl)
+                            : true;
+                        const resolvedScreenshotUrl = isKnownPrivateUpload ? (existingScreenshotUrl || fallback) : fallback;
                         const resolvedComment = getOrderPaymentComment(order);
                         if (!resolvedScreenshotUrl) return order;
 
