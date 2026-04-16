@@ -93,16 +93,18 @@
 
     function getRole() {
         const storedUser = safeParseJson(localStorage.getItem('user'));
-        return (storedUser && storedUser.role) || localStorage.getItem('role');
+        return (storedUser && storedUser.role) || '';
     }
 
     function ensureAdmin() {
         const token = getToken();
-        const role = String(getRole() || '').toLowerCase();
         const storedUser = safeParseJson(localStorage.getItem('user')) || {};
         const status = String(storedUser.status || '').toLowerCase();
         const blocked = !!storedUser.isBanned || status === 'banned' || status === 'inactive';
-        if (!token || role !== 'admin' || blocked) {
+        const serverSession = window.__YESHI_ADMIN_SESSION;
+        const serverDenied = !!(serverSession && serverSession.ready && !serverSession.ok);
+        const serverRole = String(serverSession && serverSession.role || '').toLowerCase();
+        if (!token || blocked || serverDenied || (serverSession && serverSession.ok && serverRole !== 'admin')) {
             const next = encodeURIComponent(window.location.pathname + window.location.search);
             window.location.replace('/auth/login?next=' + next);
             return false;

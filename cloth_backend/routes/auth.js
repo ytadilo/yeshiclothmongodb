@@ -18,6 +18,7 @@ const {
     changePassword
 } = require('../controllers/authController');
 const auth = require('../middleware/authMiddleware');
+const { adminOnly } = require('../middleware/authMiddleware');
 const upload = require('../middleware/upload');
 
 router.post(
@@ -45,7 +46,7 @@ router.post('/admin/login', login);
 router.post('/admin/forgot-password', forgotPassword);
 router.post('/admin/verify-otp', verifyOTP);
 router.post('/admin/reset-password', resetPassword);
-router.put('/admin/change-password', auth, changePassword);
+router.put('/admin/change-password', auth, adminOnly, changePassword);
 
 // User Recovery Routes
 router.post('/forgot-password', forgotPassword);

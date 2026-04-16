@@ -6,6 +6,7 @@ const { getDatabaseProvider } = require('../utils/db');
 
 const Upload = require('../models/Upload');
 const auth = require('../middleware/authMiddleware');
+const { adminOnly } = require('../middleware/authMiddleware');
 const optionalAuth = require('../middleware/optionalAuth');
 const upload = require('../middleware/upload');
 
@@ -95,7 +96,7 @@ router.get('/:id', optionalAuth, async (req, res) => {
 
 // POST /api/uploads
 // Admin-only: upload an image (used for branding assets like header logo/favicon)
-router.post('/', auth, upload.single('file'), async (req, res) => {
+router.post('/', auth, adminOnly, upload.single('file'), async (req, res) => {
     try {
         if (req.user.role !== 'admin') {
             return res.status(403).json({ msg: 'Access denied' });

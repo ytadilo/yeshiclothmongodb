@@ -692,6 +692,44 @@
         };
     }
 
+    async function getIdToken(options = {}) {
+        await whenReady();
+        const user = state.auth && state.auth.currentUser ? state.auth.currentUser : state.currentUser;
+        if (!user || typeof user.getIdToken !== 'function') return '';
+        return user.getIdToken(!!options.forceRefresh);
+    }
+
+    if (!window.__YESHI_FETCH_PATCHED__) {
+        const nativeFetch = window.fetch.bind(window);
+        window.__YESHI_FETCH_PATCHED__ = true;
+        window.fetch = async function patchedYeshiFetch(input, init) {
+            const requestUrl = typeof input === 'string' ? input : String((input && input.url) || '');
+            const isApiRequest = /^\/api(\/|$)/.test(requestUrl) || /^https?:\/\/[^/]+\/api(\/|$)/i.test(requestUrl);
+            if (!isApiRequest) {
+                return nativeFetch(input, init);
+            }
+
+            const nextInit = init ? { ...init } : {};
+            const headers = new Headers(nextInit.headers || (input && input.headers) || {});
+            const hasAuthHeader = headers.has('Authorization') || headers.has('authorization');
+            const skipFirebaseBootstrapEndpoints = /\/api\/auth\/firebase\/(config|session)$/i.test(requestUrl);
+            const hasFirebaseUser = !!((state.auth && state.auth.currentUser) || state.currentUser);
+            if (!hasAuthHeader && !skipFirebaseBootstrapEndpoints && hasFirebaseUser) {
+                try {
+                    const token = await getIdToken();
+                    if (token) {
+                        headers.set('Authorization', 'Bearer ' + token);
+                    }
+                } catch (_) {
+                    // Ignore Firebase token refresh failures and preserve existing request behavior.
+                }
+            }
+
+            nextInit.headers = headers;
+            return nativeFetch(input, nextInit);
+        };
+    }
+
     window.YeshiFirebaseAuth = {
         whenReady,
         ensureAppSession,
@@ -705,6 +743,7 @@
         signOutUser,
         getFriendlyError,
         getCurrentUserSnapshot,
+        getIdToken,
         hasFirebaseHint
     };
 })(window);

@@ -7,6 +7,7 @@ const mongoose = require('mongoose');
 const { EJSON } = require('bson');
 
 const auth = require('../middleware/authMiddleware');
+const { adminOnly } = require('../middleware/authMiddleware');
 
 const router = express.Router();
 
@@ -45,7 +46,7 @@ function listBackupCollections() {
 // GET /api/admin/uploads/export
 // Exports every user collection in the database as a ZIP archive.
 // Each collection is stored in collections/<name>.json using Extended JSON.
-router.get('/export', auth, async (req, res) => {
+router.get('/export', auth, adminOnly, async (req, res) => {
     if (!requireAdmin(req, res)) return;
 
     res.setHeader('Content-Type', 'application/zip');
@@ -117,7 +118,7 @@ const zipUpload = multer({
 
 // POST /api/admin/uploads/import
 // Restores a ZIP produced by /export by replacing the collections contained in the backup.
-router.post('/import', auth, zipUpload.single('file'), async (req, res) => {
+router.post('/import', auth, adminOnly, zipUpload.single('file'), async (req, res) => {
     if (!requireAdmin(req, res)) return;
     if (!req.file || !req.file.buffer) {
         return res.status(400).json({ msg: 'Missing ZIP file' });

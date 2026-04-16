@@ -2,14 +2,13 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
-const jwt = require('jsonwebtoken');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const hpp = require('hpp');
-const User = require('./models/User');
 const connectDB = require('./utils/db');
 const { getDatabaseProvider } = require('./utils/db');
 const ensureAdminUser = require('./utils/ensureAdminUser');
+const { resolveRequestUser } = require('./middleware/authCore');
 require('dotenv').config();
 
 const app = express();
@@ -25,6 +24,14 @@ const globalLimiter = rateLimit({
     legacyHeaders: false
 });
 
+const firebaseSessionLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: Number(process.env.FIREBASE_SESSION_RATE_LIMIT_MAX || 12),
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { msg: 'Too many Firebase session attempts. Please try again later.' }
+});
+
 const authLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
     max: Number(process.env.AUTH_RATE_LIMIT_MAX || 20),
@@ -33,7 +40,7 @@ const authLimiter = rateLimit({
     skip: (req) => {
         const path = String(req.originalUrl || req.url || '').split('?')[0];
         if (req.method === 'GET') return true;
-        return path === '/api/auth/firebase/session' || path === '/api/auth/logout';
+        return path === '/api/auth/logout';
     },
     message: { msg: 'Too many authentication attempts. Please try again later.' }
 });
@@ -84,6 +91,7 @@ app.use((req, res, next) => {
     }
 });
 app.use('/api', globalLimiter);
+app.use('/api/auth/firebase/session', firebaseSessionLimiter);
 app.use('/api/auth', authLimiter);
 app.use(
     cors({
@@ -167,50 +175,24 @@ const ADMIN_PUBLIC_PATHS = new Set([
     '/admin/reset-password'
 ]);
 
-function getCookieValue(req, key) {
-    const raw = String((req && req.headers && req.headers.cookie) || '').trim();
-    if (!raw) return '';
-    const parts = raw.split(';').map((chunk) => chunk.trim());
-    const hit = parts.find((chunk) => chunk.toLowerCase().startsWith(String(key).toLowerCase() + '='));
-    if (!hit) return '';
-    const idx = hit.indexOf('=');
-    return idx >= 0 ? decodeURIComponent(hit.slice(idx + 1)) : '';
-}
-
 async function ensureAdminPageAccess(req, res, next) {
     const adminPath = '/admin' + String(req.path || '');
     if (ADMIN_PUBLIC_PATHS.has(adminPath)) return next();
 
-    const token = req.header('x-auth-token') || req.query.token || getCookieValue(req, 'yeshi_token');
-    if (!token) {
-        return res.redirect(302, '/admin/login');
+    req.__skipAdminDeviceCheck = true;
+
+    const resolved = await resolveRequestUser(req, {
+        allowLegacyJwt: true,
+        optional: false
+    });
+
+    delete req.__skipAdminDeviceCheck;
+
+    if (!resolved.ok || !req.user || String(req.user.role || '').toLowerCase() !== 'admin') {
+        return res.redirect(302, '/auth/login');
     }
 
-    try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        const userId = decoded && decoded.user && decoded.user.id;
-        if (!userId) {
-            return res.redirect(302, '/admin/login');
-        }
-
-        const dbUser = await User.findById(userId).select('role status isBanned').lean();
-        if (!dbUser) {
-            return res.redirect(302, '/admin/login');
-        }
-
-        const status = dbUser.status || (dbUser.isBanned ? 'banned' : 'active');
-        if (status === 'banned' || status === 'inactive' || dbUser.isBanned) {
-            return res.redirect(302, '/admin/login');
-        }
-
-        if (String(dbUser.role || '').toLowerCase() !== 'admin') {
-            return res.redirect(302, '/admin/login');
-        }
-
-        return next();
-    } catch (_) {
-        return res.redirect(302, '/admin/login');
-    }
+    return next();
 }
 
 app.use('/admin', ensureAdminPageAccess);

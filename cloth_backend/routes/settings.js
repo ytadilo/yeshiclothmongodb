@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 
 const auth = require('../middleware/authMiddleware');
+const { adminOnly } = require('../middleware/authMiddleware');
 const {
 	getSocialLinks,
 	updateSocialLinks,
@@ -21,10 +22,10 @@ router.get('/content', getContent);
 router.get('/delivery', getDeliverySettings);
 
 // Admin
-router.put('/social', auth, updateSocialLinks);
+router.put('/social', auth, adminOnly, updateSocialLinks);
 
-router.put('/content', auth, updateContent);
+router.put('/content', auth, adminOnly, updateContent);
 
-router.put('/delivery', auth, updateDeliverySettings);
+router.put('/delivery', auth, adminOnly, updateDeliverySettings);
 
 module.exports = router;

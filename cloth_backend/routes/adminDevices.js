@@ -2,6 +2,7 @@ const express = require('express');
 const crypto = require('crypto');
 
 const auth = require('../middleware/authMiddleware');
+const { adminOnly } = require('../middleware/authMiddleware');
 const BlockedDevice = require('../models/BlockedDevice');
 const UserDevice = require('../models/UserDevice');
 const User = require('../models/User');
@@ -15,7 +16,7 @@ function toDeviceHash(input) {
     return crypto.createHash('sha256').update(value).digest('hex');
 }
 
-router.get('/blocked', auth, async (req, res) => {
+router.get('/blocked', auth, adminOnly, async (req, res) => {
     try {
         if (req.user.role !== 'admin') {
             return res.status(403).json({ msg: 'Access denied' });
@@ -33,7 +34,7 @@ router.get('/blocked', auth, async (req, res) => {
     }
 });
 
-router.get('/all', auth, async (req, res) => {
+router.get('/all', auth, adminOnly, async (req, res) => {
     try {
         if (req.user.role !== 'admin') {
             return res.status(403).json({ msg: 'Access denied' });
@@ -84,7 +85,7 @@ router.get('/all', auth, async (req, res) => {
     }
 });
 
-router.post('/block', auth, async (req, res) => {
+router.post('/block', auth, adminOnly, async (req, res) => {
     try {
         if (req.user.role !== 'admin') {
             return res.status(403).json({ msg: 'Access denied' });
@@ -121,7 +122,7 @@ router.post('/block', auth, async (req, res) => {
     }
 });
 
-router.post('/unblock', auth, async (req, res) => {
+router.post('/unblock', auth, adminOnly, async (req, res) => {
     try {
         if (req.user.role !== 'admin') {
             return res.status(403).json({ msg: 'Access denied' });

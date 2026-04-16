@@ -744,7 +744,7 @@ async function logout() {
     const storedRole = (storedUser && storedUser.role) || localStorage.getItem('role');
 
     if (window.YeshiAuth && typeof window.YeshiAuth.performLogout === 'function') {
-        await window.YeshiAuth.performLogout(storedRole === 'admin' ? '/admin/login' : '/auth/login');
+        await window.YeshiAuth.performLogout('/auth/login');
         return;
     }
 
@@ -765,7 +765,7 @@ async function logout() {
         }
     }
 
-    window.location.href = storedRole === 'admin' ? '/admin/login' : '/auth/login';
+    window.location.href = '/auth/login';
 }
 
 window.logout = logout;

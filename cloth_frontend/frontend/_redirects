@@ -7,6 +7,10 @@
 # Proxy API to deployed backend (keeps frontend code using /api/* unchanged)
 /api/*  https://myclothefullstackhaile.onrender.com/api/:splat  200!
 
+# Proxy admin pages to the backend so Render is the only authority for admin HTML access
+/admin  https://myclothefullstackhaile.onrender.com/admin  200!
+/admin/*  https://myclothefullstackhaile.onrender.com/admin/:splat  200!
+
 # Canonicalize: hide /user prefix + .html extensions (explicit, avoid breaking auth files)
 # NOTE: do not redirect /user/index.html to /, because the root index.html may redirect to /user/index.html.
 /user/order.html  /order  301!
@@ -62,15 +66,3 @@
 /auth/forgot-password  /user/forgot-password.html  200
 /auth/reset-password  /user/reset-password.html  200
 
-# Pretty URLs for admin pages
-/admin  /admin/orders.html  200
-/admin/login  /admin/login.html  200
-/admin/orders  /admin/orders.html  200
-/admin/users  /admin/users.html  200
-/admin/posts  /admin/posts.html  200
-/admin/chat  /admin/chat.html  200
-/admin/order-stats  /admin/order-stats.html  200
-/admin/links  /admin/links.html  200
-/admin/forgot-password  /admin/forgot-password.html  200
-/admin/verify-otp  /admin/verify-otp.html  200
-/admin/reset-password  /admin/reset-password.html  200

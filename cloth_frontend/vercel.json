@@ -143,6 +143,14 @@
       "destination": "https://myclothefullstackhaile.onrender.com/api/:path*"
     },
     {
+      "source": "/admin",
+      "destination": "https://myclothefullstackhaile.onrender.com/admin"
+    },
+    {
+      "source": "/admin/:path*",
+      "destination": "https://myclothefullstackhaile.onrender.com/admin/:path*"
+    },
+    {
       "source": "/",
       "destination": "/user/index.html"
     },
@@ -265,50 +273,6 @@
     {
       "source": "/auth/reset-password",
       "destination": "/user/reset-password.html"
-    },
-    {
-      "source": "/admin",
-      "destination": "/admin/orders.html"
-    },
-    {
-      "source": "/admin/login",
-      "destination": "/admin/login.html"
-    },
-    {
-      "source": "/admin/orders",
-      "destination": "/admin/orders.html"
-    },
-    {
-      "source": "/admin/users",
-      "destination": "/admin/users.html"
-    },
-    {
-      "source": "/admin/posts",
-      "destination": "/admin/posts.html"
-    },
-    {
-      "source": "/admin/chat",
-      "destination": "/admin/chat.html"
-    },
-    {
-      "source": "/admin/order-stats",
-      "destination": "/admin/order-stats.html"
-    },
-    {
-      "source": "/admin/links",
-      "destination": "/admin/links.html"
-    },
-    {
-      "source": "/admin/forgot-password",
-      "destination": "/admin/forgot-password.html"
-    },
-    {
-      "source": "/admin/verify-otp",
-      "destination": "/admin/verify-otp.html"
-    },
-    {
-      "source": "/admin/reset-password",
-      "destination": "/admin/reset-password.html"
     }
   ]
 }

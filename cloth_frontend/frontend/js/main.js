@@ -329,7 +329,7 @@ async function performLogout(redirectTo) {
         clearStoredAuthSession({ preserveReady: true });
     }
 
-    const destination = redirectTo || (snapshot.role === 'admin' ? '/admin/login' : '/auth/login');
+    const destination = redirectTo || '/auth/login';
     window.location.replace(destination);
 }
 

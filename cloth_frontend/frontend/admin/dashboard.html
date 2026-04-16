@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Dashboard - Yeshi</title>
+    <script src="/js/admin-guard.js"></script>
     <script>window.__yeshiWarnPatch=window.__yeshiWarnPatch||(()=>{const w=console.warn;console.warn=function(...a){if(String(a[0]||'').includes('cdn.tailwindcss.com should not be used in production'))return;return w.apply(console,a);};return true;})();</script>
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
@@ -937,8 +938,8 @@
             const user = storedUser ? JSON.parse(storedUser) : null;
             const role = user?.role || localStorage.getItem('role');
 
-            if (!token || role !== 'admin') {
-                 window.location.href = '/admin/login';
+              if (!token || role !== 'admin') {
+                  window.location.href = '/auth/login';
                 return;
             }
 
@@ -1164,7 +1165,7 @@
                 if ((err?.message || '').toLowerCase().includes('token')) {
                     localStorage.removeItem('token');
                     localStorage.removeItem('user');
-                    window.location.href = '/admin/login';
+                    window.location.href = '/auth/login';
                 }
             }
         }

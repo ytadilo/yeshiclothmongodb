@@ -21,6 +21,7 @@ const {
     editComment
 } = require('../controllers/postController');
 const auth = require('../middleware/authMiddleware');
+const { adminOnly } = require('../middleware/authMiddleware');
 const optionalAuth = require('../middleware/optionalAuth');
 const upload = require('../middleware/upload');
 
@@ -46,8 +47,8 @@ router.post('/:id/bag', optionalAuth, incrementBag);
 router.post('/view', optionalAuth, resolveLegacyPostId, incrementView);
 router.post('/share', optionalAuth, resolveLegacyPostId, incrementShare);
 router.post('/bag', optionalAuth, resolveLegacyPostId, incrementBag);
-router.put('/order-count-visibility-all', auth, updateAllOrderCountVisibility);
-router.put('/:id/order-count-visibility', auth, updateOrderCountVisibility);
+router.put('/order-count-visibility-all', auth, adminOnly, updateAllOrderCountVisibility);
+router.put('/:id/order-count-visibility', auth, adminOnly, updateOrderCountVisibility);
 
 // Protected routes
 router.post('/like/:id', auth, likePost);
@@ -74,21 +75,14 @@ router.post('/:id/comment/:commentId/favorite', auth, (req, res, next) => {
 
 // Admin routes
 // Notice: 'image' is the key expected in form-data for the file
-router.post('/', [auth, upload.array('images', 5)], (req, res, next) => {
-    // Middleware to check admin role inline or inside controller
-    if(req.user.role !== 'admin') return res.status(403).json({ msg: 'Access denied' });
-    next();
-}, createPost);
+router.post('/', auth, adminOnly, upload.array('images', 5), createPost);
 
-router.put('/:id', [auth, upload.array('images', 5)], (req, res, next) => {
-    if(req.user.role !== 'admin') return res.status(403).json({ msg: 'Access denied' });
-    next();
-}, updatePost);
-router.delete('/:id', auth, deletePost);
+router.put('/:id', auth, adminOnly, upload.array('images', 5), updatePost);
+router.delete('/:id', auth, adminOnly, deletePost);
 
 // Admin comment moderation
-router.delete('/:id/comment/:commentId', auth, deleteComment);
-router.put('/:id/comment/:commentId', auth, upload.single('image'), editComment);
+router.delete('/:id/comment/:commentId', auth, adminOnly, deleteComment);
+router.put('/:id/comment/:commentId', auth, adminOnly, upload.single('image'), editComment);
 
 router.use((err, _req, res, _next) => {
     if (!err) {

@@ -13,6 +13,7 @@ const {
 } = require('../controllers/orderController');
 const { getOrderStats } = require('../controllers/orderStatsController');
 const auth = require('../middleware/authMiddleware');
+const { adminOnly } = require('../middleware/authMiddleware');
 const optionalAuth = require('../middleware/optionalAuth');
 const upload = require('../middleware/upload');
 
@@ -47,12 +48,12 @@ router.post(
 	createOrder
 );
 router.get('/last-location', auth, getLastDeliveryLocation);
-router.get('/stats', auth, getOrderStats);
+router.get('/stats', auth, adminOnly, getOrderStats);
 router.get('/my', auth, getOrders); // Backward-compatible alias for user order history
 router.get('/', auth, getOrders); // Only admin/user should see history
-router.put('/:id', auth, updateOrder);
-router.put('/:id/payment', auth, updateOrderPayment);
-router.put('/:id/status', auth, updateOrderStatusStep);
+router.put('/:id', auth, adminOnly, updateOrder);
+router.put('/:id/payment', auth, adminOnly, updateOrderPayment);
+router.put('/:id/status', auth, adminOnly, updateOrderStatusStep);
 router.post('/:id/negotiation', auth, upload.single('image'), addNegotiationMessage);
 router.post('/:id/payment-proof', auth, upload.single('paymentScreenshot'), uploadOrderPaymentProof);
 
