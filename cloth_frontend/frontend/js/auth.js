@@ -312,10 +312,10 @@ function redirectAfterAuth(user) {
     if (role === 'admin') {
         const token = String(localStorage.getItem('token') || '').trim();
         if (token) {
-            window.location.replace('/admin?token=' + encodeURIComponent(token));
+            window.location.replace('/admin/orders?token=' + encodeURIComponent(token));
             return;
         }
-        window.location.replace('/admin');
+        window.location.replace('/admin/orders');
         return;
     }
     window.location.replace(getSafeNextDestination());

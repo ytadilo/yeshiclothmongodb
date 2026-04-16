@@ -290,7 +290,7 @@ app.use('/api/backup', require('./routes/backup'));
 // We map /admin/* to the HTML files in frontend/admin/
 if (hasFrontend) {
     app.get('/admin/', (req, res) => {
-        res.redirect(302, '/admin');
+        res.redirect(302, '/admin/orders');
     });
 
     app.get('/admin/login', (req, res) => {

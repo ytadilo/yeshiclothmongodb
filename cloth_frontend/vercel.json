@@ -2,8 +2,13 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "redirects": [
     {
+      "source": "/admin",
+      "destination": "/admin/orders",
+      "permanent": false
+    },
+    {
       "source": "/admin/",
-      "destination": "/admin",
+      "destination": "/admin/orders",
       "permanent": false
     },
     {
@@ -146,14 +151,6 @@
     {
       "source": "/api/:path*",
       "destination": "https://myclothefullstackhaile.onrender.com/api/:path*"
-    },
-    {
-      "source": "/admin",
-      "destination": "https://myclothefullstackhaile.onrender.com/admin"
-    },
-    {
-      "source": "/admin/",
-      "destination": "https://myclothefullstackhaile.onrender.com/admin"
     },
     {
       "source": "/admin/:path*",
