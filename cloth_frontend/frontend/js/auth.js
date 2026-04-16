@@ -310,6 +310,11 @@ function getCurrentStoredRole() {
 function redirectAfterAuth(user) {
     const role = String(user && user.role || getCurrentStoredRole() || '').trim();
     if (role === 'admin') {
+        const token = String(localStorage.getItem('token') || '').trim();
+        if (token) {
+            window.location.replace('/admin?token=' + encodeURIComponent(token));
+            return;
+        }
         window.location.replace('/admin');
         return;
     }

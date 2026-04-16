@@ -179,6 +179,8 @@ async function ensureAdminPageAccess(req, res, next) {
     const adminPath = '/admin' + String(req.path || '');
     if (ADMIN_PUBLIC_PATHS.has(adminPath)) return next();
 
+    const queryToken = String(req.query?.token || '').trim();
+
     req.__skipAdminDeviceCheck = true;
 
     const resolved = await resolveRequestUser(req, {
@@ -190,6 +192,31 @@ async function ensureAdminPageAccess(req, res, next) {
 
     if (!resolved.ok || !req.user || String(req.user.role || '').toLowerCase() !== 'admin') {
         return res.redirect(302, '/auth/login');
+    }
+
+    if (queryToken) {
+        const nextQuery = new URLSearchParams();
+        Object.entries(req.query || {}).forEach(([key, value]) => {
+            if (String(key) === 'token' || value === undefined || value === null) return;
+            if (Array.isArray(value)) {
+                value.forEach((item) => nextQuery.append(key, String(item)));
+                return;
+            }
+            nextQuery.set(key, String(value));
+        });
+
+        const cleanedPath = req.path === '/' ? '/admin' : '/admin' + String(req.path || '');
+        const cleanedUrl = nextQuery.toString() ? `${cleanedPath}?${nextQuery.toString()}` : cleanedPath;
+
+        res.cookie('yeshi_token', queryToken, {
+            httpOnly: true,
+            sameSite: 'lax',
+            secure: process.env.NODE_ENV === 'production',
+            maxAge: 360000 * 1000,
+            path: '/'
+        });
+
+        return res.redirect(302, cleanedUrl);
     }
 
     return next();

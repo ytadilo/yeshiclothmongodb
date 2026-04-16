@@ -233,6 +233,77 @@
             );
         }
 
+        function getOrderPaymentScreenshotMimeType(order) {
+            const paymentInfo = order?.payment_info && typeof order.payment_info === 'object'
+                ? order.payment_info
+                : {};
+
+            return String(
+                paymentInfo.screenshot_mime_type
+                || paymentInfo.screenshotMimeType
+                || order?.payment_screenshot_mime_type
+                || order?.paymentScreenshotMimeType
+                || ''
+            ).trim().toLowerCase();
+        }
+
+        function isImagePaymentProof(mimeType, screenshotUrl) {
+            const normalizedMime = String(mimeType || '').trim().toLowerCase();
+            if (normalizedMime.startsWith('image/')) return true;
+            if (normalizedMime === 'application/pdf') return false;
+
+            const normalizedUrl = String(screenshotUrl || '').trim().toLowerCase();
+            return /\.(png|jpe?g|gif|webp|bmp|avif|heic|heif)(\?|$)/.test(normalizedUrl);
+        }
+
+        function renderPaymentProofPreviewHtml(screenshotUrl, screenshotMimeType) {
+            if (!screenshotUrl) {
+                return `<div style="margin-top:10px; color:var(--light-text);">No screenshot uploaded.</div>`;
+            }
+
+            const escapedUrl = escapeHtml(screenshotUrl);
+            const normalizedMime = String(screenshotMimeType || '').trim().toLowerCase();
+
+            if (isImagePaymentProof(normalizedMime, screenshotUrl)) {
+                return `
+                    <div style="margin-top:12px; display:flex; gap:12px; align-items:flex-start; flex-wrap:wrap;">
+                        <a href="${escapedUrl}" target="_blank" rel="noopener noreferrer" style="display:inline-block;">
+                            <img src="${escapedUrl}" alt="Payment proof" style="max-width:100%; width:420px; border-radius:12px; border:1px solid rgba(0,0,0,0.08); box-shadow:0 10px 22px rgba(0,0,0,0.08); object-fit:contain; background:#fff;">
+                        </a>
+                        <div style="font-size:0.86rem; color:var(--light-text); min-width:180px; flex:1;">
+                            <div style="font-weight:700; color:#1a1c1c;">Customer payment proof saved</div>
+                            <div style="margin-top:4px;">Open the image to inspect the full payment proof before confirming payment.</div>
+                            <div style="margin-top:6px; word-break:break-word;">Link: <a href="${escapedUrl}" target="_blank" rel="noopener noreferrer">Open payment proof</a></div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            if (normalizedMime === 'application/pdf') {
+                return `
+                    <div style="margin-top:12px; display:flex; gap:12px; align-items:flex-start; flex-wrap:wrap;">
+                        <a href="${escapedUrl}" target="_blank" rel="noopener noreferrer" style="display:flex; align-items:center; justify-content:center; width:180px; min-height:180px; border-radius:12px; border:1px solid rgba(0,0,0,0.08); background:#fff7e6; color:#7a5200; font-weight:800; text-decoration:none;">Open PDF proof</a>
+                        <div style="font-size:0.86rem; color:var(--light-text); min-width:180px; flex:1;">
+                            <div style="font-weight:700; color:#1a1c1c;">Customer payment proof is a PDF</div>
+                            <div style="margin-top:4px;">This payment proof cannot be previewed as an image. Open the document in a new tab to inspect it.</div>
+                            <div style="margin-top:6px; word-break:break-word;">Link: <a href="${escapedUrl}" target="_blank" rel="noopener noreferrer">Open payment proof PDF</a></div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            return `
+                <div style="margin-top:12px; display:flex; gap:12px; align-items:flex-start; flex-wrap:wrap;">
+                    <a href="${escapedUrl}" target="_blank" rel="noopener noreferrer" style="display:flex; align-items:center; justify-content:center; width:180px; min-height:180px; border-radius:12px; border:1px solid rgba(0,0,0,0.08); background:#f4f3f3; color:#463f32; font-weight:800; text-decoration:none;">Open uploaded proof</a>
+                    <div style="font-size:0.86rem; color:var(--light-text); min-width:180px; flex:1;">
+                        <div style="font-weight:700; color:#1a1c1c;">Customer payment proof uploaded</div>
+                        <div style="margin-top:4px;">The uploaded proof is not a previewable image. Open the file directly to inspect it.</div>
+                        <div style="margin-top:6px; word-break:break-word;">Link: <a href="${escapedUrl}" target="_blank" rel="noopener noreferrer">Open payment proof</a></div>
+                    </div>
+                </div>
+            `;
+        }
+
         function getOrderPaymentComment(order) {
             const paymentInfo = order?.payment_info && typeof order.payment_info === 'object'
                 ? order.payment_info
@@ -429,6 +500,7 @@
                     const paymentSubmittedAt = fmtDate(paymentInfo?.paid_at);
                     const effectiveStatus = deriveFlowStatus(paymentStatus, sewingStatus, status);
                     const screenshotUrl = getOrderPaymentScreenshot(order);
+                    const screenshotMimeType = getOrderPaymentScreenshotMimeType(order);
                     const paymentComment = getOrderPaymentComment(order);
                     const createdAt = fmtDate(order?.created_at || order?.createdAt);
                     const orderedQty = Math.max(1, Math.floor(Number(order?.quantity || 1)));
@@ -605,18 +677,7 @@
                                         </div>
                                         <div style="margin-top:8px; font-size:0.9rem; color:#1a1c1c;"><span style="color:var(--light-text);">Comment:</span> ${paymentComment ? escapeHtml(paymentComment) : '—'}</div>
 
-                                        ${screenshotUrl ? `
-                                            <div style="margin-top:12px; display:flex; gap:12px; align-items:flex-start; flex-wrap:wrap;">
-                                                <a href="${escapeHtml(screenshotUrl)}" target="_blank" rel="noopener noreferrer" style="display:inline-block;">
-                                                    <img src="${escapeHtml(screenshotUrl)}" alt="Payment screenshot" style="max-width:100%; width:420px; border-radius:12px; border:1px solid rgba(0,0,0,0.08); box-shadow:0 10px 22px rgba(0,0,0,0.08);">
-                                                </a>
-                                                <div style="font-size:0.86rem; color:var(--light-text); min-width:180px; flex:1;">
-                                                    <div style="font-weight:700; color:#1a1c1c;">Customer screenshot saved</div>
-                                                    <div style="margin-top:4px;">Open the image to inspect the full payment proof before confirming payment.</div>
-                                                    <div style="margin-top:6px; word-break:break-word;">Link: <a href="${escapeHtml(screenshotUrl)}" target="_blank" rel="noopener noreferrer">Open payment proof</a></div>
-                                                </div>
-                                            </div>
-                                        ` : `<div style="margin-top:10px; color:var(--light-text);">No screenshot uploaded.</div>`}
+                                        ${renderPaymentProofPreviewHtml(screenshotUrl, screenshotMimeType)}
                                     </div>
 
                                     ${!isProductAsIsOrder ? `

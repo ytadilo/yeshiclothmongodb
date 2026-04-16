@@ -251,6 +251,22 @@ function getOrderPaymentComment(order) {
     return hit ? String(hit).trim() : '';
 }
 
+function getOrderPaymentScreenshotMimeType(order) {
+    const paymentInfo = order && order.payment_info && typeof order.payment_info === 'object'
+        ? order.payment_info
+        : {};
+
+    const candidates = [
+        paymentInfo.screenshot_mime_type,
+        paymentInfo.screenshotMimeType,
+        order && order.payment_screenshot_mime_type,
+        order && order.paymentScreenshotMimeType
+    ];
+
+    const hit = candidates.find((value) => String(value || '').trim());
+    return hit ? String(hit).trim() : '';
+}
+
 function markOrderPaymentInfoModified(order) {
     if (!order || typeof order.markModified !== 'function') return;
     order.markModified('payment_info');
@@ -916,7 +932,9 @@ exports.createOrder = async (req, res) => {
                 order.payment_info = order.payment_info || {};
                 order.payment_info.comment = paymentComment;
                 order.payment_info.screenshot_url = '/api/uploads/' + up._id;
+                order.payment_info.screenshot_mime_type = String(up?.mimeType || paymentFile?.mimetype || '').trim();
                 order.payment_screenshot_url = order.payment_info.screenshot_url;
+                order.payment_screenshot_mime_type = order.payment_info.screenshot_mime_type;
                 order.payment_comment = paymentComment;
                 order.payment_info.paid_at = new Date();
                 if (!order.payment_info.status) {
@@ -1114,7 +1132,7 @@ exports.getOrders = async (req, res) => {
                     order_id: { $in: orderIds },
                     purpose: 'order_payment_screenshot'
                 })
-                    .select('_id order_id owner_user_id created_at')
+                    .select('_id order_id owner_user_id created_at mimeType')
                     .sort({ created_at: -1 })
                     .lean();
 
@@ -1125,7 +1143,10 @@ exports.getOrders = async (req, res) => {
                     if (!key || latestByOrder.has(key)) return;
                     const uploadId = String(u && u._id || '').trim();
                     if (!uploadId) return;
-                    latestByOrder.set(key, '/api/uploads/' + uploadId);
+                    latestByOrder.set(key, {
+                        url: '/api/uploads/' + uploadId,
+                        mimeType: String(u && u.mimeType || '').trim()
+                    });
                     usedUploadIds.add(uploadId);
                 });
 
@@ -1136,10 +1157,13 @@ exports.getOrders = async (req, res) => {
                             ? order.payment_info
                             : {};
 
-                        const fallback = latestByOrder.get(key)
-                            || resolveApproximatePaymentUploadUrl(order, uploads, usedUploadIds)
-                            || '';
-                        const resolvedScreenshotUrl = getOrderPaymentScreenshotUrl(order) || fallback;
+                        const fallback = latestByOrder.get(key) || null;
+                        const fallbackUrl = fallback && fallback.url
+                            ? fallback.url
+                            : (resolveApproximatePaymentUploadUrl(order, uploads, usedUploadIds) || '');
+                        const resolvedScreenshotUrl = getOrderPaymentScreenshotUrl(order) || fallbackUrl;
+                        const resolvedScreenshotMimeType = getOrderPaymentScreenshotMimeType(order)
+                            || String(fallback && fallback.mimeType || '').trim();
                         const resolvedComment = getOrderPaymentComment(order);
                         if (!resolvedScreenshotUrl) return order;
 
@@ -1148,9 +1172,11 @@ exports.getOrders = async (req, res) => {
                             payment_info: {
                                 ...paymentInfo,
                                 screenshot_url: resolvedScreenshotUrl,
+                                screenshot_mime_type: resolvedScreenshotMimeType,
                                 comment: resolvedComment
                             },
                             payment_screenshot_url: resolvedScreenshotUrl,
+                            payment_screenshot_mime_type: resolvedScreenshotMimeType,
                             payment_comment: resolvedComment
                         };
                     } catch (orderAugmentErr) {
@@ -1461,10 +1487,12 @@ exports.uploadOrderPaymentProof = async (req, res) => {
         order.payment_info.comment = paymentComment;
         order.payment_info.status = 'Pending';
         order.payment_info.screenshot_url = '/api/uploads/' + up._id;
+        order.payment_info.screenshot_mime_type = String(up?.mimeType || file?.mimetype || '').trim();
         order.payment_screenshot_url = order.payment_info.screenshot_url;
+        order.payment_screenshot_mime_type = order.payment_info.screenshot_mime_type;
         order.payment_comment = paymentComment;
         order.payment_info.paid_at = new Date();
-                markOrderPaymentInfoModified(order);
+        markOrderPaymentInfoModified(order);
         order.payment_status = 'Pending';
         order.order_status = deriveOrderStatus(order.payment_status, order.sewing_status, order.order_status);
 

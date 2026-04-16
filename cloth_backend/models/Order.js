@@ -124,6 +124,7 @@ const OrderSchema = new mongoose.Schema({
     payment_info: {
         method: String,  // 'bank_transfer', 'telebirr', 'cbe', 'chapa', 'cod'
         screenshot_url: String,
+        screenshot_mime_type: String,
         comment: { type: String, default: '' },
         status: { type: String, default: 'Pending' },
         transaction_id: String,
@@ -131,6 +132,7 @@ const OrderSchema = new mongoose.Schema({
     },
 
     payment_screenshot_url: { type: String, default: '' },
+    payment_screenshot_mime_type: { type: String, default: '' },
 
     payment_comment: { type: String, default: '' },
     
