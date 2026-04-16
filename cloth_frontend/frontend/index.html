@@ -18,6 +18,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="/css/shared-shell.css">
     <script>
         tailwind.config = {
             theme: {
@@ -79,10 +80,63 @@
         }
     </style>
 </head>
-<body class="home-page bg-brand-paper font-body text-brand-ink antialiased">
-    <div id="yeshiStaticLayout">
-        <div data-include="/components/navbar.html"></div>
-    </div>
+<body class="home-page bg-brand-paper font-body text-brand-ink antialiased yeshi-has-bottom-nav">
+
+    <nav id="yeshiHomeLikeNav" class="fixed top-0 z-50 w-full bg-white/80 shadow-nav backdrop-blur-md" aria-label="Primary navigation">
+        <div class="yeshi-nav-inner mx-auto flex max-w-[1920px] items-center justify-between px-4 py-4 md:px-10">
+            <div class="yeshi-nav-left flex items-center gap-3">
+                <button type="button" id="mobile-menu-toggle" class="rounded-md p-2 text-brand-muted hover:text-brand-primary lg:hidden" aria-label="Open menu">
+                    <span class="material-symbols-outlined text-2xl">menu</span>
+                </button>
+                <a id="mobile-footer-shortcut" href="/user/footer.html" aria-label="Footer Information" class="yeshi-icon-btn rounded-full p-2 text-brand-muted hover:text-brand-primary">
+                    <span class="material-symbols-outlined">priority_high</span>
+                </a>
+                <a aria-label="የሺ Home" class="logo inline-flex items-center gap-2" href="/user/" title="የሺ">
+                    <img src="/images/logo.png" alt="የሺ" class="h-9 w-auto rounded-sm yeshi-logo-spin">
+                    <span class="hidden text-xl font-bold tracking-tight sm:inline">Yeshi</span>
+                </a>
+            </div>
+
+            <ul class="yeshi-desktop-nav nav-links no-scrollbar hidden items-center gap-5 overflow-x-auto text-xs font-semibold uppercase tracking-wider lg:flex">
+                <li><a class="active text-brand-primary" href="/user/">Home</a></li>
+                <li id="desktopMyOrdersItem" class="hidden"><a href="/my-orders" class="hover:text-brand-primary">My Orders</a></li>
+                <li id="desktopLoginItem"><a href="/auth/login" class="hover:text-brand-primary">Login</a></li>
+                <li id="desktopSignupItem"><a href="/auth/register" class="hover:text-brand-primary">Sign Up</a></li>
+                <li id="desktopLogoutItem" class="hidden"><a href="#" data-action="logout" class="hover:text-brand-primary">Logout</a></li>
+            </ul>
+
+            <div class="yeshi-actions flex items-center gap-2 sm:gap-4">
+                <a class="yeshi-order-btn rounded-full bg-gradient-to-r from-brand-primary to-brand-accent px-3 py-1.5 text-xs font-bold uppercase tracking-wide text-white shadow-sm transition-opacity hover:opacity-90" data-order-link href="/user/order">Order</a>
+                <a aria-label="Favorites" class="yeshi-icon-btn rounded-full p-2 text-brand-muted hover:text-brand-primary" href="/user/favorites">
+                    <span class="material-symbols-outlined">favorite</span>
+                </a>
+                <button type="button" id="notification-trigger" class="yeshi-icon-btn relative rounded-full p-2 text-brand-muted hover:text-brand-primary" aria-label="Notifications">
+                    <span class="material-symbols-outlined">notifications</span>
+                    <span id="notificationDot" class="absolute right-1 top-1 h-2 w-2 rounded-full bg-brand-accent hidden"></span>
+                </button>
+                <a id="shoppingBagLink" href="/cart" class="yeshi-icon-btn relative rounded-full p-2 text-brand-muted hover:text-brand-primary" aria-label="Shopping bag">
+                    <span class="material-symbols-outlined">shopping_bag</span>
+                    <span id="bagCount" class="absolute -right-1 -top-1 min-w-[1rem] rounded-full bg-brand-primary px-1 text-center text-[10px] font-bold leading-4 text-white"></span>
+                </a>
+                <a aria-label="Open MyChat" class="yeshi-icon-btn rounded-full p-2 text-brand-muted hover:text-brand-primary" href="/user/mychat" style="position: relative;">
+                    <span class="material-symbols-outlined">chat</span>
+                </a>
+                <a id="desktopProfileAction" href="/profile" class="yeshi-icon-btn hidden rounded-full p-2 text-brand-muted hover:text-brand-primary" aria-label="Profile">
+                    <span class="material-symbols-outlined">person</span>
+                </a>
+            </div>
+        </div>
+
+        <div id="mobile-menu" class="hidden bg-white lg:hidden">
+            <div class="yeshi-mobile-inner space-y-1 p-4 text-sm font-semibold uppercase tracking-wide">
+                <a class="active block rounded-md bg-amber-50 px-3 py-2 text-brand-primary" href="/user/">Home</a>
+                <a id="mobileMenuMyOrdersBtn" href="/my-orders" class="hidden rounded-md px-3 py-2 hover:bg-amber-50">My Orders</a>
+                <a id="mobileMenuLoginBtn" href="/auth/login" class="block rounded-md px-3 py-2 hover:bg-amber-50">Login</a>
+                <a id="mobileMenuSignupBtn" href="/auth/register" class="block rounded-md px-3 py-2 hover:bg-amber-50">Sign Up</a>
+                <a id="mobileMenuLogoutBtn" href="#" data-action="logout" class="hidden rounded-md px-3 py-2 hover:bg-amber-50">Logout</a>
+            </div>
+        </div>
+    </nav>
 
     <div id="notification-overlay" class="fixed inset-0 z-[100] hidden">
         <div class="absolute inset-0 bg-black/40" data-close-notification></div>
@@ -151,8 +205,46 @@
         </section>
     </main>
 
-    <div data-include="/components/footer.html"></div>
-    <div data-include="/components/mobile-bottomnav.html"></div>
+    <footer class="yeshi-footer">
+        <div class="yeshi-footer__wrap">
+            <div class="footer-section">
+                <h3 class="yeshi-footer__brand">የሺ</h3>
+                <p class="yeshi-footer__text">Bringing elegance and culture to your wardrobe.</p>
+            </div>
+            <div class="footer-section">
+                <h3 class="yeshi-footer__title">Contact</h3>
+                <p class="yeshi-footer__text" data-social-key="whatsapp"><i class="fab fa-whatsapp"></i> <a href="https://wa.me/251933797981" target="_blank" rel="noopener noreferrer">WhatsApp</a></p>
+                <p class="yeshi-footer__text" data-social-key="phone"><i class="fas fa-phone"></i> <a href="tel:+251933797981">+251933797981</a></p>
+                <p class="yeshi-footer__text"><i class="fas fa-map-marker-alt"></i> Gondar, Ethiopia</p>
+            </div>
+            <div class="footer-section">
+                <h3 class="yeshi-footer__title">Company</h3>
+                <p class="yeshi-footer__text"><a href="/user/developer-information.html">Developer Information</a></p>
+                <p class="yeshi-footer__text"><a href="/user/how-it-works">How It Works</a></p>
+                <p class="yeshi-footer__text"><a href="/user/size-guide">Size Guide</a></p>
+                <p class="yeshi-footer__text"><a href="/user/about">About</a></p>
+            </div>
+            <div class="footer-section">
+                <h3 class="yeshi-footer__title">Follow Us</h3>
+                <div class="yeshi-footer__social social-links">
+                    <a href="https://www.tiktok.com/@yeshiclothe" aria-label="TikTok" data-social-key="tiktok" target="_blank" rel="noopener noreferrer"><i class="fab fa-tiktok"></i></a>
+                    <a href="https://t.me/Gondarkemisdress" target="_blank" rel="noopener noreferrer" aria-label="Telegram" data-social-key="telegram"><i class="fab fa-telegram"></i></a>
+                    <a href="https://www.instagram.com/yeshiclothe/" aria-label="Instagram" data-social-key="instagram" target="_blank" rel="noopener noreferrer"><i class="fab fa-instagram"></i></a>
+                    <a data-social-key="whatsapp" href="https://wa.me/251933797981" aria-label="WhatsApp" target="_blank" rel="noopener noreferrer"><i class="fab fa-whatsapp"></i></a>
+                    <a data-social-key="facebook" href="https://web.facebook.com/61580805668142/" aria-label="Facebook" target="_blank" rel="noopener noreferrer"><i class="fab fa-facebook-f"></i></a>
+                </div>
+            </div>
+        </div>
+        <div class="yeshi-footer__copyright">© 2026 Yeshi Heritage. All rights reserved.</div>
+    </footer>
+
+    <nav id="yeshiMobileBottomNav" class="yeshi-mobile-bottom-nav" aria-label="Mobile bottom navigation">
+        <a href="/user/" data-nav-key="home" aria-label="Home"><span class="yeshi-nav-icon-wrap"><span class="material-symbols-outlined">home</span></span><span>Home</span></a>
+        <a href="/cart" data-nav-key="cart" aria-label="Bag"><span class="yeshi-nav-icon-wrap"><span class="material-symbols-outlined">shopping_bag</span><span id="mobileBottomBagBadge" class="yeshi-nav-count-badge yeshi-bag-count-badge"></span></span><span>Bag</span></a>
+        <a href="/user/favorites" data-nav-key="favorites" aria-label="Favorite"><span class="yeshi-nav-icon-wrap"><span class="material-symbols-outlined">favorite</span></span><span>Favorite</span></a>
+        <a href="/user/mychat" data-nav-key="mychat" aria-label="Messages"><span class="yeshi-nav-icon-wrap"><span class="material-symbols-outlined">chat</span></span><span>Messages</span></a>
+        <a href="/profile" data-nav-key="profile" aria-label="Profile"><span class="yeshi-nav-icon-wrap"><span class="material-symbols-outlined">person</span></span><span>Profile</span></a>
+    </nav>
 
     <div id="videoModal" class="fixed inset-0 z-[120] hidden items-center justify-center bg-black/70 p-4">
         <div class="w-full max-w-4xl rounded-2xl bg-white p-4">
@@ -164,7 +256,6 @@
         </div>
     </div>
 
-    <script src="/js/include.js"></script>
     <script src="/js/main.js"></script>
     <script>
         const state = {
@@ -396,6 +487,223 @@
             if (!modal) return;
             modal.classList.remove('flex');
             modal.classList.add('hidden');
+        }
+
+        function escapeNotificationHtml(value) {
+            return String(value || '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        function formatNotificationTime(input) {
+            const date = new Date(input || Date.now());
+            if (Number.isNaN(date.getTime())) return '';
+            return date.toLocaleString();
+        }
+
+        function buildNotificationHref(notification) {
+            const destination = notification && notification.destination && typeof notification.destination === 'object'
+                ? notification.destination
+                : null;
+            if (destination && destination.path) {
+                try {
+                    const url = new URL(String(destination.path), window.location.origin);
+                    const query = destination.query && typeof destination.query === 'object' ? destination.query : {};
+                    Object.entries(query).forEach(([key, value]) => {
+                        if (value === undefined || value === null) return;
+                        const normalized = String(value).trim();
+                        if (!normalized) return;
+                        url.searchParams.set(key, normalized);
+                    });
+                    return url.pathname + url.search + url.hash;
+                } catch (_) {
+                    return String(destination.path || '').trim();
+                }
+            }
+
+            const refId = String(notification && notification.reference_id || '').trim();
+            const type = String(notification && notification.type || '').toLowerCase();
+            const title = String(notification && notification.title || '').toLowerCase();
+            const body = String(notification && notification.body || '').toLowerCase();
+
+            if (type.includes('message')) return '/user/mychat.html' + (refId ? '?messageId=' + encodeURIComponent(refId) : '');
+            if (type.includes('order') || type.includes('payment') || type.includes('delivery') || title.includes('order') || body.includes('order')) {
+                return '/user/my-orders.html' + (refId ? '?highlight=' + encodeURIComponent(refId) : '');
+            }
+            if (refId) return '/user/post.html?id=' + encodeURIComponent(refId);
+            return '';
+        }
+
+        async function loadNotificationUnreadCount() {
+            const token = localStorage.getItem('token');
+            const dot = document.getElementById('notificationDot');
+            if (!dot) return;
+            if (!token) {
+                dot.classList.add('hidden');
+                dot.textContent = '';
+                return;
+            }
+
+            try {
+                const res = await fetch('/api/workflow/notifications/unread-count', {
+                    headers: { 'x-auth-token': token }
+                });
+                if (!res.ok) {
+                    dot.classList.add('hidden');
+                    return;
+                }
+                const data = await res.json();
+                const unread = Number((data && (data.unreadCount ?? data.unread)) || 0);
+                if (Number.isFinite(unread) && unread > 0) {
+                    dot.classList.remove('hidden');
+                    dot.textContent = unread > 99 ? '99+' : String(unread);
+                } else {
+                    dot.classList.add('hidden');
+                    dot.textContent = '';
+                }
+            } catch (_) {
+                dot.classList.add('hidden');
+                dot.textContent = '';
+            }
+        }
+
+        async function loadNotifications() {
+            const token = localStorage.getItem('token');
+            const list = document.getElementById('notificationList');
+            if (!list) return;
+
+            if (!token) {
+                list.innerHTML = '<p class="text-brand-muted">Login to see notifications.</p>';
+                return;
+            }
+
+            list.innerHTML = '<p class="text-brand-muted">Loading notifications...</p>';
+
+            try {
+                const res = await fetch('/api/workflow/notifications?limit=30', {
+                    headers: { 'x-auth-token': token }
+                });
+                if (!res.ok) {
+                    list.innerHTML = '<p class="text-brand-muted">Could not load notifications.</p>';
+                    return;
+                }
+
+                const data = await res.json();
+                const notifications = Array.isArray(data) ? data : [];
+                if (!notifications.length) {
+                    list.innerHTML = '<p class="text-brand-muted">No notifications yet.</p>';
+                    return;
+                }
+
+                list.innerHTML = notifications.map((n) => {
+                    const title = escapeNotificationHtml(n && n.title ? n.title : 'Notification');
+                    const body = escapeNotificationHtml(n && n.body ? n.body : '');
+                    const timeText = escapeNotificationHtml(formatNotificationTime(n && n.timestamp));
+                    const unreadClass = n && n.is_read ? 'border-transparent' : 'border-[#D4B468]';
+                    const notificationId = escapeNotificationHtml(n && n._id ? n._id : '');
+                    const href = escapeNotificationHtml(buildNotificationHref(n));
+                    const clickableClass = href ? ' cursor-pointer hover:bg-amber-50' : '';
+                    return [
+                        '<article class="rounded-xl border-l-4 ', unreadClass, ' bg-white p-3 shadow-sm', clickableClass, '" data-notification-id="', notificationId, '" data-href="', href, '">',
+                            '<div class="flex items-center justify-between gap-2">',
+                                '<p class="text-[11px] font-bold uppercase tracking-wider text-brand-primary">', title, '</p>',
+                                '<span class="text-[10px] text-brand-muted">', timeText, '</span>',
+                            '</div>',
+                            '<p class="mt-1 text-brand-muted">', body, '</p>',
+                        '</article>'
+                    ].join('');
+                }).join('');
+                bindNotificationItemActions(token);
+            } catch (_) {
+                list.innerHTML = '<p class="text-brand-muted">Could not load notifications.</p>';
+            }
+        }
+
+        function bindNotificationItemActions(token) {
+            document.querySelectorAll('#notificationList [data-href]').forEach((item) => {
+                item.addEventListener('click', async function () {
+                    const href = item.getAttribute('data-href');
+                    const notificationId = item.getAttribute('data-notification-id');
+                    if (!href) return;
+
+                    if (token && notificationId) {
+                        fetch('/api/workflow/notifications/' + encodeURIComponent(notificationId) + '/read', {
+                            method: 'PUT',
+                            headers: { 'x-auth-token': token }
+                        }).catch(function () {});
+                    }
+                    window.location.href = href;
+                });
+            });
+        }
+
+        function isUserLoggedIn() {
+            return !!localStorage.getItem('token');
+        }
+
+        function buildLoginRedirect(targetPath) {
+            const next = targetPath || (window.location.pathname + window.location.search);
+            return '/auth/login?next=' + encodeURIComponent(next);
+        }
+
+        function bindOrderLinkGuards() {
+            document.querySelectorAll('[data-order-link]').forEach((link) => {
+                link.addEventListener('click', function (e) {
+                    if (isUserLoggedIn()) return;
+                    e.preventDefault();
+                    const href = link.getAttribute('href') || '/user/order.html';
+                    window.location.href = buildLoginRedirect(href);
+                });
+            });
+        }
+
+        function applyMenuAuthState() {
+            const loginBtn = document.getElementById('mobileMenuLoginBtn');
+            const signupBtn = document.getElementById('mobileMenuSignupBtn');
+            const mobileMyOrdersBtn = document.getElementById('mobileMenuMyOrdersBtn');
+            const logoutBtn = document.getElementById('mobileMenuLogoutBtn');
+            const desktopMyOrders = document.getElementById('desktopMyOrdersItem');
+            const desktopLogin = document.getElementById('desktopLoginItem');
+            const desktopSignup = document.getElementById('desktopSignupItem');
+            const desktopProfileAction = document.getElementById('desktopProfileAction');
+            const desktopLogout = document.getElementById('desktopLogoutItem');
+            const shoppingBagLink = document.getElementById('shoppingBagLink');
+            const loggedIn = isUserLoggedIn();
+            const setVisible = (element, visible) => {
+                if (!element) return;
+                element.classList.toggle('hidden', !visible);
+                element.style.display = visible ? '' : 'none';
+                element.setAttribute('aria-hidden', visible ? 'false' : 'true');
+            };
+            setVisible(loginBtn, !loggedIn);
+            setVisible(signupBtn, !loggedIn);
+            setVisible(mobileMyOrdersBtn, loggedIn);
+            setVisible(logoutBtn, loggedIn);
+            setVisible(desktopMyOrders, loggedIn);
+            setVisible(desktopLogin, !loggedIn);
+            setVisible(desktopSignup, !loggedIn);
+            setVisible(desktopProfileAction, loggedIn);
+            setVisible(desktopLogout, loggedIn);
+            setVisible(shoppingBagLink, loggedIn);
+        }
+
+        function bindLogoutActions() {
+            document.querySelectorAll('[data-action="logout"]').forEach((el) => {
+                el.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    if (window.YeshiAuth && typeof window.YeshiAuth.performLogout === 'function') {
+                        window.YeshiAuth.performLogout('/auth/login');
+                        return;
+                    }
+                    localStorage.removeItem('token');
+                    localStorage.removeItem('role');
+                    localStorage.removeItem('user');
+                    window.location.href = '/auth/login';
+                });
+            });
         }
 
         function formatPricePair(post) {
@@ -826,12 +1134,48 @@
             renderFeeds();
         }
 
-        document.addEventListener('DOMContentLoaded', async function () {
-            if (window.YeshiIncludes && typeof window.YeshiIncludes.ready === 'function') {
-                await window.YeshiIncludes.ready().catch(() => null);
-            }
+        document.addEventListener('DOMContentLoaded', function () {
             loadPosts();
+            loadNotificationUnreadCount();
             updateBagCountBadge();
+            bindOrderLinkGuards();
+            applyMenuAuthState();
+            bindLogoutActions();
+
+            const mobileToggle = document.getElementById('mobile-menu-toggle');
+            const mobileMenu = document.getElementById('mobile-menu');
+            if (mobileToggle && mobileMenu) {
+                mobileToggle.addEventListener('click', function () {
+                    mobileMenu.classList.toggle('hidden');
+                });
+            }
+
+            const overlay = document.getElementById('notification-overlay');
+            const drawer = document.getElementById('notification-drawer');
+            const notificationTrigger = document.getElementById('notification-trigger');
+            if (overlay && drawer && notificationTrigger) {
+                notificationTrigger.addEventListener('click', function () {
+                    overlay.classList.remove('hidden');
+                    setTimeout(function () {
+                        drawer.classList.remove('translate-x-full');
+                    }, 10);
+                    loadNotifications();
+                });
+
+                overlay.querySelectorAll('[data-close-notification]').forEach((el) => {
+                    el.addEventListener('click', function () {
+                        drawer.classList.add('translate-x-full');
+                        setTimeout(function () {
+                            overlay.classList.add('hidden');
+                        }, 250);
+                        fetch('/api/workflow/notifications/read-all', {
+                            method: 'PUT',
+                            headers: { 'x-auth-token': localStorage.getItem('token') || '' }
+                        }).catch(function () {});
+                        loadNotificationUnreadCount();
+                    });
+                });
+            }
 
             document.getElementById('closeVideoModal')?.addEventListener('click', closeVideoModal);
             document.getElementById('videoModal')?.addEventListener('click', function (e) {

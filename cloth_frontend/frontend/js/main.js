@@ -400,16 +400,19 @@ function checkSessionExpiry() {
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
-    try {
-        if (window.YeshiIncludes && typeof window.YeshiIncludes.ready === 'function') {
-            await window.YeshiIncludes.ready();
-        }
-    } catch (_) {
-        // Continue with JS-generated fallback layout.
-    }
-
     bindGlobalLogoutDelegation();
     checkSessionExpiry();
+    ensureHomepageNavForListedPages();
+    ensureMobileFooterShortcutIcon();
+    enforceMobileTopNavLayout();
+    enforceMobileSearchVisibility();
+    ensureMobileBottomNav();
+    ensureUnifiedUserFooter();
+    ensureBagCountBadges();
+    wireGenericMobileMenuToggle();
+    applyActiveNavAndFooterColors();
+    applySocialLinks();
+    applySiteContent();
     try {
         await ensureFirebaseAuthBridge().catch(() => null);
     } catch (_) {
@@ -421,28 +424,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (enforceFooterMobileOnlyView()) return;
 
     enforceLoginForBagAndOrderActions();
-    ensureHomepageNavForListedPages();
-    ensureMobileFooterShortcutIcon();
-    enforceMobileTopNavLayout();
-    enforceMobileSearchVisibility();
-    ensureMobileBottomNav();
-    ensureBagCountBadges();
-    wireGenericMobileMenuToggle();
-
     ensureMyOrdersNavLink();
     ensureUserChatLauncher();
     ensureUserThemeToggle();
     ensureLogoSpin();
-    ensureUnifiedUserFooter();
     ensureProfileAvatarEverywhere();
-    applyActiveNavAndFooterColors();
     showFirstVisitSplash();
 
     applyAuthVisibility();
     applyGlobalMenuAuthState();
     enforceMobileMenuLinkPolicy();
-    applySocialLinks();
-    applySiteContent();
     initAnalyticsTracking();
     initUnifiedLayoutInjection();
 });
@@ -717,63 +708,6 @@ function enforceMobileSearchVisibility() {
 function enforceMobileTopNavLayout() {
     const nav = document.querySelector('nav');
     if (!nav) return;
-
-    if (!document.getElementById('yeshiMobileTopNavRules')) {
-        const style = document.createElement('style');
-        style.id = 'yeshiMobileTopNavRules';
-        style.textContent = `
-            @media (min-width: 901px) {
-                nav:not(#yeshiMobileBottomNav) #mobile-footer-shortcut {
-                    display: none !important;
-                }
-            }
-            @media (max-width: 900px) {
-                nav:not(#yeshiMobileBottomNav) .yeshi-nav-left,
-                nav:not(#yeshiMobileBottomNav) > div > div:first-child,
-                nav:not(#yeshiMobileBottomNav) .flex.items-center.gap-3 {
-                    margin-right: auto;
-                }
-                nav:not(#yeshiMobileBottomNav) .yeshi-actions,
-                nav:not(#yeshiMobileBottomNav) > div > div:last-child,
-                nav:not(#yeshiMobileBottomNav) .flex.items-center.gap-2.sm\:gap-4 {
-                    margin-left: auto;
-                    display: inline-flex;
-                    gap: 6px;
-                    align-items: center;
-                }
-                nav:not(#yeshiMobileBottomNav) [aria-label="Favorites"],
-                nav:not(#yeshiMobileBottomNav) [aria-label="Open MyChat"],
-                nav:not(#yeshiMobileBottomNav) [aria-label="Profile"] {
-                    display: none !important;
-                }
-                nav:not(#yeshiMobileBottomNav) .yeshi-order-btn {
-                    display: inline-flex !important;
-                    padding: 0.48rem 0.72rem;
-                    font-size: 0.68rem;
-                    letter-spacing: 0.14em;
-                    line-height: 1;
-                    white-space: nowrap;
-                }
-                nav:not(#yeshiMobileBottomNav) #shoppingBagLink {
-                    display: none !important;
-                }
-                nav:not(#yeshiMobileBottomNav) a[href="/cart"],
-                nav:not(#yeshiMobileBottomNav) a[href="/user/cart"],
-                nav:not(#yeshiMobileBottomNav) a[aria-label="Shopping bag"] {
-                    display: none !important;
-                }
-                nav:not(#yeshiMobileBottomNav) #mobile-footer-shortcut,
-                nav:not(#yeshiMobileBottomNav) #notification-trigger,
-                nav:not(#yeshiMobileBottomNav) #mobile-menu-toggle {
-                    display: inline-flex !important;
-                }
-                nav:not(#yeshiMobileBottomNav) .nav-links {
-                    display: none !important;
-                }
-            }
-        `;
-        document.head.appendChild(style);
-    }
 }
 
 function ensureMobileFooterShortcutIcon() {
@@ -803,96 +737,7 @@ function ensureMobileFooterShortcutIcon() {
 function ensureMobileBottomNav() {
     const path = String(window.location.pathname || '').toLowerCase();
     if (path.startsWith('/admin') || path.startsWith('/auth')) return;
-
-    if (!document.getElementById('yeshiMobileBottomNavStyles')) {
-        const style = document.createElement('style');
-        style.id = 'yeshiMobileBottomNavStyles';
-        style.textContent = `
-            .yeshi-mobile-bottom-nav {
-                position: fixed;
-                left: 0;
-                right: 0;
-                bottom: 0;
-                z-index: 2400;
-                background: rgba(255, 255, 255, 0.98);
-                border-top: 1px solid rgba(116, 91, 24, 0.2);
-                box-shadow: 0 -10px 24px rgba(0,0,0,0.12);
-                display: none;
-                grid-template-columns: repeat(5, minmax(0, 1fr));
-                padding: 8px 4px calc(8px + env(safe-area-inset-bottom));
-            }
-            .yeshi-mobile-bottom-nav a {
-                text-decoration: none;
-                color: #4d4639;
-                font-size: 11px;
-                font-weight: 700;
-                display: inline-flex;
-                flex-direction: column;
-                align-items: center;
-                justify-content: center;
-                gap: 2px;
-                min-height: 46px;
-            }
-            .yeshi-mobile-bottom-nav .yeshi-nav-icon-wrap {
-                position: relative;
-                display: inline-flex;
-                align-items: center;
-                justify-content: center;
-            }
-            .yeshi-mobile-bottom-nav .yeshi-nav-count-badge {
-                position: absolute;
-                top: -7px;
-                right: -10px;
-                min-width: 16px;
-                height: 16px;
-                border-radius: 999px;
-                padding: 0 4px;
-                font-size: 10px;
-                line-height: 16px;
-                text-align: center;
-                background: #bb0010;
-                color: #fff;
-                font-weight: 700;
-                display: none;
-                z-index: 2;
-            }
-            .yeshi-mobile-bottom-nav .material-symbols-outlined {
-                font-size: 21px;
-                line-height: 1;
-            }
-            .yeshi-mobile-bottom-nav a.active {
-                color: #745b18;
-            }
-            @media (max-width: 900px) {
-                .yeshi-mobile-bottom-nav {
-                    display: grid;
-                }
-                body {
-                    padding-bottom: 84px;
-                }
-                body:not(.footer-hub-page) footer {
-                    display: none !important;
-                }
-            }
-        `;
-        document.head.appendChild(style);
-    }
-
-    let nav = document.getElementById('yeshiMobileBottomNav');
-    if (!nav) {
-        nav = document.createElement('nav');
-        nav.id = 'yeshiMobileBottomNav';
-        nav.className = 'yeshi-mobile-bottom-nav';
-        nav.setAttribute('aria-label', 'Mobile bottom navigation');
-        nav.innerHTML = `
-            <a href="/user/" data-nav-key="home" aria-label="Home"><span class="yeshi-nav-icon-wrap"><span class="material-symbols-outlined">home</span></span><span>Home</span></a>
-            <a href="/cart" data-nav-key="cart" aria-label="Bag"><span class="yeshi-nav-icon-wrap"><span class="material-symbols-outlined">shopping_bag</span><span id="mobileBottomBagBadge" class="yeshi-nav-count-badge yeshi-bag-count-badge"></span></span><span>Bag</span></a>
-            <a href="/user/favorites" data-nav-key="favorites" aria-label="Favorite"><span class="yeshi-nav-icon-wrap"><span class="material-symbols-outlined">favorite</span></span><span>Favorite</span></a>
-            <a href="/user/mychat" data-nav-key="mychat" aria-label="Messages"><span class="yeshi-nav-icon-wrap"><span class="material-symbols-outlined">chat</span><span id="mobileBottomChatBadge" class="yeshi-nav-count-badge user-top-nav-badge"></span></span><span>Messages</span></a>
-            <a href="/profile" data-nav-key="profile" aria-label="Profile"><span class="yeshi-nav-icon-wrap"><span class="material-symbols-outlined">person</span></span><span>Profile</span></a>
-        `;
-        document.body.appendChild(nav);
-    }
+    return document.getElementById('yeshiMobileBottomNav');
 }
 
 function ensureBagCountBadges() {
@@ -1100,277 +945,8 @@ function ensureHomepageNavForListedPages() {
         '/user/profile.html'
     ]);
     if (!targets.has(path)) return;
-
-    const materialSymbolsHref = 'https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap';
-    const hasMaterialSymbols = Array.from(document.querySelectorAll('link[rel="stylesheet"]')).some((link) => String(link.href || '').includes('Material+Symbols+Outlined'));
-    if (!hasMaterialSymbols) {
-        const link = document.createElement('link');
-        link.rel = 'stylesheet';
-        link.href = materialSymbolsHref;
-        document.head.appendChild(link);
-    }
-
-    if (!document.getElementById('yeshiHomeLikeNavStyles')) {
-        const style = document.createElement('style');
-        style.id = 'yeshiHomeLikeNavStyles';
-        style.textContent = `
-            body.yeshi-home-nav-active {
-                padding-top: 56px;
-            }
-            #yeshiHomeLikeNav {
-                position: fixed;
-                top: 0;
-                z-index: 5000;
-                width: 100%;
-                background: rgba(255, 255, 255, 0.8);
-                backdrop-filter: blur(12px);
-                box-shadow: 0 20px 40px rgba(26, 28, 28, 0.08);
-            }
-            #yeshiHomeLikeNav .yeshi-nav-inner {
-                max-width: 1920px;
-                margin: 0 auto;
-                display: flex;
-                align-items: center;
-                justify-content: space-between;
-                padding: 16px;
-                gap: 10px;
-            }
-            #yeshiHomeLikeNav .yeshi-nav-left {
-                display: flex;
-                align-items: center;
-                gap: 12px;
-            }
-            #yeshiHomeLikeNav .logo {
-                display: inline-flex;
-                align-items: center;
-                gap: 8px;
-                text-decoration: none;
-                color: #1a1c1c;
-                font-weight: 700;
-            }
-            #yeshiHomeLikeNav .logo img {
-                height: 36px;
-                width: auto;
-                border-radius: 4px;
-            }
-            #yeshiHomeLikeNav .yeshi-desktop-nav {
-                display: none;
-                align-items: center;
-                gap: 20px;
-                margin: 0;
-                padding: 0;
-                list-style: none;
-                font-size: 12px;
-                font-weight: 600;
-                text-transform: uppercase;
-                letter-spacing: 0.06em;
-            }
-            #yeshiHomeLikeNav .yeshi-desktop-nav a {
-                color: #4d4639;
-                text-decoration: none;
-            }
-            #yeshiHomeLikeNav .yeshi-desktop-nav a:hover,
-            #yeshiHomeLikeNav .yeshi-desktop-nav a.active {
-                color: #745b18;
-            }
-            #yeshiHomeLikeNav .yeshi-actions {
-                display: flex;
-                align-items: center;
-                gap: 6px;
-            }
-            #yeshiHomeLikeNav .yeshi-icon-btn {
-                position: relative;
-                display: inline-flex;
-                align-items: center;
-                justify-content: center;
-                width: 34px;
-                height: 34px;
-                border: 0;
-                background: transparent;
-                color: #4d4639;
-                text-decoration: none;
-                border-radius: 999px;
-                cursor: pointer;
-            }
-            #yeshiHomeLikeNav .yeshi-icon-btn:hover {
-                color: #745b18;
-                background: #f5f3ee;
-            }
-            #yeshiHomeLikeNav #notificationDot {
-                position: absolute;
-                right: -2px;
-                top: -2px;
-            }
-            #yeshiHomeLikeNav #bagCount {
-                position: absolute;
-                right: -4px;
-                top: -4px;
-                min-width: 16px;
-                border-radius: 999px;
-                background: #745b18;
-                color: #fff;
-                font-size: 10px;
-                line-height: 16px;
-                text-align: center;
-                padding: 0 4px;
-                font-weight: 700;
-                display: none;
-            }
-            #yeshiHomeLikeNav .yeshi-order-btn {
-                border-radius: 999px;
-                padding: 7px 12px;
-                font-size: 11px;
-                font-weight: 700;
-                text-transform: uppercase;
-                letter-spacing: 0.06em;
-                text-decoration: none;
-                color: #fff;
-                background: linear-gradient(90deg, #745b18 0%, #d4b468 100%);
-                white-space: nowrap;
-            }
-            #mobile-menu-toggle {
-                border: 0;
-                background: transparent;
-                color: #4d4639;
-                border-radius: 6px;
-                width: 34px;
-                height: 34px;
-                cursor: pointer;
-                display: inline-flex;
-                align-items: center;
-                justify-content: center;
-            }
-            #mobile-menu-toggle:hover {
-                color: #745b18;
-                background: #f5f3ee;
-            }
-            #mobile-menu {
-                display: none;
-                background: #fff;
-                border-top: 1px solid #ece7db;
-            }
-            #mobile-menu.open {
-                display: block;
-            }
-            #mobile-menu .yeshi-mobile-inner {
-                padding: 12px 16px;
-                display: grid;
-                gap: 4px;
-                font-size: 13px;
-                font-weight: 700;
-                letter-spacing: 0.06em;
-                text-transform: uppercase;
-            }
-            #mobile-menu a {
-                color: #4d4639;
-                text-decoration: none;
-                border-radius: 6px;
-                padding: 9px 10px;
-                display: block;
-            }
-            #mobile-menu a:hover,
-            #mobile-menu a.active {
-                background: #fff4db;
-                color: #745b18;
-            }
-            #yeshiHomeLikeNav a[data-action="logout"],
-            #yeshiHomeLikeNav #desktopLogoutItem a,
-            #yeshiHomeLikeNav #mobileMenuLogoutBtn,
-            #mobile-menu a[data-action="logout"] {
-                color: #525454 !important;
-            }
-            #yeshiHomeLikeNav a[data-action="logout"]:hover,
-            #yeshiHomeLikeNav a[data-action="logout"].active,
-            #yeshiHomeLikeNav a[data-action="logout"]:focus-visible,
-            #yeshiHomeLikeNav #desktopLogoutItem a:hover,
-            #yeshiHomeLikeNav #mobileMenuLogoutBtn:hover,
-            #mobile-menu a[data-action="logout"]:hover {
-                color: #525454 !important;
-            }
-            @media (min-width: 1024px) {
-                #yeshiHomeLikeNav .yeshi-nav-inner {
-                    padding-left: 40px;
-                    padding-right: 40px;
-                }
-                #mobile-menu-toggle {
-                    display: none;
-                }
-                #yeshiHomeLikeNav .yeshi-desktop-nav {
-                    display: inline-flex;
-                }
-                #mobile-menu {
-                    display: none !important;
-                }
-            }
-        `;
-        document.head.appendChild(style);
-    }
-
-    let nav = document.getElementById('yeshiHomeLikeNav');
-
-    if (!nav) {
-        const firstHeader = document.querySelector('header');
-        if (firstHeader) firstHeader.remove();
-
-        const navShell = document.createElement('div');
-        navShell.innerHTML = `
-        <nav id="yeshiHomeLikeNav" class="fixed top-0 z-50 w-full bg-white/80 shadow-nav backdrop-blur-md">
-            <div class="yeshi-nav-inner mx-auto flex max-w-[1920px] items-center justify-between px-4 py-4 md:px-10">
-                <div class="yeshi-nav-left flex items-center gap-3">
-                    <button type="button" id="mobile-menu-toggle" class="rounded-md p-2 text-brand-muted hover:text-brand-primary lg:hidden" aria-label="Open menu">
-                        <span class="material-symbols-outlined text-2xl">menu</span>
-                    </button>
-                    <a aria-label="የሺ Home" class="logo inline-flex items-center gap-2" href="/user/" title="የሺ">
-                        <img src="/images/logo.png" alt="የሺ" class="h-9 w-auto rounded-sm yeshi-logo-spin">
-                        <span class="hidden text-xl font-bold tracking-tight sm:inline">Yeshi</span>
-                    </a>
-                </div>
-
-                <ul class="yeshi-desktop-nav nav-links no-scrollbar hidden items-center gap-5 overflow-x-auto text-xs font-semibold uppercase tracking-wider lg:flex">
-                    <li><a class="active text-brand-primary" href="/user/">Home</a></li>
-                    <li id="desktopMyOrdersItem" class="hidden"><a href="/my-orders" class="hover:text-brand-primary">My Orders</a></li>
-                    <li id="desktopLoginItem"><a href="/auth/login" class="hover:text-brand-primary">Login</a></li>
-                    <li id="desktopSignupItem"><a href="/auth/register" class="hover:text-brand-primary">Sign Up</a></li>
-                    <li id="desktopLogoutItem" class="hidden"><a href="#" data-action="logout" class="hover:text-brand-primary">Logout</a></li>
-                </ul>
-
-                <div class="yeshi-actions flex items-center gap-2 sm:gap-4">
-                    <a class="yeshi-order-btn rounded-full bg-gradient-to-r from-brand-primary to-brand-accent px-3 py-1.5 text-xs font-bold uppercase tracking-wide text-white shadow-sm transition-opacity hover:opacity-90" data-order-link href="/user/order">Order</a>
-                    <a aria-label="Favorites" class="yeshi-icon-btn rounded-full p-2 text-brand-muted hover:text-brand-primary" href="/user/favorites">
-                        <span class="material-symbols-outlined">favorite</span>
-                    </a>
-                    <button type="button" id="notification-trigger" class="yeshi-icon-btn relative rounded-full p-2 text-brand-muted hover:text-brand-primary" aria-label="Notifications">
-                        <span class="material-symbols-outlined">notifications</span>
-                        <span id="notificationDot" class="absolute right-1 top-1 h-2 w-2 rounded-full bg-brand-accent hidden"></span>
-                        <span id="notificationCountBadge" class="user-top-nav-badge"></span>
-                    </button>
-                    <a id="shoppingBagLink" href="/cart" class="yeshi-icon-btn relative rounded-full p-2 text-brand-muted hover:text-brand-primary" aria-label="Shopping bag">
-                        <span class="material-symbols-outlined">shopping_bag</span>
-                        <span id="bagCount" class="absolute -right-1 -top-1 min-w-[1rem] rounded-full bg-brand-primary px-1 text-center text-[10px] font-bold leading-4 text-white">0</span>
-                    </a>
-                    <a aria-label="Open MyChat" class="yeshi-icon-btn rounded-full p-2 text-brand-muted hover:text-brand-primary" href="/user/mychat" style="position: relative;">
-                        <span class="material-symbols-outlined">chat</span>
-                    </a>
-                    <a id="desktopProfileAction" href="/profile" class="yeshi-icon-btn hidden rounded-full p-2 text-brand-muted hover:text-brand-primary" aria-label="Profile">
-                        <span class="material-symbols-outlined">person</span>
-                    </a>
-                </div>
-            </div>
-
-            <div id="mobile-menu" class="hidden bg-white lg:hidden">
-                <div class="yeshi-mobile-inner space-y-1 p-4 text-sm font-semibold uppercase tracking-wide">
-                    <a class="active block rounded-md bg-amber-50 px-3 py-2 text-brand-primary" href="/user/">Home</a>
-                    <a id="mobileMenuMyOrdersBtn" href="/my-orders" class="hidden rounded-md px-3 py-2 hover:bg-amber-50">My Orders</a>
-                    <a id="mobileMenuLoginBtn" href="/auth/login" class="block rounded-md px-3 py-2 hover:bg-amber-50">Login</a>
-                    <a id="mobileMenuSignupBtn" href="/auth/register" class="block rounded-md px-3 py-2 hover:bg-amber-50">Sign Up</a>
-                    <a id="mobileMenuLogoutBtn" href="#" data-action="logout" class="hidden rounded-md px-3 py-2 hover:bg-amber-50">Logout</a>
-                </div>
-            </div>
-        </nav>
-    `;
-        nav = navShell.firstElementChild;
-        if (nav) document.body.prepend(nav);
-    }
+    const nav = document.getElementById('yeshiHomeLikeNav');
+    if (!nav) return;
 
     removeLegacyDesktopProfileIcons();
     document.body.classList.add('yeshi-home-nav-active');
@@ -1430,7 +1006,10 @@ function ensureHomepageNavForListedPages() {
 
     applyMenuAuthState();
     updateBagBadge();
-    window.addEventListener('storage', updateBagBadge);
+    if (document.body.dataset.yeshiHomeNavStorageBound !== '1') {
+        document.body.dataset.yeshiHomeNavStorageBound = '1';
+        window.addEventListener('storage', updateBagBadge);
+    }
 }
 
 function getCachedSettings(cacheKey) {
@@ -2492,125 +2071,9 @@ function ensureUnifiedUserFooter() {
     const path = String(window.location.pathname || '').toLowerCase();
     if (path.startsWith('/admin') || path.startsWith('/auth')) return;
 
-    let footer = document.querySelector('footer.yeshi-footer') || document.querySelector('footer');
-    if (!footer) {
-        footer = document.createElement('footer');
-        document.body.appendChild(footer);
-    }
-
-    if (!document.getElementById('yeshiUnifiedFooterStyles')) {
-        const style = document.createElement('style');
-        style.id = 'yeshiUnifiedFooterStyles';
-        style.textContent = `
-            .yeshi-footer {
-                background: #e8e8e8;
-                padding: 48px 24px;
-            }
-            .yeshi-footer__wrap {
-                max-width: 1920px;
-                margin: 0 auto;
-                display: grid;
-                gap: 28px;
-                grid-template-columns: repeat(1, minmax(0, 1fr));
-            }
-            .yeshi-footer__brand {
-                font-size: 1.25rem;
-                font-weight: 800;
-                letter-spacing: -0.01em;
-                margin: 0;
-            }
-            .yeshi-footer__title {
-                margin: 0;
-                font-size: 0.78rem;
-                font-weight: 800;
-                text-transform: uppercase;
-                letter-spacing: 0.2em;
-            }
-            .yeshi-footer__text {
-                margin: 10px 0 0;
-                font-size: 0.92rem;
-                color: #4d4639;
-                line-height: 1.7;
-            }
-            .yeshi-footer__text a {
-                color: inherit;
-                text-decoration: none;
-            }
-            .yeshi-footer__text a:hover {
-                color: #745b18;
-            }
-            .yeshi-footer__social {
-                margin-top: 10px;
-                display: flex;
-                align-items: center;
-                gap: 14px;
-                font-size: 1.1rem;
-            }
-            .yeshi-footer__social a {
-                color: #1a1c1c;
-                text-decoration: none;
-            }
-            .yeshi-footer__copyright {
-                max-width: 1920px;
-                margin: 36px auto 0;
-                padding-top: 20px;
-                color: #4d4639;
-                font-size: 0.74rem;
-            }
-            @media (min-width: 640px) {
-                .yeshi-footer__wrap {
-                    grid-template-columns: repeat(2, minmax(0, 1fr));
-                }
-            }
-            @media (min-width: 1024px) {
-                .yeshi-footer__wrap {
-                    grid-template-columns: repeat(4, minmax(0, 1fr));
-                }
-            }
-        `;
-        document.head.appendChild(style);
-    }
-
-    const hasStaticFooterMarkup = footer.classList.contains('yeshi-footer') && !!footer.querySelector('.yeshi-footer__wrap');
-
+    const footer = document.querySelector('footer');
+    if (!footer) return;
     footer.className = 'yeshi-footer';
-
-    if (hasStaticFooterMarkup) {
-        return;
-    }
-
-    footer.innerHTML = `
-        <div class="yeshi-footer__wrap">
-            <div class="footer-section">
-                <h3 class="yeshi-footer__brand">የሺ</h3>
-                <p class="yeshi-footer__text">Bringing elegance and culture to your wardrobe.</p>
-            </div>
-            <div class="footer-section">
-                <h3 class="yeshi-footer__title">Contact</h3>
-                <p class="yeshi-footer__text" data-social-key="whatsapp"><i class="fab fa-whatsapp"></i> <a href="https://wa.me/251933797981" target="_blank" rel="noopener noreferrer">WhatsApp</a></p>
-                <p class="yeshi-footer__text" data-social-key="phone"><i class="fas fa-phone"></i> <a href="tel:+251933797981">+251933797981</a></p>
-                <p class="yeshi-footer__text"><i class="fas fa-map-marker-alt"></i> Gondar, Ethiopia</p>
-            </div>
-            <div class="footer-section">
-                <h3 class="yeshi-footer__title">Company</h3>
-                <p class="yeshi-footer__text"><a href="/user/developer-information.html">Developer Information</a></p>
-                <p class="yeshi-footer__text"><a href="/user/how-it-works">How It Works</a></p>
-                <p class="yeshi-footer__text"><a href="/user/size-guide">Size Guide</a></p>
-                <p class="yeshi-footer__text"><a href="/user/about">About</a></p>
-            </div>
-            <div class="footer-section">
-                <h3 class="yeshi-footer__title">Follow Us</h3>
-                <div class="yeshi-footer__social social-links">
-                    <a href="https://www.tiktok.com/@yeshiclothe" aria-label="TikTok" data-social-key="tiktok" target="_blank" rel="noopener noreferrer"><i class="fab fa-tiktok"></i></a>
-                    <a href="https://t.me/Gondarkemisdress" target="_blank" rel="noopener noreferrer" aria-label="Telegram" data-social-key="telegram"><i class="fab fa-telegram"></i></a>
-                    <a href="https://www.instagram.com/yeshiclothe/" aria-label="Instagram" data-social-key="instagram" target="_blank" rel="noopener noreferrer"><i class="fab fa-instagram"></i></a>
-                    <a data-social-key="whatsapp" href="https://wa.me/251933797981" aria-label="WhatsApp" target="_blank" rel="noopener noreferrer"><i class="fab fa-whatsapp"></i></a>
-                    <a data-social-key="facebook" href="https://web.facebook.com/61580805668142/" aria-label="Facebook" target="_blank" rel="noopener noreferrer"><i class="fab fa-facebook-f"></i></a>
-                </div>
-            </div>
-        </div>
-        <div class="yeshi-footer__copyright">© 2026 Yeshi Heritage. All rights reserved.</div>
-    `;
 }
 
 function ensureProfileAvatarEverywhere() {
@@ -3600,22 +3063,6 @@ function applyGlobalMenuAuthState() {
 function wireGenericMobileMenuToggle() {
     const menu = document.getElementById('mobile-menu');
     if (!menu) return;
-
-    if (!document.getElementById('yeshiGenericMobileMenuRules')) {
-        const style = document.createElement('style');
-        style.id = 'yeshiGenericMobileMenuRules';
-        style.textContent = `
-            @media (max-width: 1023px) {
-                #mobile-menu.hidden {
-                    display: none !important;
-                }
-                #mobile-menu:not(.hidden) {
-                    display: block !important;
-                }
-            }
-        `;
-        document.head.appendChild(style);
-    }
 
     if (document.body.dataset.yeshiMenuToggleBound === '1') return;
     document.body.dataset.yeshiMenuToggleBound = '1';
