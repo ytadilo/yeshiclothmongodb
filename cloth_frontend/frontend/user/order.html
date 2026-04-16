@@ -121,13 +121,31 @@
                 <div class="form-group" id="categoryGroup">
                     <label for="clothCategory">Category</label>
                     <select id="clothCategory" class="form-control" onchange="updateMeasurementFields()">
-                        <option value="Women">Women (Habesha Kemis)</option>
-                        <option value="Men">Men (Traditional Wear)</option>
+                        <option value="Women">Women</option>
+                        <option value="Men">Men</option>
                         <option value="Couple">Couple</option>
                         <option value="Kids">Kids</option>
-                        <option value="Wedding">Wedding / Event</option>
-                        <option value="Other">Other</option>
+                        <option value="Wedding">Wedding</option>
+                        <option value="Accessories">Accessories</option>
                     </select>
+                </div>
+                <div class="form-group" id="measurementSetupGroup">
+                    <label>Measurement setup (optional)</label>
+                    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:10px;">
+                        <label style="display:flex; gap:8px; align-items:flex-start; padding:10px 12px; border:1px solid rgba(0,0,0,0.12); border-radius:10px; background:#fff; font-weight:500;">
+                            <input type="checkbox" value="women" data-custom-measurement-profile>
+                            <span>Women's Measurements</span>
+                        </label>
+                        <label style="display:flex; gap:8px; align-items:flex-start; padding:10px 12px; border:1px solid rgba(0,0,0,0.12); border-radius:10px; background:#fff; font-weight:500;">
+                            <input type="checkbox" value="men_tshirt" data-custom-measurement-profile>
+                            <span>Men's T-Shirt</span>
+                        </label>
+                        <label style="display:flex; gap:8px; align-items:flex-start; padding:10px 12px; border:1px solid rgba(0,0,0,0.12); border-radius:10px; background:#fff; font-weight:500;">
+                            <input type="checkbox" value="men_trousers" data-custom-measurement-profile>
+                            <span>Men's Trousers</span>
+                        </label>
+                    </div>
+                    <small style="display:block; margin-top:6px; color: var(--light-text);">These options control which measurement sections appear when you choose Enter new measurements.</small>
                 </div>
                 <div class="form-group" id="productQuantityGroup" style="display:none;">
                     <label>Product Quantity</label>

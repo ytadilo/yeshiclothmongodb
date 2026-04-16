@@ -33,7 +33,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     const title = urlParams.get('title');
 
     if (postId) {
-        // Add visual indicator
         const formTitle = document.querySelector('.hero h1');
         if (formTitle && title) formTitle.innerText = `Ordering: ${title}`;
 
@@ -41,8 +40,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         form.dataset.postTitle = title || '';
 
         applyProductOrderMode(true);
-
-        // Load selected cloth information so the customer confirms exactly what is being ordered.
         loadSelectedCloth(postId, title);
     } else {
         applyProductOrderMode(false);
@@ -51,6 +48,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 function applyProductOrderMode(isProductOrder) {
     const categorySelect = document.getElementById('clothCategory');
+    const measurementSetupGroup = document.getElementById('measurementSetupGroup');
     const referenceImagesGroup = document.getElementById('referenceImagesGroup');
     const eventTypeGroup = document.getElementById('eventTypeGroup');
     const proposedPriceGroup = document.getElementById('proposedPriceETB')?.closest('.form-group');
@@ -66,6 +64,13 @@ function applyProductOrderMode(isProductOrder) {
         categorySelect.style.opacity = isProductOrder ? '0.65' : '1';
         categorySelect.style.cursor = isProductOrder ? 'not-allowed' : 'pointer';
     }
+
+    if (measurementSetupGroup) {
+        measurementSetupGroup.style.display = isProductOrder ? 'none' : '';
+    }
+    document.querySelectorAll('[data-custom-measurement-profile]').forEach((input) => {
+        input.disabled = !!isProductOrder;
+    });
 
     if (referenceImagesGroup) {
         referenceImagesGroup.style.display = isProductOrder ? 'none' : '';
@@ -606,19 +611,20 @@ function renderSavedMeasurementPreview(profile) {
         return;
     }
 
-    const data = {
-        height: readMeasurementNumber(profile.height || profile.length || 0),
-        shoulder: readMeasurementNumber(profile.shoulder || 0),
-        chest: readMeasurementNumber(profile.chest || 0),
-        waist: readMeasurementNumber(profile.waist || 0),
-        hip: readMeasurementNumber(profile.hip || 0),
-        length: readMeasurementNumber(profile.length || 0),
-        sleeve: readMeasurementNumber(profile.sleeve_length || 0)
-    };
-
-    const fieldsHtml = getMeasurementFieldDefs().map((field) => {
-        const value = Number(data[field.key] || 0);
-        return `<div style="font-size:0.9rem;"><span style="color:#6b665d;">${escapeHtml(field.label)}:</span> ${escapeHtml(value > 0 ? String(value) : '—')}</div>`;
+    const templateKeys = getActiveMeasurementTemplateKeys(document.getElementById('clothCategory')?.value || '');
+    const fieldsHtml = templateKeys.map((templateKey) => {
+        const template = getMeasurementTemplateDefinition(templateKey);
+        const sectionFields = (Array.isArray(template.fields) ? template.fields : []).map((field) => {
+            const sourceKey = template.savedProfileMap && template.savedProfileMap[field.key] ? template.savedProfileMap[field.key] : field.key;
+            const value = readMeasurementNumber(profile[sourceKey] || 0);
+            return `<div style="font-size:0.9rem;"><span style="color:#6b665d;">${escapeHtml(field.label)}:</span> ${escapeHtml(value > 0 ? String(value) : '—')}</div>`;
+        }).join('');
+        return `
+            <div style="margin-top:8px;">
+                <div style="font-weight:700; color:#2d2410; margin-bottom:4px;">${escapeHtml(template.label)}</div>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px 10px;">${sectionFields}</div>
+            </div>
+        `;
     }).join('');
 
     previewEl.style.display = '';
@@ -626,7 +632,7 @@ function renderSavedMeasurementPreview(profile) {
         <div style="border:1px solid rgba(0,0,0,0.1); border-radius:10px; padding:10px; background:#fff8e8;">
             <div style="font-weight:800; color:#1a1c1c; margin-bottom:6px;">Selected Measurement Profile</div>
             <div><strong>Person Name:</strong> ${escapeHtml(String(profile.profile_name || '—'))}</div>
-            <div style="margin-top:6px; display:grid; grid-template-columns:1fr 1fr; gap:6px 10px;">${fieldsHtml}</div>
+            ${fieldsHtml}
         </div>
     `;
 }
@@ -916,8 +922,8 @@ function getActiveNormalMeasurementMode() {
     return currentNormalMeasurementMode === 'different' ? 'different' : 'same';
 }
 
-function getMeasurementFieldDefs() {
-    return MEASUREMENT_TEMPLATE_DEFS.general.fields;
+function getMeasurementFieldDefs(templateKey = 'general') {
+    return getMeasurementTemplateDefinition(templateKey).fields;
 }
 
 function getMeasurementTemplateDefinition(templateKey) {
@@ -937,7 +943,17 @@ function getConfiguredMeasurementProfiles() {
     }
 }
 
+function getSelectedCustomMeasurementProfiles() {
+    return Array.from(document.querySelectorAll('[data-custom-measurement-profile]:checked'))
+        .map((input) => String(input.value || '').trim())
+        .filter((value) => !!MEASUREMENT_TEMPLATE_DEFS[value]);
+}
+
 function getActiveMeasurementTemplateKeys(categoryValue) {
+    if (!form?.dataset?.postId) {
+        const selected = getSelectedCustomMeasurementProfiles();
+        if (selected.length) return selected;
+    }
     const configured = getConfiguredMeasurementProfiles();
     if (configured.length) return configured;
     return isCoupleCategory(categoryValue) ? ['general_woman', 'general_man'] : ['general'];
@@ -1080,6 +1096,10 @@ function collectMeasurementEntries() {
 }
 
 function validateMeasurementEntries(category, quantity) {
+    const invalid = findFirstInvalidMeasurementField();
+    if (invalid) {
+        return { ok: false, message: invalid.message, field: invalid.field, entries: [] };
+    }
     return { ok: true, message: '', entries: collectMeasurementEntries() };
 }
 
@@ -1143,15 +1163,8 @@ function focusAndScrollToField(field) {
 function findFirstInvalidMeasurementField() {
     const entries = Array.from(document.querySelectorAll('.measurement-entry'));
     for (const entry of entries) {
-        const person = entry.querySelector('[data-measure-person]');
-        if (!String(person?.value || '').trim()) {
-            return {
-                field: person,
-                message: 'Please fill in Person Name for all measurement blocks.'
-            };
-        }
-
-        for (const def of getMeasurementFieldDefs()) {
+        const templateKey = String(entry.getAttribute('data-template-key') || 'general');
+        for (const def of getMeasurementFieldDefs(templateKey)) {
             const field = entry.querySelector(`[data-measure-field="${def.key}"]`);
             const raw = String(field?.value || '').trim();
             const num = Number(raw);
@@ -1311,8 +1324,19 @@ function setupOrderStepFlow() {
         categorySelect.addEventListener('change', () => {
             syncEventTypeVisibility();
             renderMeasurementBlocks();
+            if (useSavedMeasurements) {
+                renderSavedMeasurementPreview(getSelectedSavedMeasurementProfile());
+            }
         });
     }
+    document.querySelectorAll('[data-custom-measurement-profile]').forEach((input) => {
+        input.addEventListener('change', () => {
+            renderMeasurementBlocks();
+            if (useSavedMeasurements) {
+                renderSavedMeasurementPreview(getSelectedSavedMeasurementProfile());
+            }
+        });
+    });
     syncEventTypeVisibility();
     renderMeasurementBlocks();
     setOrderStep(1);
@@ -1746,6 +1770,11 @@ form.addEventListener('submit', async function(e) {
         measurementEntries = buildMeasurementEntriesFromSavedProfile(selectedMeasurementProfile, category, quantity);
     } else {
         const measurementValidation = validateMeasurementEntries(category, quantity);
+        if (!measurementValidation.ok) {
+            alert(measurementValidation.message);
+            focusAndScrollToField(measurementValidation.field);
+            return;
+        }
         measurementEntries = measurementValidation.entries;
     }
     const normalMode = getActiveNormalMeasurementMode();
