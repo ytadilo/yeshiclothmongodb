@@ -262,6 +262,10 @@ app.use('/api/backup', require('./routes/backup'));
 // Admin specific routes handling (only if frontend exists)
 // We map /admin/* to the HTML files in frontend/admin/
 if (hasFrontend) {
+    app.get('/admin/', (req, res) => {
+        res.redirect(302, '/admin');
+    });
+
     app.get('/admin/login', (req, res) => {
         return sendFrontendFile(res, path.join(adminRoot, 'login.html'));
     });

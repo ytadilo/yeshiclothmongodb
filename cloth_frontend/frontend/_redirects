@@ -7,6 +7,8 @@
 # Proxy API to deployed backend (keeps frontend code using /api/* unchanged)
 /api/*  https://myclothefullstackhaile.onrender.com/api/:splat  200!
 
+/admin/  /admin  301!
+
 # Proxy admin pages to the backend so Render is the only authority for admin HTML access
 /admin  https://myclothefullstackhaile.onrender.com/admin  200!
 /admin/*  https://myclothefullstackhaile.onrender.com/admin/:splat  200!

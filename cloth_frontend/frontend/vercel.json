@@ -2,6 +2,11 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "redirects": [
     {
+      "source": "/admin/",
+      "destination": "/admin",
+      "permanent": false
+    },
+    {
       "source": "/user/order.html",
       "destination": "/order",
       "permanent": true
@@ -144,6 +149,10 @@
     },
     {
       "source": "/admin",
+      "destination": "https://myclothefullstackhaile.onrender.com/admin"
+    },
+    {
+      "source": "/admin/",
       "destination": "https://myclothefullstackhaile.onrender.com/admin"
     },
     {
