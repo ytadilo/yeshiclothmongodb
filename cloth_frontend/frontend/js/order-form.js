@@ -21,6 +21,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     await loadSavedProfileSettings();
     bindSavedSettingsChoices();
     bindRefundPolicyModal();
+    bindTelebirrPhoneModal();
     prefillOrderFromSavedProfile();
 
     // Load order history for the logged-in user
@@ -363,10 +364,15 @@ function initPaymentMethodUI() {
     paymentMethodInput.addEventListener('change', updatePaymentDetailsVisibility);
     if (telebirrPayNowBtn) {
         telebirrPayNowBtn.addEventListener('click', () => {
+            if (pendingTelebirrCheckout && pendingTelebirrCheckout.rawRequest) {
+                openTelebirrPhoneModal(pendingTelebirrCheckout);
+                return;
+            }
             const submitEvent = new Event('submit', { cancelable: true, bubbles: true });
             form.dispatchEvent(submitEvent);
         });
     }
+    updateTelebirrPayNowButton();
     updatePaymentDetailsVisibility();
 }
 
@@ -414,8 +420,8 @@ let savedMeasurementProfiles = [];
 let useSavedShipping = true;
 let useSavedMeasurements = true;
 let telebirrPollingId = null;
-let telebirrCheckoutWindow = null;
 let latestTelebirrOrderId = '';
+let pendingTelebirrCheckout = null;
 
 function setTelebirrStatus(message, tone = 'info') {
     const box = document.getElementById('telebirrStatusBox');
@@ -433,6 +439,125 @@ function setTelebirrStatus(message, tone = 'info') {
     box.textContent = message || '';
 }
 
+function isValidTelebirrPhone(value) {
+    return /^\+[1-9]\d{0,3}[\s\-]?\d{5,14}$/.test(String(value || '').trim());
+}
+
+function normalizeTelebirrPhone(value) {
+    return String(value || '').replace(/[\s\-]+/g, ' ').trim();
+}
+
+function updateTelebirrPayNowButton() {
+    const btn = document.getElementById('telebirrPayNowBtn');
+    if (!btn) return;
+    btn.textContent = pendingTelebirrCheckout && pendingTelebirrCheckout.rawRequest
+        ? 'Continue Telebirr Payment'
+        : 'Pay Now with Telebirr';
+}
+
+function setTelebirrPhoneModalMessage(message, tone = 'info') {
+    const box = document.getElementById('telebirrPhoneModalMessage');
+    if (!box) return;
+    const palette = {
+        info: { bg: '#fff7e8', border: 'rgba(116,91,24,0.18)', color: '#5f4d0f' },
+        error: { bg: '#fdecec', border: 'rgba(186,26,26,0.18)', color: '#8a1212' }
+    };
+    const chosen = palette[tone] || palette.info;
+    box.style.display = message ? 'block' : 'none';
+    box.style.background = chosen.bg;
+    box.style.borderColor = chosen.border;
+    box.style.color = chosen.color;
+    box.textContent = message || '';
+}
+
+function closeTelebirrPhoneModal() {
+    const modal = document.getElementById('telebirrPhoneModal');
+    if (!modal) return;
+    modal.style.display = 'none';
+    setTelebirrPhoneModalMessage('');
+}
+
+function openTelebirrPhoneModal(session) {
+    const modal = document.getElementById('telebirrPhoneModal');
+    const input = document.getElementById('telebirrPhoneInput');
+    if (!modal || !input) return;
+
+    const currentPhone = normalizeTelebirrPhone(
+        session?.phone
+        || document.getElementById('phone')?.value
+        || getSavedProfileShipping()?.phone
+        || ''
+    );
+
+    input.value = currentPhone;
+    modal.style.display = 'flex';
+    setTelebirrPhoneModalMessage('');
+    window.setTimeout(() => {
+        input.focus();
+        input.select();
+    }, 0);
+}
+
+function bindTelebirrPhoneModal() {
+    const modal = document.getElementById('telebirrPhoneModal');
+    const cancelBtn = document.getElementById('telebirrPhoneModalCancelBtn');
+    const confirmBtn = document.getElementById('telebirrPhoneModalConfirmBtn');
+    const input = document.getElementById('telebirrPhoneInput');
+    if (!modal || !cancelBtn || !confirmBtn || !input) return;
+
+    cancelBtn.addEventListener('click', () => {
+        closeTelebirrPhoneModal();
+        if (pendingTelebirrCheckout?.orderId) {
+            setTelebirrStatus('Telebirr order created. Confirm the phone number and tap Pay Now with Telebirr to continue.', 'info');
+        }
+    });
+
+    confirmBtn.addEventListener('click', () => {
+        const phone = normalizeTelebirrPhone(input.value);
+        if (!isValidTelebirrPhone(phone)) {
+            setTelebirrPhoneModalMessage('Enter a valid phone number with country code, for example +2519...', 'error');
+            input.focus();
+            return;
+        }
+        if (!pendingTelebirrCheckout?.rawRequest || !pendingTelebirrCheckout?.orderId) {
+            closeTelebirrPhoneModal();
+            setTelebirrStatus('Telebirr checkout is no longer available. Please try again.', 'error');
+            return;
+        }
+
+        pendingTelebirrCheckout.phone = phone;
+        const shippingPhone = document.getElementById('phone');
+        if (shippingPhone) shippingPhone.value = phone;
+
+        closeTelebirrPhoneModal();
+        const openedInBridge = launchTelebirrBridge(pendingTelebirrCheckout.rawRequest, phone);
+        if (!openedInBridge) {
+            setTelebirrStatus('Telebirr pay now must be opened inside the Telebirr app browser. Open this order page inside Telebirr and try again.', 'error');
+            return;
+        }
+
+        setTelebirrStatus(`Telebirr opened for ${phone}. Complete the payment in the app, then return here.`, 'info');
+        startTelebirrStatusPolling(pendingTelebirrCheckout.orderId);
+    });
+
+    input.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter') {
+            event.preventDefault();
+            confirmBtn.click();
+        }
+        if (event.key === 'Escape') {
+            event.preventDefault();
+            cancelBtn.click();
+        }
+    });
+
+    modal.addEventListener('click', (event) => {
+        if (event.target === modal) {
+            cancelBtn.click();
+        }
+    });
+}
+
 function stopTelebirrStatusPolling() {
     if (telebirrPollingId) {
         window.clearInterval(telebirrPollingId);
@@ -443,17 +568,22 @@ function stopTelebirrStatusPolling() {
 function resetTelebirrCheckoutState() {
     stopTelebirrStatusPolling();
     latestTelebirrOrderId = '';
+    pendingTelebirrCheckout = null;
+    closeTelebirrPhoneModal();
     setTelebirrStatus('');
+    updateTelebirrPayNowButton();
 }
 
-function launchTelebirrBridge(rawRequest) {
+function launchTelebirrBridge(rawRequest, phoneNumber) {
     if (!rawRequest) return false;
     if (!window.consumerapp || typeof window.consumerapp.evaluate !== 'function') {
         return false;
     }
 
     window.handleYeshiTelebirrCallback = function () {
-        setTelebirrStatus('Telebirr checkout opened. Complete the payment in the app, then return here.', 'info');
+        const displayPhone = String(phoneNumber || pendingTelebirrCheckout?.phone || '').trim();
+        const prefix = displayPhone ? `Telebirr checkout opened for ${displayPhone}.` : 'Telebirr checkout opened.';
+        setTelebirrStatus(`${prefix} Complete the payment in the app, then return here.`, 'info');
     };
 
     const payload = JSON.stringify({
@@ -481,6 +611,7 @@ async function pollTelebirrPaymentStatus(orderId) {
 
         if (data.confirmed || String(data.paymentStatus || '').toLowerCase() === 'confirmed') {
             stopTelebirrStatusPolling();
+            rememberPendingTelebirrCheckout(null);
             setTelebirrStatus('Payment status confirmed.', 'success');
             loadMyOrders();
             alert('Payment status confirmed. Your order is now marked as paid.');
@@ -504,6 +635,17 @@ function startTelebirrStatusPolling(orderId) {
     telebirrPollingId = window.setInterval(() => {
         pollTelebirrPaymentStatus(latestTelebirrOrderId);
     }, 3000);
+}
+
+function rememberPendingTelebirrCheckout(session) {
+    pendingTelebirrCheckout = session && session.rawRequest && session.orderId
+        ? {
+            orderId: String(session.orderId || '').trim(),
+            rawRequest: String(session.rawRequest || '').trim(),
+            phone: normalizeTelebirrPhone(session.phone || '')
+        }
+        : null;
+    updateTelebirrPayNowButton();
 }
 
 function normalizeStoredList(value) {
@@ -2061,28 +2203,20 @@ form.addEventListener('submit', async function(e) {
                 const orderRecord = data?.order || data;
                 const telebirr = data?.telebirr || {};
                 const orderId = String(telebirr.orderId || orderRecord?._id || '').trim();
-                if (!orderId || !telebirr.checkoutUrl) {
+                if (!orderId || !telebirr.rawRequest) {
                     setTelebirrStatus('Telebirr checkout could not be prepared. Please try again.', 'error');
                     alert('Telebirr checkout could not be prepared.');
                     return;
                 }
 
                 latestTelebirrOrderId = orderId;
-                setTelebirrStatus('Order created. Opening Telebirr checkout...', 'info');
-
-                let openedInBridge = false;
-                try {
-                    openedInBridge = launchTelebirrBridge(telebirr.rawRequest);
-                } catch (_) {
-                    openedInBridge = false;
-                }
-
-                if (!openedInBridge) {
-                    telebirrCheckoutWindow = window.open(telebirr.checkoutUrl, '_blank', 'noopener,noreferrer');
-                    setTelebirrStatus('Telebirr checkout opened in a new tab. Complete the payment there, then return here.', 'info');
-                }
-
-                startTelebirrStatusPolling(orderId);
+                rememberPendingTelebirrCheckout({
+                    orderId,
+                    rawRequest: telebirr.rawRequest,
+                    phone
+                });
+                setTelebirrStatus('Order created. Confirm the phone number in the Telebirr popup to continue payment.', 'info');
+                openTelebirrPhoneModal(pendingTelebirrCheckout);
                 loadMyOrders();
                 return;
             }
