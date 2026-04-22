@@ -280,6 +280,7 @@ function updatePaymentDetailsVisibility() {
     const telebirrDetails = document.getElementById('telebirrDetails');
     const telebirrApiDetails = document.getElementById('telebirrApiDetails');
     const paymentScreenshotGroup = document.getElementById('paymentScreenshotGroup');
+    const submitBtn = document.getElementById('orderPrimaryBtn');
 
     if (bankTransferDetails) {
         bankTransferDetails.style.display = paymentMethod === 'bank_transfer' ? 'block' : 'none';
@@ -293,6 +294,12 @@ function updatePaymentDetailsVisibility() {
     if (paymentScreenshotGroup) {
         paymentScreenshotGroup.style.display = paymentMethod === 'telebirr_api' ? 'none' : 'block';
     }
+    
+    // Default text
+    if (submitBtn) {
+        submitBtn.textContent = 'Place Order';
+    }
+
     updateProductPaymentDetailsSummary();
 }
 
@@ -324,15 +331,28 @@ function getOrderPaymentComment(order) {
 
 function updateProductPaymentDetailsSummary() {
     const box = document.getElementById('productPriceSummary');
+    const paymentMethod = String(document.getElementById('paymentMethod')?.value || '').trim();
+    const submitBtn = document.getElementById('orderPrimaryBtn');
+
     if (!box) return;
     if (!form?.dataset?.postId) {
         box.style.display = 'none';
+        if (submitBtn && paymentMethod === 'telebirr_api') {
+            submitBtn.textContent = `Pay Now with Telebirr`;
+        }
         return;
     }
 
     const qty = Math.max(1, currentProductQuantity);
     const { unitPrice, unitShipping, freeShipping } = getOrderUnitPricing();
     const total = computeQuantityTotal(unitPrice, unitShipping, qty);
+
+    if (submitBtn && paymentMethod === 'telebirr_api') {
+        const displayTotal = total > 0 ? total.toLocaleString() + ' ETB' : '';
+        submitBtn.textContent = displayTotal ? `Pay ${displayTotal} via Telebirr` : 'Pay Now with Telebirr';
+    } else if (submitBtn) {
+        submitBtn.textContent = 'Place Order';
+    }
 
     box.style.display = '';
     box.innerHTML = `
@@ -2029,7 +2049,7 @@ form.addEventListener('submit', async function(e) {
                 try {
                     const tRes = await fetch(`/api/telebirr/checkout/${orderId}`, {
                         method: 'POST',
-                        headers: { 'Authorization': `Bearer ${token}` } // ensure order-form uses this auth correctly
+                        headers: { 'x-auth-token': token } 
                     });
                     if (tRes.ok) {
                         const tData = await tRes.json();

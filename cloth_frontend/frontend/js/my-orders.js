@@ -838,7 +838,7 @@ async function loadMyOrders(options = {}) {
                         const token = localStorage.getItem('token');
                         const tRes = await fetch(`/api/telebirr/checkout/${orderId}`, {
                             method: 'POST',
-                            headers: { 'Authorization': `Bearer ${token}` }
+                            headers: { 'x-auth-token': token }
                         });
                         if (!tRes.ok) throw new Error(await tRes.text());
                         const tData = await tRes.json();
