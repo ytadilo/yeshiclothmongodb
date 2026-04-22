@@ -42,22 +42,26 @@ router.get('/:id', optionalAuth, async (req, res) => {
             if (String(upload.purpose || '') === 'chat_attachment') {
                 if (upload.storage_path) {
                     const absolutePath = path.join(__dirname, '..', 'uploads', ...String(upload.storage_path).split('/'));
-                    if (!fs.existsSync(absolutePath)) {
-                        return res.status(404).json({ msg: 'Upload file not found' });
+                    if (fs.existsSync(absolutePath)) {
+                        res.setHeader('Content-Type', upload.mimeType || 'application/octet-stream');
+                        res.setHeader(
+                            'Content-Disposition',
+                            `inline; filename="${safeFilename(upload.originalName)}"`
+                        );
+                        return res.sendFile(absolutePath);
                     }
+                }
+                
+                if (upload.data && upload.data.length > 0) {
                     res.setHeader('Content-Type', upload.mimeType || 'application/octet-stream');
                     res.setHeader(
                         'Content-Disposition',
                         `inline; filename="${safeFilename(upload.originalName)}"`
                     );
-                    return res.sendFile(absolutePath);
+                    return res.send(upload.data);
                 }
-                res.setHeader('Content-Type', upload.mimeType || 'application/octet-stream');
-                res.setHeader(
-                    'Content-Disposition',
-                    `inline; filename="${safeFilename(upload.originalName)}"`
-                );
-                return res.send(upload.data);
+                
+                return res.status(404).json({ msg: 'Upload file not found (chat)' });
             }
 
             const isOwner =
@@ -71,23 +75,26 @@ router.get('/:id', optionalAuth, async (req, res) => {
 
         if (upload.storage_path) {
             const absolutePath = path.join(__dirname, '..', 'uploads', ...String(upload.storage_path).split('/'));
-            if (!fs.existsSync(absolutePath)) {
-                return res.status(404).json({ msg: 'Upload file not found' });
+            if (fs.existsSync(absolutePath)) {
+                res.setHeader('Content-Type', upload.mimeType || 'application/octet-stream');
+                res.setHeader(
+                    'Content-Disposition',
+                    `inline; filename="${safeFilename(upload.originalName)}"`
+                );
+                return res.sendFile(absolutePath);
             }
+        }
+
+        if (upload.data && upload.data.length > 0) {
             res.setHeader('Content-Type', upload.mimeType || 'application/octet-stream');
             res.setHeader(
                 'Content-Disposition',
                 `inline; filename="${safeFilename(upload.originalName)}"`
             );
-            return res.sendFile(absolutePath);
+            return res.send(upload.data);
         }
 
-        res.setHeader('Content-Type', upload.mimeType || 'application/octet-stream');
-        res.setHeader(
-            'Content-Disposition',
-            `inline; filename="${safeFilename(upload.originalName)}"`
-        );
-        return res.send(upload.data);
+        return res.status(404).json({ msg: 'Upload file not found' });
     } catch (err) {
         console.error(err);
         return res.status(500).json({ msg: 'Server error' });

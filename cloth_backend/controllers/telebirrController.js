@@ -44,12 +44,21 @@ exports.initiatePayment = async (req, res) => {
         }
 
         // 1. Authenticate with Telebirr token API
-        const tokenRes = await fetch(`${TELEBIRR_BASE_URL.replace('/api/v1', '')}/access/token`, {
+        const tokenUrl = `${TELEBIRR_BASE_URL.replace('/api/v1', '')}/access/token`;
+        const tokenRes = await fetch(tokenUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ appId: FABRIC_APP_ID, appSecret: APP_SECRET })
         });
-        const tokenData = await tokenRes.json();
+        
+        let tokenData;
+        const responseText = await tokenRes.text();
+        try {
+            tokenData = JSON.parse(responseText);
+        } catch (e) {
+            console.error('Telebirr Token HTTP Response:', responseText);
+            throw new Error(`Telebirr token API returned invalid JSON (Status: ${tokenRes.status}). Response: ${responseText.substring(0, 100)}`);
+        }
         const token = tokenData.data ? tokenData.data.token : tokenData.token;
 
         if (!token) throw new Error('Failed to retrieve authentication token from Telebirr.');
@@ -71,7 +80,8 @@ exports.initiatePayment = async (req, res) => {
         const signature = signRSA(payloadString);
 
         // 3. Initiate checkout payment request
-        const checkoutRes = await fetch(`${TELEBIRR_BASE_URL.replace('/api/v1', '')}/checkout/requestOrder`, {
+        const checkoutUrlReq = `${TELEBIRR_BASE_URL.replace('/api/v1', '')}/checkout/requestOrder`;
+        const checkoutRes = await fetch(checkoutUrlReq, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -80,7 +90,15 @@ exports.initiatePayment = async (req, res) => {
                 bizContent: bizContent
             })
         });
-        const checkoutData = await checkoutRes.json();
+        
+        let checkoutData;
+        const checkoutResponseText = await checkoutRes.text();
+        try {
+            checkoutData = JSON.parse(checkoutResponseText);
+        } catch (e) {
+            console.error('Telebirr Checkout HTTP Response:', checkoutResponseText);
+            throw new Error(`Telebirr checkout API returned invalid JSON (Status: ${checkoutRes.status}). Response: ${checkoutResponseText.substring(0, 100)}`);
+        }
 
         // 4. Return checkout URL to frontend
         if (checkoutData.code === '0' || checkoutData.code === 200) {
@@ -92,7 +110,7 @@ exports.initiatePayment = async (req, res) => {
         }
     } catch (err) {
         console.error('Telebirr Initiate Payment error:', err);
-        return res.status(500).json({ msg: 'Server Error initializing Telebirr Checkout' });
+        return res.status(500).json({ msg: 'Server Error initializing Telebirr Checkout', error: err.message, stack: err.stack });
     }
 };
 
