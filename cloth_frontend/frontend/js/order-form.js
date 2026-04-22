@@ -1885,7 +1885,7 @@ form.addEventListener('submit', async function(e) {
             return;
         }
 
-        if (isProductOrder && !paymentFile && paymentMethodSelected !== 'telebirr_api') {
+        if (isProductOrder && !paymentFile && paymentMethod !== 'telebirr_api') {
             alert('Upload payment screenshot before placing the order.');
             if (submitBtn) submitBtn.disabled = false;
             return;

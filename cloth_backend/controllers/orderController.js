@@ -505,7 +505,7 @@ exports.createOrder = async (req, res) => {
             const address = String(customerInfo.address || req.body.address || '').trim();
             const category = String(clothDetails.category || req.body.category || '').trim();
             const eventType = String(clothDetails.eventType || req.body.eventType || '').trim();
-            const paymentMethod = String(deliveryPayment.paymentMethod || req.body.paymentMethod || '').trim();
+            const paymentMethod = String(deliveryPayment.paymentMethod || deliveryPayment.method || req.body.paymentMethod || req.body.payment_method || '').trim();
             const paymentComment = String(deliveryPayment.paymentComment || req.body.paymentComment || req.body.payment_comment || '').trim();
             const deliveryMethod = normalizeDeliveryMethod(deliveryPayment.deliveryMethod || req.body.deliveryMethod || 'delivery');
             const proposedPrice = toNonNegativeNumber(req.body.proposedPriceETB ?? req.body.proposed_price_etb, 0);
@@ -518,11 +518,11 @@ exports.createOrder = async (req, res) => {
                 return res.status(400).json({ msg: 'Reference image is required for custom orders.' });
             }
 
-            if (isProductAsIsOrder && !['bank_transfer', 'telebirr'].includes(paymentMethod)) {
+            if (isProductAsIsOrder && !['bank_transfer', 'telebirr', 'telebirr_api'].includes(paymentMethod)) {
                 return res.status(400).json({ msg: 'Payment method is required for product orders.' });
             }
 
-            if (isProductAsIsOrder) {
+            if (isProductAsIsOrder && paymentMethod !== 'telebirr_api') {
                 return res.status(400).json({ msg: 'Payment screenshot is required for product orders.' });
             }
 
@@ -610,7 +610,7 @@ exports.createOrder = async (req, res) => {
                 order_type: isProductAsIsOrder ? 'product' : 'custom',
                 delivery_method: deliveryMethod,
                 payment_info: {
-                    method: isProductAsIsOrder ? paymentMethod : '',
+                    method: paymentMethod || '',
                     comment: paymentComment,
                     status: 'Pending'
                 },
@@ -841,7 +841,7 @@ exports.createOrder = async (req, res) => {
         const paymentFile = req.files?.paymentScreenshot?.[0];
 
         let paymentInfo = {
-            method: ['bank_transfer', 'telebirr'].includes(paymentMethod) ? paymentMethod : '',
+            method: ['bank_transfer', 'telebirr', 'telebirr_api'].includes(paymentMethod) ? paymentMethod : '',
             comment: paymentComment,
             status: 'Pending'
         };
@@ -905,11 +905,11 @@ exports.createOrder = async (req, res) => {
             return res.status(400).json({ msg: 'Shipping address must include country, region, city, and ZIP code.' });
         }
 
-        if (orderData.post_id && !paymentFile) {
+        if (orderData.post_id && !paymentFile && paymentMethod !== 'telebirr_api') {
             return res.status(400).json({ msg: 'Payment screenshot is required for product orders.' });
         }
 
-        if (orderData.post_id && !['bank_transfer', 'telebirr'].includes(paymentMethod)) {
+        if (orderData.post_id && !['bank_transfer', 'telebirr', 'telebirr_api'].includes(paymentMethod)) {
             return res.status(400).json({ msg: 'Payment method is required for product orders.' });
         }
 
