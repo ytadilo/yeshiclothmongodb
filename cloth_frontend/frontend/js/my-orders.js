@@ -840,7 +840,10 @@ async function loadMyOrders(options = {}) {
                             method: 'POST',
                             headers: { 'x-auth-token': token }
                         });
-                        if (!tRes.ok) throw new Error(await tRes.text());
+                        if (!tRes.ok) {
+                            const errorBody = await tRes.json().catch(() => ({}));
+                            throw new Error(errorBody.msg || errorBody.error || `Server error`);
+                        }
                         const tData = await tRes.json();
                         if (tData.checkoutUrl) {
                             window.location.href = tData.checkoutUrl;
@@ -848,7 +851,7 @@ async function loadMyOrders(options = {}) {
                             throw new Error('Telebirr routing failed');
                         }
                     } catch (e) {
-                        alert(e?.message || 'Failed to start Telebirr Checkout');
+                        alert(e?.message || 'Server error');
                     } finally {
                         if (btn) btn.disabled = false;
                     }

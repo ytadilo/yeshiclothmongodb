@@ -2057,9 +2057,15 @@ form.addEventListener('submit', async function(e) {
                             window.location.href = tData.checkoutUrl;
                             return; // Stop here, don't open whatsapp
                         }
+                    } else {
+                        const tData = await tRes.json().catch(() => ({}));
+                        throw new Error(tData.msg || tData.error || `Server error: ${tRes.status}`);
                     }
                 } catch(e) {
                     console.error('Telebirr redirect error', e);
+                    alert(e.message || 'Server error');
+                    window.location.href = '/user/my-orders.html';
+                    return;
                 }
                 alert('Telebirr routing failed. You can pay from My Orders later.');
                 window.location.href = '/user/my-orders.html';

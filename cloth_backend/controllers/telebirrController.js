@@ -32,8 +32,9 @@ exports.initiatePayment = async (req, res) => {
             return res.status(403).json({ msg: 'Unauthorized' });
         }
 
-        let total = order.total_price || ((order.post_price_etb || 0) + (order.shipping_cost || 0));
-        if (total <= 0) total = 1; // Fallback to avoid 0 amount
+        let total = order.total || order.total_price || ((order.post_price_etb || 0) + (order.shipping_cost || 0));
+        let amount = typeof total === 'number' ? total : parseFloat(total);
+        if (isNaN(amount) || amount <= 0) amount = 1; // Fallback to avoid 0 amount
 
         order.payment_method = 'telebirr_api';
         await order.save();
@@ -70,7 +71,7 @@ exports.initiatePayment = async (req, res) => {
             title: `Yeshi Clothe Order ${orderId}`,
             tradeType: 'Checkout',
             outTradeNo: orderId.toString(),
-            totalAmount: total.toString(),
+            totalAmount: amount.toString(),
             returnUrl: `https://www.yeshiclothe.com.et/my-orders`,
             notifyUrl: `https://myclothefullstackhaile.onrender.com/api/telebirr/webhook`
         };
