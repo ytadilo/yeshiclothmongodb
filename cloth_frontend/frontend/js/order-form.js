@@ -2050,7 +2050,6 @@ form.addEventListener('submit', async function(e) {
             let message = `*New Order Request - YESHI* %0A%0A`;
             message += `👤 *Customer:* ${name}%0A`;
             message += `📞 *Phone:* ${phone}%0A`;
-            const orderId = data?._id || data?.order?._id || '';
             message += `🆔 *Order ID:* ${orderId}%0A`;
             message += `-----------------------%0A`;
             message += `👗 *Cloth:* ${category}%0A`;
