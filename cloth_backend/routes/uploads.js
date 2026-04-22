@@ -18,6 +18,58 @@ function safeFilename(name) {
     return value.replace(/[\r\n"]/g, '_');
 }
 
+function escapeRegex(value) {
+    return String(value || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+async function resolveUploadByReference(rawId, provider) {
+    const id = String(rawId || '').trim();
+    if (!id) return null;
+
+    const selectFields = 'data storage_path mimeType originalName visibility owner_user_id purpose';
+
+    const direct = await Upload.findById(id).select(selectFields);
+    if (direct) return direct;
+
+    const maybeDecoded = (() => {
+        try {
+            return decodeURIComponent(id);
+        } catch (_) {
+            return id;
+        }
+    })();
+
+    if (provider === 'mongo') {
+        const suffixMatcher = new RegExp(`(^|/)${escapeRegex(maybeDecoded)}(\\.[^./\\\\]+)?$`, 'i');
+        return Upload.findOne({
+            $or: [
+                { storage_path: suffixMatcher },
+                { originalName: maybeDecoded }
+            ]
+        }).select(selectFields);
+    }
+
+    // Firebase fallback: resolve legacy references by storage path basename.
+    const all = await Upload.find({}).select(selectFields).lean();
+    if (!Array.isArray(all) || !all.length) return null;
+
+    const lowerId = maybeDecoded.toLowerCase();
+    const hit = all.find((doc) => {
+        const storagePath = String(doc && doc.storage_path ? doc.storage_path : '');
+        const originalName = String(doc && doc.originalName ? doc.originalName : '');
+        const fileName = path.basename(storagePath || '').toLowerCase();
+        const fileNameNoExt = fileName.replace(/\.[^.]+$/, '');
+        return (
+            storagePath.toLowerCase() === lowerId
+            || fileName === lowerId
+            || fileNameNoExt === lowerId
+            || originalName.toLowerCase() === lowerId
+        );
+    });
+
+    return hit || null;
+}
+
 // GET /api/uploads/:id
 // Public for "public" uploads. "private" requires owner/admin.
 router.get('/:id', optionalAuth, async (req, res) => {
@@ -25,12 +77,10 @@ router.get('/:id', optionalAuth, async (req, res) => {
         const { id } = req.params;
         const provider = getDatabaseProvider();
         if (provider === 'mongo' && !mongoose.Types.ObjectId.isValid(id)) {
-            return res.status(400).json({ msg: 'Invalid upload id' });
+            // Allow legacy non-ObjectId references to be resolved via storage_path fallback.
         }
 
-        const upload = await Upload.findById(id).select(
-            'data storage_path mimeType originalName visibility owner_user_id purpose'
-        );
+        const upload = await resolveUploadByReference(id, provider);
 
         if (!upload) return res.status(404).json({ msg: 'Upload not found' });
 
