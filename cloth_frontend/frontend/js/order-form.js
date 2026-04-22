@@ -278,12 +278,20 @@ function updatePaymentDetailsVisibility() {
     const paymentMethod = String(document.getElementById('paymentMethod')?.value || '').trim();
     const bankTransferDetails = document.getElementById('bankTransferDetails');
     const telebirrDetails = document.getElementById('telebirrDetails');
+    const telebirrApiDetails = document.getElementById('telebirrApiDetails');
+    const paymentScreenshotGroup = document.getElementById('paymentScreenshotGroup');
 
     if (bankTransferDetails) {
         bankTransferDetails.style.display = paymentMethod === 'bank_transfer' ? 'block' : 'none';
     }
     if (telebirrDetails) {
         telebirrDetails.style.display = paymentMethod === 'telebirr' ? 'block' : 'none';
+    }
+    if (telebirrApiDetails) {
+        telebirrApiDetails.style.display = paymentMethod === 'telebirr_api' ? 'block' : 'none';
+    }
+    if (paymentScreenshotGroup) {
+        paymentScreenshotGroup.style.display = paymentMethod === 'telebirr_api' ? 'none' : 'block';
     }
     updateProductPaymentDetailsSummary();
 }
@@ -1877,7 +1885,7 @@ form.addEventListener('submit', async function(e) {
             return;
         }
 
-        if (isProductOrder && !paymentFile) {
+        if (isProductOrder && !paymentFile && paymentMethodSelected !== 'telebirr_api') {
             alert('Upload payment screenshot before placing the order.');
             if (submitBtn) submitBtn.disabled = false;
             return;
@@ -2013,6 +2021,30 @@ form.addEventListener('submit', async function(e) {
                     is_default: false
                 }
             );
+
+            const orderId = data?._id || data?.order?._id || '';
+
+            if (paymentMethod === 'telebirr_api' && orderId) {
+                alert('Order placed successfully! Redirecting to Telebirr secure checkout...');
+                try {
+                    const tRes = await fetch(`/api/telebirr/checkout/${orderId}`, {
+                        method: 'POST',
+                        headers: { 'Authorization': `Bearer ${token}` } // ensure order-form uses this auth correctly
+                    });
+                    if (tRes.ok) {
+                        const tData = await tRes.json();
+                        if (tData.checkoutUrl) {
+                            window.location.href = tData.checkoutUrl;
+                            return; // Stop here, don't open whatsapp
+                        }
+                    }
+                } catch(e) {
+                    console.error('Telebirr redirect error', e);
+                }
+                alert('Telebirr routing failed. You can pay from My Orders later.');
+                window.location.href = '/user/my-orders.html';
+                return;
+            }
 
             // 3. Construct WhatsApp Message (Backup/Notification)
             let message = `*New Order Request - YESHI* %0A%0A`;

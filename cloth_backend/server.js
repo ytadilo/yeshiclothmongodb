@@ -285,6 +285,7 @@ app.use('/api/admin/devices', require('./routes/adminDevices'));
 app.use('/api/admin/uploads', require('./routes/adminUploads'));
 app.use('/api/analytics', require('./routes/analytics'));
 app.use('/api/backup', require('./routes/backup'));
+app.use('/api/telebirr', require('./routes/telebirr'));
 
 // Admin specific routes handling (only if frontend exists)
 // We map /admin/* to the HTML files in frontend/admin/

@@ -16,8 +16,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         loadMyOrders();
-        // Poll for updates every 10 seconds
-        setInterval(() => loadMyOrders({ skipDuringPaymentInteraction: true, skipDuringNegotiationInteraction: true }), 10000);
+        // Poll for updates every 3 seconds for immediate telebirr feedback
+        setInterval(() => loadMyOrders({ skipDuringPaymentInteraction: true, skipDuringNegotiationInteraction: true }), 3000);
     })();
 });
 
@@ -460,10 +460,24 @@ async function uploadPaymentProof(orderId, paymentMethod, file, paymentComment) 
 function updatePaymentProofMethodDetails(formEl) {
     if (!formEl) return;
     const method = String(formEl.querySelector('select[name="paymentMethod"]')?.value || '').trim();
+    const fileInput = formEl.querySelector('input[name="paymentScreenshot"]');
+    const submitBtn = formEl.querySelector('button[type="submit"]');
     const bankDetails = formEl.querySelector('[data-payment-details="bank_transfer"]');
     const telebirrDetails = formEl.querySelector('[data-payment-details="telebirr"]');
+    const telebirrApiDetails = formEl.querySelector('[data-payment-details="telebirr_api"]');
     if (bankDetails) bankDetails.style.display = method === 'bank_transfer' ? 'block' : 'none';
     if (telebirrDetails) telebirrDetails.style.display = method === 'telebirr' ? 'block' : 'none';
+    if (telebirrApiDetails) telebirrApiDetails.style.display = method === 'telebirr_api' ? 'block' : 'none';
+    if (fileInput) {
+        fileInput.style.display = method === 'telebirr_api' ? 'none' : 'block';
+        if (method === 'telebirr_api') {
+            fileInput.removeAttribute('required');
+            if (submitBtn) submitBtn.textContent = 'Pay Now with Telebirr';
+        } else {
+            fileInput.setAttribute('required', 'required');
+            if (submitBtn) submitBtn.textContent = 'Submit Payment Proof';
+        }
+    }
 }
 
 async function loadMyOrders(options = {}) {
@@ -672,13 +686,14 @@ async function loadMyOrders(options = {}) {
                     </div>
                     ` : ''}
 
-                    ${(!isProductAsIsOrder && !paymentScreenshot && (hasQuotedPrice || hasQuotedShipping)) ? `
-                        <form class="payment-proof-form" data-order-id="${escapeHtml(orderId)}" style="margin-top:12px; padding:10px; border:1px solid rgba(0,0,0,0.1); border-radius:10px; background:#fff; display:grid; gap:8px;">
+                    ${(!isProductAsIsOrder && (!paymentScreenshot || String(paymentStatus).toLowerCase() === 'failed') && String(paymentStatus).toLowerCase() !== 'confirmed' && (hasQuotedPrice || hasQuotedShipping)) ? `
+                            <form class="payment-proof-form" data-order-id="${escapeHtml(orderId)}" style="margin-top:12px; padding:10px; border:1px solid rgba(0,0,0,0.1); border-radius:10px; background:#fff; display:grid; gap:8px;">
                             <div style="font-weight:800; color:#1a1c1c;">Upload Payment Proof</div>
                             <select name="paymentMethod" class="form-control" required>
                                 <option value="" ${selectedPaymentMethod ? '' : 'selected'} disabled>Select payment method</option>
                                 <option value="bank_transfer" ${selectedPaymentMethod === 'bank_transfer' ? 'selected' : ''}>Ethiopia Commercial Bank Transfer</option>
-                                <option value="telebirr" ${selectedPaymentMethod === 'telebirr' ? 'selected' : ''}>Telebirr</option>
+                                <option value="telebirr" ${selectedPaymentMethod === 'telebirr' ? 'selected' : ''}>Telebirr (Manual Screenshot)</option>
+                                <option value="telebirr_api" ${selectedPaymentMethod === 'telebirr_api' ? 'selected' : ''}>Telebirr API (Pay on website)</option>
                             </select>
                             <div style="background:#fdfdfd; padding:10px; border:1px dashed #ccc; border-radius:8px;">
                                 <div style="font-weight:700; margin-bottom:6px; color:#1a1c1c;">Payment Details</div>
@@ -688,6 +703,9 @@ async function loadMyOrders(options = {}) {
                                 </div>
                                 <div data-payment-details="telebirr" style="display:none; font-size:0.9rem; color:#333;">
                                     <div><strong>Telebirr:</strong> +251933797981 (Haileyesus Tadilo)</div>
+                                </div>
+                                <div data-payment-details="telebirr_api" style="display:none; font-size:0.9rem; color:#333;">
+                                    <div><strong>Telebirr API:</strong> You will be redirected to the secure Telebirr checkout.</div>
                                 </div>
                             </div>
                             <textarea name="paymentComment" class="form-control" rows="3" placeholder="Add payment comment (optional)"></textarea>
@@ -811,6 +829,32 @@ async function loadMyOrders(options = {}) {
                 const file = frm.querySelector('input[name="paymentScreenshot"]')?.files?.[0];
                 const paymentComment = String(frm.querySelector('textarea[name="paymentComment"]')?.value || '').trim();
                 markPaymentInteraction();
+                
+                if (method === 'telebirr_api') {
+                    if (!orderId) return;
+                    const btn = frm.querySelector('button[type="submit"]');
+                    if (btn) btn.disabled = true;
+                    try {
+                        const token = localStorage.getItem('token');
+                        const tRes = await fetch(`/api/telebirr/checkout/${orderId}`, {
+                            method: 'POST',
+                            headers: { 'Authorization': `Bearer ${token}` }
+                        });
+                        if (!tRes.ok) throw new Error(await tRes.text());
+                        const tData = await tRes.json();
+                        if (tData.checkoutUrl) {
+                            window.location.href = tData.checkoutUrl;
+                        } else {
+                            throw new Error('Telebirr routing failed');
+                        }
+                    } catch (e) {
+                        alert(e?.message || 'Failed to start Telebirr Checkout');
+                    } finally {
+                        if (btn) btn.disabled = false;
+                    }
+                    return;
+                }
+                
                 if (!orderId || !method || !file) {
                     alert('Please select payment method and screenshot.');
                     return;

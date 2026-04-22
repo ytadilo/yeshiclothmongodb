@@ -1116,14 +1116,21 @@
                                     </div>
 
                                     <div style="margin-top: 12px; display:flex; gap: 10px; align-items:center; flex-wrap:wrap;">
-                                        <select class="form-control" style="max-width: 220px;" aria-label="Update payment status" data-payment-status>
-                                            <option value="Pending" ${paymentStatus === 'Pending' ? 'selected' : ''}>Pending</option>
-                                            <option value="Confirmed" ${paymentStatus === 'Confirmed' ? 'selected' : ''}>Confirmed</option>
-                                        </select>
-                                        <button type="button" class="btn" onclick="updatePaymentStatus('${order._id}')" ${!screenshotUrl ? 'disabled' : ''}>
-                                            ${paymentStatus === 'Confirmed' ? 'Update Payment' : 'Confirm Payment'}
-                                        </button>
-                                        ${!screenshotUrl ? '<span style="color: var(--light-text);">Upload required: no screenshot found.</span>' : ''}
+                                        ${order.payment_method === 'telebirr_api' ? `
+                                            <span style="padding: 8px 16px; background: #eef5ff; border: 1px solid #cce0ff; border-radius: 8px; color: #0056b3; font-weight: 600;">
+                                                <i class="fas fa-robot"></i> Automatic Telebirr Validation
+                                            </span>
+                                            ${paymentStatus === 'Failed' ? '<span style="color: red; font-weight: bold; margin-left: 10px;">Payment Failed (Customer must try again)</span>' : ''}
+                                        ` : `
+                                            <select class="form-control" style="max-width: 220px;" aria-label="Update payment status" data-payment-status>
+                                                <option value="Pending" ${paymentStatus === 'Pending' ? 'selected' : ''}>Pending</option>
+                                                <option value="Confirmed" ${paymentStatus === 'Confirmed' ? 'selected' : ''}>Confirmed</option>
+                                            </select>
+                                            <button type="button" class="btn" onclick="updatePaymentStatus('${order._id}')" ${!screenshotUrl ? 'disabled' : ''}>
+                                                ${paymentStatus === 'Confirmed' ? 'Update Payment' : 'Confirm Payment'}
+                                            </button>
+                                            ${!screenshotUrl ? '<span style="color: var(--light-text);">Upload required: no screenshot found.</span>' : ''}
+                                        `}
                                     </div>
 
                                     ${screenshotUrl ? `
@@ -1282,6 +1289,17 @@
         window.replyCommentAdmin = replyCommentAdmin;
         window.updateStatus = updateStatus;
         window.updatePaymentStatus = updatePaymentStatus;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            // Auto reload for immediate Telebirr validation rendering safely 
+            setInterval(() => {
+                const activeEl = document.activeElement;
+                const isWriting = activeEl && ['INPUT', 'TEXTAREA', 'SELECT'].includes(activeEl.tagName);
+                if (!document.querySelector('.modal[style*="display: block"]') && !isWriting) {
+                    loadDashboard();
+                }
+            }, 4000);
+        });
     </script>
 </body>
 </html>

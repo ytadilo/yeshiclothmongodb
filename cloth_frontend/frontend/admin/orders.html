@@ -648,16 +648,24 @@
                                     </div>
 
                                     <div style="margin-top: 12px; display:flex; gap: 10px; align-items:center; flex-wrap:wrap;">
-                                        <select class="form-control" style="max-width: 220px;" aria-label="Update payment status" data-payment-status>
-                                            <option value="Pending" ${paymentStatus === 'Pending' ? 'selected' : ''}>Pending</option>
-                                            <option value="Confirmed" ${paymentStatus === 'Confirmed' ? 'selected' : ''}>Confirmed</option>
-                                            <option value="Failed" ${paymentStatus === 'Failed' ? 'selected' : ''}>Failed</option>
-                                            <option value="Refunded" ${paymentStatus === 'Refunded' ? 'selected' : ''}>Refunded</option>
-                                        </select>
-                                        <button type="button" class="btn" onclick="updatePaymentStatus('${orderId}')">
-                                            ${paymentStatus === 'Confirmed' ? 'Update Payment' : 'Confirm Payment'}
-                                        </button>
-                                        ${!screenshotUrl ? '<span style="color: var(--light-text);">No screenshot uploaded.</span>' : ''}
+                                        ${paymentMethod === 'telebirr_api' ? `
+                                            <span style="padding: 8px 16px; background: #eef5ff; border: 1px solid #cce0ff; border-radius: 8px; color: #0056b3; font-weight: 600;">
+                                                <i class="fas fa-robot"></i> Automatic Telebirr Validation
+                                            </span>
+                                            ${paymentStatus === 'Failed' ? '<span style="color: red; font-weight: bold; margin-left: 10px;">Payment Failed (Customer must try again)</span>' : ''}
+                                            ${!screenshotUrl ? '' : '' /* No screenshot expected for api */ }
+                                        ` : `
+                                            <select class="form-control" style="max-width: 220px;" aria-label="Update payment status" data-payment-status>
+                                                <option value="Pending" ${paymentStatus === 'Pending' ? 'selected' : ''}>Pending</option>
+                                                <option value="Confirmed" ${paymentStatus === 'Confirmed' ? 'selected' : ''}>Confirmed</option>
+                                                <option value="Failed" ${paymentStatus === 'Failed' ? 'selected' : ''}>Failed</option>
+                                                <option value="Refunded" ${paymentStatus === 'Refunded' ? 'selected' : ''}>Refunded</option>
+                                            </select>
+                                            <button type="button" class="btn" onclick="updatePaymentStatus('${orderId}')">
+                                                ${paymentStatus === 'Confirmed' ? 'Update Payment' : 'Confirm Payment'}
+                                            </button>
+                                            ${!screenshotUrl ? '<span style="color: var(--light-text);">No screenshot uploaded.</span>' : ''}
+                                        `}
                                     </div>
 
                                     <div style="margin-top:12px; padding:12px; border:1px solid rgba(30,75,53,0.14); border-radius:14px; background:linear-gradient(180deg, rgba(249,252,250,0.96) 0%, rgba(241,247,243,0.96) 100%);">
@@ -961,6 +969,15 @@
 
         document.addEventListener('DOMContentLoaded', () => {
             loadOrders();
+
+            // Safe background polling to auto-update confirmed Telebirr payments
+            setInterval(() => {
+                const activeEl = document.activeElement;
+                const isWriting = activeEl && ['INPUT', 'TEXTAREA', 'SELECT'].includes(activeEl.tagName);
+                if (!document.querySelector('.modal[style*="display: block"]') && !isWriting) {
+                    loadOrders();
+                }
+            }, 4000);
         });
     </script>
 </body>
