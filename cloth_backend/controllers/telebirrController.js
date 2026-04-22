@@ -137,11 +137,46 @@ exports.initiatePayment = async (req, res) => {
             throw new Error(`Telebirr checkout API returned invalid JSON (Status: ${checkoutRes.status}). Response: ${checkoutResponseText.substring(0, 100)}`);
         }
 
-        // STEP 4: REDIRECT URL OR RAW PREPAY ID FALLBACK
+        // STEP 4: REDIRECT URL OR GENERATE PREPAY ID FALLBACK
         if (checkoutData.code === '0' || checkoutData.code === 200) {
             const biz = typeof checkoutData.biz_content === 'string' ? JSON.parse(checkoutData.biz_content) : (checkoutData.biz_content || checkoutData);
-            const checkoutUrl = biz.toPayUrl || biz.rawPaymentUrl || checkoutData.toPayUrl;
+            let checkoutUrl = biz.toPayUrl || biz.rawPaymentUrl || checkoutData.toPayUrl;
             
+            if (!checkoutUrl && biz.prepay_id) {
+                // Generate C2B Web Checkout URL using prepay_id
+                const prepayMap = {
+                    appid: MERCHANT_APP_ID,
+                    merch_code: process.env.MERCH_CODE || process.env.SHORT_CODE || '101011',
+                    nonce_str: crypto.randomBytes(16).toString('hex'),
+                    prepay_id: biz.prepay_id,
+                    timestamp: Math.floor(Date.now()).toString()
+                };
+
+                const pKeys = Object.keys(prepayMap).sort();
+                const pStringToSign = pKeys
+                    .filter(key => key !== 'sign' && key !== 'sign_type' && prepayMap[key] !== undefined && prepayMap[key] !== null && prepayMap[key] !== '')
+                    .map(key => `${key}=${prepayMap[key]}`)
+                    .join('&');
+
+                const prepaySignCipher = crypto.createSign('RSA-SHA256');
+                prepaySignCipher.update(pStringToSign, 'utf8');
+                const prepaySign = prepaySignCipher.sign(TELEBIRR_PRIVATE_KEY, 'base64');
+                
+                // Keep URL encoding safe parameters
+                const rawRequestString = [
+                    `appid=${prepayMap.appid}`,
+                    `merch_code=${prepayMap.merch_code}`,
+                    `nonce_str=${prepayMap.nonce_str}`,
+                    `prepay_id=${prepayMap.prepay_id}`,
+                    `timestamp=${prepayMap.timestamp}`,
+                    `sign=${encodeURIComponent(prepaySign)}`,
+                    `sign_type=SHA256WithRSA`
+                ].join('&');
+
+                const webBaseUrl = TELEBIRR_BASE_URL.replace('/apiaccess/payment/gateway', '/payment/web/paygate');
+                checkoutUrl = `${webBaseUrl}?${rawRequestString}&version=1.0&trade_type=Checkout`;
+            }
+
             if (checkoutUrl) {
                 return res.json({ checkoutUrl });
             } else if (biz.prepay_id) {
