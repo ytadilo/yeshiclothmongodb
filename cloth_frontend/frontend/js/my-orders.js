@@ -16,8 +16,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         loadMyOrders();
-        // Poll for updates every 3 seconds for immediate telebirr feedback
-        setInterval(() => loadMyOrders({ skipDuringPaymentInteraction: true, skipDuringNegotiationInteraction: true }), 3000);
+        // Poll for updates frequently enough for payment feedback without overwhelming the network.
+        setInterval(() => loadMyOrders({ skipDuringPaymentInteraction: true, skipDuringNegotiationInteraction: true }), 10000);
     })();
 });
 
@@ -25,6 +25,30 @@ let lastAppliedHighlightKey = '';
 let paymentInteractionUntil = 0;
 let negotiationInteractionUntil = 0;
 const PAYMENT_METHOD_STATE_KEY = 'yeshi_my_orders_payment_method_state';
+const IMAGE_FALLBACK_DATA_URI = 'data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==';
+const failedImagePathCache = new Set();
+
+function normalizeImagePathForCache(urlValue) {
+    const raw = String(urlValue || '').trim();
+    if (!raw) return '';
+    try {
+        const parsed = new URL(raw, window.location.origin);
+        return (parsed.pathname || '').toLowerCase();
+    } catch (_) {
+        return raw.split('?')[0].split('#')[0].toLowerCase();
+    }
+}
+
+function rememberFailedImageUrl(urlValue) {
+    const normalized = normalizeImagePathForCache(urlValue);
+    if (!normalized) return;
+    failedImagePathCache.add(normalized);
+}
+
+function isPreviouslyFailedImageUrl(urlValue) {
+    const normalized = normalizeImagePathForCache(urlValue);
+    return normalized ? failedImagePathCache.has(normalized) : false;
+}
 
 function readPaymentMethodState() {
     try {
@@ -236,6 +260,10 @@ function getImgUrl(pathValue) {
     let base = (v.startsWith('http://') || v.startsWith('https://') || v.startsWith('/'))
         ? v
         : '/' + v.replace(/^\/+/, '');
+
+    if (isPreviouslyFailedImageUrl(base)) {
+        return IMAGE_FALLBACK_DATA_URI;
+    }
 
     try {
         const token = localStorage.getItem('token');
@@ -722,6 +750,16 @@ async function loadMyOrders(options = {}) {
                 </div>
             `;
         }).join('');
+
+        Array.from(container.querySelectorAll('img')).forEach((img) => {
+            img.addEventListener('error', () => {
+                const failedSrc = String(img.getAttribute('src') || '').trim();
+                rememberFailedImageUrl(failedSrc);
+                if (img.dataset.yeshiFallbackApplied === '1') return;
+                img.dataset.yeshiFallbackApplied = '1';
+                img.src = IMAGE_FALLBACK_DATA_URI;
+            });
+        });
 
         Array.from(container.querySelectorAll('.negotiation-form')).forEach((frm) => {
             const attachBtn = frm.querySelector('[data-attach-image]');
