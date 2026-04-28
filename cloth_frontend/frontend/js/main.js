@@ -7,6 +7,122 @@
     window.location.replace('/user/');
 })();
 
+const YESHI_IMAGE_FALLBACK_DATA_URI = 'data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==';
+const YESHI_BLOCKED_EXTERNAL_IMAGE_HOSTS = new Set([
+    'ethiopiantraditionaldress.com',
+    'www.ethiopiantraditionaldress.com'
+]);
+const yeshiFailedImagePathCache = new Set();
+
+function normalizeImagePathForCache(urlValue) {
+    const raw = String(urlValue || '').trim();
+    if (!raw) return '';
+    try {
+        const parsed = new URL(raw, window.location.origin);
+        return (parsed.pathname || '').toLowerCase();
+    } catch (_) {
+        return raw.split('?')[0].split('#')[0].toLowerCase();
+    }
+}
+
+function rememberFailedImageUrl(urlValue) {
+    const normalized = normalizeImagePathForCache(urlValue);
+    if (!normalized) return;
+    yeshiFailedImagePathCache.add(normalized);
+}
+
+function isPreviouslyFailedImageUrl(urlValue) {
+    const normalized = normalizeImagePathForCache(urlValue);
+    return normalized ? yeshiFailedImagePathCache.has(normalized) : false;
+}
+
+function shouldBlockExternalImageUrl(urlValue) {
+    const raw = String(urlValue || '').trim();
+    if (!raw || raw.startsWith('data:') || raw.startsWith('blob:')) return false;
+    try {
+        const parsed = new URL(raw, window.location.origin);
+        if (!/^https?:$/i.test(parsed.protocol)) return false;
+        return YESHI_BLOCKED_EXTERNAL_IMAGE_HOSTS.has(String(parsed.hostname || '').toLowerCase());
+    } catch (_) {
+        return false;
+    }
+}
+
+function applySafeImageFallback(img) {
+    if (!img || img.dataset.yeshiFallbackApplied === '1') return;
+    img.dataset.yeshiFallbackApplied = '1';
+    img.src = YESHI_IMAGE_FALLBACK_DATA_URI;
+}
+
+function sanitizeImageElement(img) {
+    if (!img || typeof img.getAttribute !== 'function') return;
+    const currentSrc = String(img.getAttribute('src') || '').trim();
+    if (!currentSrc) return;
+    if (isPreviouslyFailedImageUrl(currentSrc) || shouldBlockExternalImageUrl(currentSrc)) {
+        rememberFailedImageUrl(currentSrc);
+        applySafeImageFallback(img);
+    }
+}
+
+function bindImageFallback(root) {
+    const scope = root && typeof root.querySelectorAll === 'function' ? root : document;
+    scope.querySelectorAll('img').forEach((img) => {
+        if (img.dataset.yeshiFallbackBound === '1') {
+            sanitizeImageElement(img);
+            return;
+        }
+        img.dataset.yeshiFallbackBound = '1';
+        sanitizeImageElement(img);
+        img.addEventListener('error', () => {
+            const failedSrc = String(img.getAttribute('src') || '').trim();
+            rememberFailedImageUrl(failedSrc);
+            applySafeImageFallback(img);
+        });
+    });
+}
+
+function installGlobalImageResilience() {
+    const boot = () => bindImageFallback(document);
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', boot, { once: true });
+    } else {
+        boot();
+    }
+
+    if (typeof MutationObserver !== 'function' || !document.documentElement) return;
+
+    const observer = new MutationObserver((records) => {
+        records.forEach((record) => {
+            if (record.type === 'attributes' && record.target && record.target.tagName === 'IMG') {
+                bindImageFallback(record.target.parentElement || document);
+                sanitizeImageElement(record.target);
+                return;
+            }
+
+            Array.from(record.addedNodes || []).forEach((node) => {
+                if (!node || node.nodeType !== 1) return;
+                if (node.tagName === 'IMG') {
+                    bindImageFallback(node.parentElement || document);
+                    sanitizeImageElement(node);
+                    return;
+                }
+                if (typeof node.querySelectorAll === 'function') {
+                    bindImageFallback(node);
+                }
+            });
+        });
+    });
+
+    observer.observe(document.documentElement, {
+        childList: true,
+        subtree: true,
+        attributes: true,
+        attributeFilter: ['src']
+    });
+}
+
+installGlobalImageResilience();
+
 const YESHI_AUTH_STATE = {
     ready: false,
     token: '',
