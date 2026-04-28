@@ -6,6 +6,7 @@ const { adminOnly } = require('../middleware/authMiddleware');
 const BlockedDevice = require('../models/BlockedDevice');
 const UserDevice = require('../models/UserDevice');
 const User = require('../models/User');
+const { getDatabaseProvider } = require('../utils/db');
 
 const router = express.Router();
 
@@ -14,6 +15,26 @@ function toDeviceHash(input) {
     if (!value) return null;
     if (/^[a-f0-9]{64}$/i.test(value)) return value.toLowerCase();
     return crypto.createHash('sha256').update(value).digest('hex');
+}
+
+async function loadUsersByIds(userIds) {
+    const ids = Array.isArray(userIds) ? userIds.map((id) => String(id || '').trim()).filter(Boolean) : [];
+    if (!ids.length) return [];
+
+    const provider = getDatabaseProvider();
+    if (provider === 'mongo') {
+        return User.find({ _id: { $in: ids } })
+            .select('_id fullName email phone role status')
+            .lean();
+    }
+
+    const users = [];
+    // Firebase wrapper find({_id:{$in}}) performs full scans; findById is direct doc lookup.
+    for (const id of ids) {
+        const user = await User.findById(id).select('_id fullName email phone role status').lean();
+        if (user) users.push(user);
+    }
+    return users;
 }
 
 router.get('/blocked', auth, adminOnly, async (req, res) => {
@@ -40,17 +61,19 @@ router.get('/all', auth, adminOnly, async (req, res) => {
             return res.status(403).json({ msg: 'Access denied' });
         }
 
+        const limitValue = Number(req.query?.limit || 300);
+        const limit = Number.isFinite(limitValue)
+            ? Math.max(50, Math.min(1000, Math.floor(limitValue)))
+            : 300;
+
         const devices = await UserDevice.find({})
             .select('userId deviceHash userAgent firstSeenAt lastSeenAt')
             .sort({ lastSeenAt: -1 })
+            .limit(limit)
             .lean();
 
         const userIds = Array.from(new Set((devices || []).map((device) => String(device.userId || '')).filter(Boolean)));
-        const users = userIds.length
-            ? await User.find({ _id: { $in: userIds } })
-                .select('_id fullName email phone role status')
-                .lean()
-            : [];
+        const users = await loadUsersByIds(userIds);
         const userMap = new Map((users || []).map((user) => [String(user._id || user.id || ''), user]));
 
         const hashes = (devices || []).map((device) => String(device.deviceHash || '')).filter(Boolean);
@@ -63,6 +86,7 @@ router.get('/all', auth, adminOnly, async (req, res) => {
         const blockedSet = new Set((blockedDocs || []).map((device) => String(device.deviceHash || '')));
 
         return res.json({
+            limit,
             devices: (devices || []).map((device) => ({
                 deviceHash: device.deviceHash,
                 userAgent: device.userAgent || '',

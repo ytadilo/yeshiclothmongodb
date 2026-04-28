@@ -409,7 +409,10 @@
 
             try {
                 const res = await apiFetch('/api/admin/devices/all');
-                const data = await res.json();
+                const contentType = String(res.headers.get('content-type') || '').toLowerCase();
+                const data = contentType.includes('application/json')
+                    ? await res.json()
+                    : { msg: await res.text() };
                 if (!res.ok) throw new Error(data?.msg || 'Failed to load devices');
 
                 __allDevices = Array.isArray(data?.devices) ? data.devices : [];
