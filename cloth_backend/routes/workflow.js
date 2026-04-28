@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const auth = require('../middleware/authMiddleware');
+const optionalAuth = require('../middleware/optionalAuth');
 const { adminOnly } = require('../middleware/authMiddleware');
 const upload = require('../middleware/upload');
 
@@ -26,8 +27,8 @@ router.get('/chat/contacts', auth, listChatContacts);
 router.put('/chat/block/:userId', auth, adminOnly, blockMessaging);
 
 router.get('/notifications', auth, getNotifications);
-router.get('/notifications/unread-count', auth, getUnreadCount);
-router.get('/unread-counts', auth, getUnreadCounts);
+router.get('/notifications/unread-count', optionalAuth, getUnreadCount);
+router.get('/unread-counts', optionalAuth, getUnreadCounts);
 router.put('/notifications/read-all', auth, markAllNotificationsRead);
 router.put('/notifications/:id/read', auth, markNotificationRead);
 router.get('/notifications/stream', auth, streamNotifications);

@@ -62,7 +62,7 @@
                 </div>
                 <div class="form-group" id="savedAddressGroup">
                     <label for="savedAddressSelect">Saved Addresses</label>
-                    <select id="savedAddressSelect" class="form-control"></select>
+                    <select id="savedAddressSelect" name="savedAddressSelect" class="form-control"></select>
                 </div>
                 <div class="form-group" id="savedAddressPreview" style="display:none;"></div>
                 <div id="shippingManualGroup">
@@ -120,7 +120,7 @@
                 <div id="selectedClothPreview" class="hidden" style="margin-bottom: 14px; padding: 12px; border: 1px solid rgba(0,0,0,0.12); border-radius: 10px; background: #fff;"></div>
                 <div class="form-group" id="categoryGroup">
                     <label for="clothCategory">Category</label>
-                    <select id="clothCategory" class="form-control" onchange="updateMeasurementFields()">
+                    <select id="clothCategory" name="clothCategory" class="form-control" onchange="updateMeasurementFields()">
                         <option value="Women">Women</option>
                         <option value="Men">Men</option>
                         <option value="Couple">Couple</option>
@@ -130,28 +130,28 @@
                     </select>
                 </div>
                 <div class="form-group" id="measurementSetupGroup">
-                    <label>Measurement setup (optional)</label>
+                    <div style="display:block; margin-bottom:8px;">Measurement setup (optional)</div>
                     <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:10px;">
                         <label style="display:flex; gap:8px; align-items:flex-start; padding:10px 12px; border:1px solid rgba(0,0,0,0.12); border-radius:10px; background:#fff; font-weight:500;">
-                            <input type="checkbox" value="women" data-custom-measurement-profile>
+                            <input type="checkbox" name="customMeasurementProfiles" value="women" data-custom-measurement-profile>
                             <span>Women's Measurements</span>
                         </label>
                         <label style="display:flex; gap:8px; align-items:flex-start; padding:10px 12px; border:1px solid rgba(0,0,0,0.12); border-radius:10px; background:#fff; font-weight:500;">
-                            <input type="checkbox" value="men_tshirt" data-custom-measurement-profile>
+                            <input type="checkbox" name="customMeasurementProfiles" value="men_tshirt" data-custom-measurement-profile>
                             <span>Men's T-Shirt</span>
                         </label>
                         <label style="display:flex; gap:8px; align-items:flex-start; padding:10px 12px; border:1px solid rgba(0,0,0,0.12); border-radius:10px; background:#fff; font-weight:500;">
-                            <input type="checkbox" value="men_trousers" data-custom-measurement-profile>
+                            <input type="checkbox" name="customMeasurementProfiles" value="men_trousers" data-custom-measurement-profile>
                             <span>Men's Trousers</span>
                         </label>
                     </div>
                     <small style="display:block; margin-top:6px; color: var(--light-text);">These options control which measurement sections appear when you choose Enter new measurements.</small>
                 </div>
                 <div class="form-group" id="productQuantityGroup" style="display:none;">
-                    <label>Product Quantity</label>
+                    <label for="productQuantityValue">Product Quantity</label>
                     <div style="display:flex; align-items:center; gap:10px; max-width:220px;">
                         <button type="button" id="qtyMinusBtn" class="btn" style="padding:0 12px; height:38px; min-width:38px;">-</button>
-                        <input type="number" id="productQuantityValue" class="form-control" min="1" step="1" value="1" style="min-width:64px; text-align:center; font-weight:800; font-size:1.05rem; height:38px; padding:0 8px;">
+                        <input type="number" id="productQuantityValue" name="productQuantityValue" class="form-control" min="1" step="1" value="1" style="min-width:64px; text-align:center; font-weight:800; font-size:1.05rem; height:38px; padding:0 8px;">
                         <button type="button" id="qtyPlusBtn" class="btn" style="padding:0 12px; height:38px; min-width:38px;">+</button>
                     </div>
                     <small style="display:block; margin-top:6px; color: var(--light-text);">Minimum quantity is 1.</small>
@@ -162,7 +162,7 @@
                 </div>
                 <div class="form-group" id="eventTypeGroup" style="display:none;">
                     <label for="eventType">Event Type (Required for Other)</label>
-                    <input type="text" id="eventType" class="form-control" placeholder="e.g. Wedding, holiday, graduation">
+                    <input type="text" id="eventType" name="eventType" class="form-control" placeholder="e.g. Wedding, holiday, graduation">
                 </div>
             </div>
 
@@ -182,13 +182,13 @@
                 </div>
                 <div class="form-group" id="savedMeasurementGroup">
                     <label for="savedMeasurementSelect">Saved Measurement Profiles</label>
-                    <select id="savedMeasurementSelect" class="form-control"></select>
+                    <select id="savedMeasurementSelect" name="savedMeasurementSelect" class="form-control"></select>
                 </div>
                 <div class="form-group" id="savedMeasurementPreview" style="display:none;"></div>
 
                 <div id="customMeasurementGroup" class="measurements-container">
                     <div id="normalMeasurementModeGroup" class="form-group hidden" style="margin-bottom: 14px;">
-                        <label style="display:block; margin-bottom:8px;">Measurement Option</label>
+                        <div style="display:block; margin-bottom:8px;">Measurement Option</div>
                         <div style="display:flex; flex-direction:column; gap:8px;">
                             <label style="display:flex; gap:8px; align-items:flex-start; font-weight:500;">
                                 <input type="radio" name="normalMeasurementMode" value="same" checked>

@@ -1067,24 +1067,29 @@ function renderMeasurementBlocks() {
         const productLabel = qty > 1 && normalMode === 'different'
             ? `<div style="font-size:0.84rem; color:#745B18; font-weight:700; margin-bottom:4px;">Product ${block.productIndex}</div>`
             : '';
-        const fieldsHtml = (Array.isArray(block.measurementFields) ? block.measurementFields : []).map((field) => `
+        const fieldsHtml = (Array.isArray(block.measurementFields) ? block.measurementFields : []).map((field) => {
+            const inputId = `measurement-${block.key}-${field.key}`;
+            return `
             <div class="form-group" style="margin-bottom:8px;">
-                <label>${field.label}${field.amharicLabel ? ` | ${field.amharicLabel}` : ''}</label>
-                <input type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" class="form-control" data-measure-field="${field.key}" placeholder="cm" value="${escapeHtml(sanitizeMeasurementValue(old.measurements?.[field.key] || ''))}">
+                <label for="${inputId}">${field.label}${field.amharicLabel ? ` | ${field.amharicLabel}` : ''}</label>
+                <input type="text" id="${inputId}" name="${inputId}" inputmode="numeric" pattern="[0-9]*" autocomplete="off" class="form-control" data-measure-field="${field.key}" placeholder="cm" value="${escapeHtml(sanitizeMeasurementValue(old.measurements?.[field.key] || ''))}">
             </div>
-        `).join('');
+        `;
+        }).join('');
+        const personInputId = `measurement-person-${block.key}`;
+        const notesInputId = `measurement-notes-${block.key}`;
         return `
             <div class="measurement-entry" data-measure-key="${block.key}" data-product-index="${block.productIndex}" data-template-key="${block.templateKey}" data-label="${block.label}" style="border:1px solid rgba(0,0,0,0.1); border-radius:10px; padding:12px; margin-bottom:10px; background:#fff;">
                 ${productLabel}
                 <div style="font-weight:800; color:#1a1c1c; margin-bottom:8px;">${block.label}</div>
                 <div class="form-group" style="margin-bottom:8px;">
-                    <label>Person Name (optional)</label>
-                    <input type="text" class="form-control" data-measure-person placeholder="Enter person name" value="${escapeHtml(old.personName)}">
+                    <label for="${personInputId}">Person Name (optional)</label>
+                    <input type="text" id="${personInputId}" name="${personInputId}" class="form-control" data-measure-person placeholder="Enter person name" value="${escapeHtml(old.personName)}">
                 </div>
                 ${fieldsHtml}
                 <div class="form-group" style="margin-bottom:0;">
-                    <label>Measurement notes (optional)</label>
-                    <textarea class="form-control" rows="4" data-measure-notes placeholder="Add any detailed measurement text here">${escapeHtml(old.notes || '')}</textarea>
+                    <label for="${notesInputId}">Measurement notes (optional)</label>
+                    <textarea id="${notesInputId}" name="${notesInputId}" class="form-control" rows="4" data-measure-notes placeholder="Add any detailed measurement text here">${escapeHtml(old.notes || '')}</textarea>
                 </div>
             </div>
         `;
@@ -1488,7 +1493,7 @@ function getImgUrl(pathValue) {
     const v = String(pathValue || '').trim();
     if (!v) return '';
 
-    const base = (v.startsWith('http://') || v.startsWith('https://') || v.startsWith('/'))
+    let base = (v.startsWith('http://') || v.startsWith('https://') || v.startsWith('/'))
         ? v
         : '/' + v.replace(/^\/+/, '');
 
@@ -1497,7 +1502,11 @@ function getImgUrl(pathValue) {
         const isPrivateUpload = base.startsWith('/api/uploads/') || /\/api\/uploads\//i.test(base);
         if (token && isPrivateUpload && !/[?&](token|auth)=/.test(base)) {
             const sep = base.includes('?') ? '&' : '?';
-            return base + sep + 'token=' + encodeURIComponent(token);
+            base += sep + 'token=' + encodeURIComponent(token);
+        }
+        if (isPrivateUpload && !/[?&]fallback=/.test(base)) {
+            const sep = base.includes('?') ? '&' : '?';
+            base += sep + 'fallback=1';
         }
     } catch (_) {
         // ignore

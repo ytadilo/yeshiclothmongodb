@@ -233,7 +233,7 @@ function escapeHtml(str) {
 function getImgUrl(pathValue) {
     const v = String(pathValue || '').trim();
     if (!v) return '';
-    const base = (v.startsWith('http://') || v.startsWith('https://') || v.startsWith('/'))
+    let base = (v.startsWith('http://') || v.startsWith('https://') || v.startsWith('/'))
         ? v
         : '/' + v.replace(/^\/+/, '');
 
@@ -242,7 +242,11 @@ function getImgUrl(pathValue) {
         const isPrivateUpload = base.startsWith('/api/uploads/') || /\/api\/uploads\//i.test(base);
         if (token && isPrivateUpload && !/[?&](token|auth)=/.test(base)) {
             const sep = base.includes('?') ? '&' : '?';
-            return base + sep + 'token=' + encodeURIComponent(token);
+            base += sep + 'token=' + encodeURIComponent(token);
+        }
+        if (isPrivateUpload && !/[?&]fallback=/.test(base)) {
+            const sep = base.includes('?') ? '&' : '?';
+            base += sep + 'fallback=1';
         }
     } catch (_) {
         // ignore

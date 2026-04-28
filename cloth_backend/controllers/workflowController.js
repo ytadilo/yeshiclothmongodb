@@ -423,10 +423,14 @@ exports.getNotifications = async (req, res) => {
 
 exports.getUnreadCount = async (req, res) => {
     try {
+        const userId = String(req.user?.id || '').trim();
+        if (!userId) {
+            return res.json({ unread: 0 });
+        }
         if (!Notification || typeof Notification.countDocuments !== 'function') {
             return res.json({ unread: 0 });
         }
-        const count = await Notification.countDocuments({ user_id: req.user.id, is_read: false });
+        const count = await Notification.countDocuments({ user_id: userId, is_read: false });
         return res.json({ unread: count });
     } catch (err) {
         console.error('getUnreadCount error:', err?.message || err);
@@ -436,9 +440,12 @@ exports.getUnreadCount = async (req, res) => {
 
 exports.getUnreadCounts = async (req, res) => {
     try {
-        const userId = String(req.user.id || '');
+        const userId = String(req.user?.id || '');
         if (!userId) {
-            return res.status(401).json({ msg: 'Unauthorized' });
+            return res.json({
+                unreadMessages: 0,
+                unreadNotifications: 0
+            });
         }
 
         let unreadMessagesQuery = {
