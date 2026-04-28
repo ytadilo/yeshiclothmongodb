@@ -41,13 +41,23 @@ function getFirebaseToken(req) {
     return String(req.header('x-firebase-token') || '').trim();
 }
 
-function getLegacyToken(req) {
-    return String(
-        req.header('x-auth-token')
-        || req.query?.token
-        || getCookieValue(req, 'yeshi_token')
-        || ''
-    ).trim();
+function getLegacyTokens(req) {
+    const seen = new Set();
+    const candidates = [
+        req.header('x-auth-token'),
+        getCookieValue(req, 'yeshi_token'),
+        req.query?.token
+    ];
+
+    const tokens = [];
+    candidates.forEach((raw) => {
+        const token = String(raw || '').trim();
+        if (!token || seen.has(token)) return;
+        seen.add(token);
+        tokens.push(token);
+    });
+
+    return tokens;
 }
 
 async function enforceActiveUser(req, dbUser, options = {}) {
@@ -178,7 +188,7 @@ async function resolveRequestUser(req, options = {}) {
     };
 
     const firebaseToken = getFirebaseToken(req);
-    const legacyToken = getLegacyToken(req);
+    const legacyTokens = getLegacyTokens(req);
 
     const firebaseResult = await resolveFromFirebaseToken(req, firebaseToken);
     if (firebaseResult) {
@@ -186,9 +196,11 @@ async function resolveRequestUser(req, options = {}) {
     }
 
     if (settings.allowLegacyJwt) {
-        const legacyResult = await resolveFromLegacyJwt(req, legacyToken);
-        if (legacyResult) {
-            return legacyResult;
+        for (const legacyToken of legacyTokens) {
+            const legacyResult = await resolveFromLegacyJwt(req, legacyToken);
+            if (legacyResult && legacyResult.ok) {
+                return legacyResult;
+            }
         }
     }
 

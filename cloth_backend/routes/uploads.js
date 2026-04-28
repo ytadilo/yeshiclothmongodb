@@ -12,6 +12,11 @@ const upload = require('../middleware/upload');
 
 const router = express.Router();
 
+function skipAdminDeviceCheck(req, _res, next) {
+    req.__skipAdminDeviceCheck = true;
+    return next();
+}
+
 function safeFilename(name) {
     const value = String(name || 'file');
     // avoid header injection / weird characters
@@ -72,7 +77,7 @@ async function resolveUploadByReference(rawId, provider) {
 
 // GET /api/uploads/:id
 // Public for "public" uploads. "private" requires owner/admin.
-router.get('/:id', optionalAuth, async (req, res) => {
+router.get('/:id', skipAdminDeviceCheck, optionalAuth, async (req, res) => {
     try {
         const { id } = req.params;
         const provider = getDatabaseProvider();
