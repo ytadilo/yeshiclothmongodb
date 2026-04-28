@@ -135,7 +135,11 @@
             const token = getToken();
             if (token && base.startsWith('/api/uploads/') && !/[?&](token|auth)=/.test(base)) {
                 const sep = base.includes('?') ? '&' : '?';
-                return base + sep + 'token=' + encodeURIComponent(token);
+                return base + sep + 'token=' + encodeURIComponent(token) + '&fallback=1';
+            }
+            if (base.startsWith('/api/uploads/') && !/[?&]fallback=/.test(base)) {
+                const sep = base.includes('?') ? '&' : '?';
+                return base + sep + 'fallback=1';
             }
         } catch (_) {
             // ignore

@@ -254,7 +254,7 @@
                         <td style="padding: 12px; font-weight: 800; color: ${badgeColor};">${escapeHtml(status)}</td>
                         <td style="padding: 12px;">
                             <div style="display:flex; gap: 8px; align-items:center;">
-                                <select class="form-control" style="max-width: 180px;" data-user-status>
+                                <select class="form-control" style="max-width: 180px;" data-user-status name="user_status">
                                     <option value="active" ${status === 'active' ? 'selected' : ''}>active</option>
                                     <option value="inactive" ${status === 'inactive' ? 'selected' : ''}>inactive</option>
                                     <option value="banned" ${status === 'banned' ? 'selected' : ''}>banned</option>

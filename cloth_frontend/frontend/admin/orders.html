@@ -637,7 +637,7 @@
                                     </div>
 
                                     <div style="margin-top: 12px; display:flex; gap: 10px; align-items:center; flex-wrap:wrap;">
-                                        <select class="form-control" style="max-width: 220px;" aria-label="Update sewing status" data-sewing-status>
+                                        <select class="form-control" style="max-width: 220px;" aria-label="Update sewing status" data-sewing-status name="sewing_status">
                                             <option value="Pending" ${sewingStatus === 'Pending' ? 'selected' : ''}>Pending</option>
                                             <option value="Sewing" ${sewingStatus === 'Sewing' ? 'selected' : ''}>Sewing</option>
                                             <option value="Ready" ${sewingStatus === 'Ready' ? 'selected' : ''}>Ready</option>
@@ -655,7 +655,7 @@
                                             ${paymentStatus === 'Failed' ? '<span style="color: red; font-weight: bold; margin-left: 10px;">Payment Failed (Customer must try again)</span>' : ''}
                                             ${!screenshotUrl ? '' : '' /* No screenshot expected for api */ }
                                         ` : `
-                                            <select class="form-control" style="max-width: 220px;" aria-label="Update payment status" data-payment-status>
+                                            <select class="form-control" style="max-width: 220px;" aria-label="Update payment status" data-payment-status name="payment_status">
                                                 <option value="Pending" ${paymentStatus === 'Pending' ? 'selected' : ''}>Pending</option>
                                                 <option value="Confirmed" ${paymentStatus === 'Confirmed' ? 'selected' : ''}>Confirmed</option>
                                                 <option value="Failed" ${paymentStatus === 'Failed' ? 'selected' : ''}>Failed</option>
@@ -690,8 +690,8 @@
 
                                     ${!isProductAsIsOrder ? `
                                     <div style="margin-top: 12px; display:flex; gap: 10px; align-items:center; flex-wrap:wrap;">
-                                        <input type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" class="form-control" style="max-width: 160px;" aria-label="Set cloth price ETB" data-price-etb placeholder="Cloth ETB" value="${Number.isFinite(clothPrice) && clothPrice >= 0 ? String(clothPrice) : ''}">
-                                        <input type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" class="form-control" style="max-width: 160px;" aria-label="Set shipping price ETB" data-shipping-etb placeholder="Shipping ETB" value="${Number.isFinite(clothShippingPrice) && clothShippingPrice >= 0 ? String(clothShippingPrice) : ''}">
+                                        <input type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" class="form-control" style="max-width: 160px;" aria-label="Set cloth price ETB" data-price-etb name="cloth_price_etb" placeholder="Cloth ETB" value="${Number.isFinite(clothPrice) && clothPrice >= 0 ? String(clothPrice) : ''}">
+                                        <input type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" class="form-control" style="max-width: 160px;" aria-label="Set shipping price ETB" data-shipping-etb name="shipping_price_etb" placeholder="Shipping ETB" value="${Number.isFinite(clothShippingPrice) && clothShippingPrice >= 0 ? String(clothShippingPrice) : ''}">
                                         <button type="button" class="btn-secondary" onclick="updatePricing('${orderId}')">Set Price</button>
                                     </div>
                                     ` : ''}
@@ -705,7 +705,7 @@
                                                 <button type="button" data-negotiation-attach style="width:40px; height:40px; border:none; border-radius:999px; background:transparent; color:#463f32; display:inline-flex; align-items:center; justify-content:center; cursor:pointer;" aria-label="Attach image">
                                                     <span class="material-symbols-outlined">add_circle</span>
                                                 </button>
-                                                <input type="text" class="form-control" data-negotiation-msg placeholder="Write negotiation..." style="flex:1; min-width:0; width:1%; border:none; background:transparent; box-shadow:none; padding:0; color:#5d574a; font-size:0.95rem;">
+                                                <input type="text" class="form-control" data-negotiation-msg name="negotiation_message" placeholder="Write negotiation..." style="flex:1; min-width:0; width:1%; border:none; background:transparent; box-shadow:none; padding:0; color:#5d574a; font-size:0.95rem;">
                                                 <span data-negotiation-image-name style="max-width:36%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:0.82rem; color:#6e6658; display:none;"></span>
                                                 <button type="button" class="btn-secondary" onclick="sendNegotiation('${orderId}')" style="width:40px; min-width:40px; height:40px; min-height:40px; padding:0; border-radius:999px; display:inline-flex; align-items:center; justify-content:center; background:#d9d3a4; color:#5b5800; border:none;" aria-label="Send message">
                                                     <span class="material-symbols-outlined">send</span>
@@ -716,7 +716,7 @@
                                                 <span data-negotiation-image-preview-name style="flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:0.82rem; color:#6e6658;"></span>
                                                 <button type="button" data-negotiation-clear-image style="border:none; background:transparent; color:#735c00; cursor:pointer; font-size:0.82rem;">Remove</button>
                                             </div>
-                                            <input type="file" data-negotiation-image accept="image/*" style="display:none;">
+                                            <input type="file" data-negotiation-image name="negotiation_image" accept="image/*" style="display:none;">
                                         </div>
                                     </div>
                                     ` : `<div style="margin-top: 12px; color: var(--light-text);">Negotiation is not available for product-as-is orders.</div>`}

@@ -17,6 +17,16 @@ function skipAdminDeviceCheck(req, _res, next) {
     return next();
 }
 
+const FALLBACK_GIF_BASE64 = 'R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==';
+
+function sendFallbackImage(res) {
+    const pixel = Buffer.from(FALLBACK_GIF_BASE64, 'base64');
+    res.setHeader('Cache-Control', 'public, max-age=300');
+    res.setHeader('Content-Type', 'image/gif');
+    res.setHeader('Content-Disposition', 'inline; filename="missing-upload.gif"');
+    return res.status(200).send(pixel);
+}
+
 function safeFilename(name) {
     const value = String(name || 'file');
     // avoid header injection / weird characters
@@ -87,7 +97,12 @@ router.get('/:id', skipAdminDeviceCheck, optionalAuth, async (req, res) => {
 
         const upload = await resolveUploadByReference(id, provider);
 
-        if (!upload) return res.status(404).json({ msg: 'Upload not found' });
+        if (!upload) {
+            if (String(req.query?.fallback || '').trim() === '1') {
+                return sendFallbackImage(res);
+            }
+            return res.status(404).json({ msg: 'Upload not found' });
+        }
 
         if (upload.visibility === 'private') {
             const user = req.user;
@@ -116,6 +131,9 @@ router.get('/:id', skipAdminDeviceCheck, optionalAuth, async (req, res) => {
                     return res.send(upload.data);
                 }
                 
+                if (String(req.query?.fallback || '').trim() === '1') {
+                    return sendFallbackImage(res);
+                }
                 return res.status(404).json({ msg: 'Upload file not found (chat)' });
             }
 
@@ -149,6 +167,9 @@ router.get('/:id', skipAdminDeviceCheck, optionalAuth, async (req, res) => {
             return res.send(upload.data);
         }
 
+        if (String(req.query?.fallback || '').trim() === '1') {
+            return sendFallbackImage(res);
+        }
         return res.status(404).json({ msg: 'Upload file not found' });
     } catch (err) {
         console.error(err);

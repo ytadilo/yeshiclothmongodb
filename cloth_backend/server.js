@@ -168,6 +168,20 @@ app.get('/', (req, res) => {
     res.type('text').send('OK');
 });
 
+app.get('/favicon.ico', (req, res) => {
+    const candidates = [
+        path.join(__dirname, '../cloth_frontend/frontend/images/logo.png'),
+        path.join(__dirname, '../frontend/images/logo.png')
+    ];
+
+    const iconPath = candidates.find((candidate) => fs.existsSync(candidate));
+    if (iconPath) {
+        return res.sendFile(iconPath);
+    }
+
+    return res.status(204).end();
+});
+
 const ADMIN_PUBLIC_PATHS = new Set([
     '/admin/login',
     '/admin/forgot-password',
