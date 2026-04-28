@@ -113,11 +113,11 @@
             <h3>Create New Post</h3>
             <form id="createPostForm">
                 <div class="form-group">
-                    <label>Title</label>
+                    <label for="postTitle">Title</label>
                     <input type="text" id="postTitle" class="form-control" required>
                 </div>
                 <div class="form-group">
-                    <label>Category</label>
+                    <p style="font-weight: 600; margin-bottom: 8px;">Category</p>
                     <div id="postCategoryOptions" class="option-grid">
                         <label class="option-pill"><input type="checkbox" value="Women" data-post-category> <span>Women</span></label>
                         <label class="option-pill"><input type="checkbox" value="Men" data-post-category> <span>Men</span></label>
@@ -129,7 +129,7 @@
                     <small style="display:block; margin-top:6px; color: var(--light-text);">Choose one or more categories. The post will appear in every selected category.</small>
                 </div>
                 <div class="form-group">
-                    <label>Measurement setup (optional)</label>
+                    <p style="font-weight: 600; margin-bottom: 8px;">Measurement setup (optional)</p>
                     <div id="postMeasurementProfileOptions" class="option-grid">
                         <label class="option-pill"><input type="checkbox" value="women" data-post-measurement-profile> <span>Women's Measurements</span></label>
                         <label class="option-pill"><input type="checkbox" value="men_tshirt" data-post-measurement-profile> <span>Men's T-Shirt</span></label>
@@ -138,15 +138,15 @@
                     <small style="display:block; margin-top:6px; color: var(--light-text);">These options are optional and control which measurement sections users see on the order page.</small>
                 </div>
                 <div class="form-group">
-                    <label>Description</label>
+                    <label for="postDescription">Description</label>
                     <textarea id="postDescription" class="form-control" rows="3" required></textarea>
                 </div>
                 <div class="form-group">
-                    <label>Old Price (ETB) - optional</label>
+                    <label for="postOldPrice">Old Price (ETB) - optional</label>
                     <input type="number" id="postOldPrice" class="form-control" min="0" step="0.01" placeholder="Shown as crossed-out price">
                 </div>
                 <div class="form-group">
-                    <label>New Price (ETB)</label>
+                    <label for="postPrice">New Price (ETB)</label>
                     <input type="number" id="postPrice" class="form-control" min="0" step="0.01" required>
                 </div>
                 <div class="form-group">
@@ -156,7 +156,7 @@
                     </label>
                 </div>
                 <div class="form-group">
-                    <label>Shipping Price (ETB) - optional when not free</label>
+                    <label for="postShippingPrice">Shipping Price (ETB) - optional when not free</label>
                     <input type="number" id="postShippingPrice" class="form-control" min="0" step="0.01" placeholder="0">
                 </div>
                 <div class="form-group">
@@ -166,7 +166,7 @@
                     </label>
                 </div>
                 <div class="form-group">
-                    <label>Stock Quantity (when not unlimited)</label>
+                    <label for="postStockQuantity">Stock Quantity (when not unlimited)</label>
                     <input type="number" id="postStockQuantity" class="form-control" min="0" step="1" placeholder="0">
                 </div>
                 <div class="form-group">
@@ -183,27 +183,27 @@
                     <small style="display:block; margin-top:6px; color: var(--light-text);">Hold Ctrl/Cmd to select multiple countries.</small>
                 </div>
                 <div class="form-group">
-                    <label>Video link (optional)</label>
+                    <label for="postVideoUrl">Video link (optional)</label>
                     <input type="text" id="postVideoUrl" class="form-control" placeholder="YouTube link or direct .mp4/.webm/.ogg link">
                 </div>
                 <div class="form-group">
-                    <label>TikTok link (optional)</label>
+                    <label for="postTikTokUrl">TikTok link (optional)</label>
                     <input type="text" id="postTikTokUrl" class="form-control" placeholder="https://www.tiktok.com/@username/video/...">
                 </div>
                 <div class="form-group">
-                    <label>Instagram Reel link (optional)</label>
+                    <label for="postInstagramUrl">Instagram Reel link (optional)</label>
                     <input type="text" id="postInstagramUrl" class="form-control" placeholder="https://www.instagram.com/reel/...">
                 </div>
                 <div class="form-group">
-                    <label>Images</label>
+                    <label for="postImages">Images</label>
                     <input type="file" id="postImages" class="form-control" multiple accept="image/*">
                 </div>
                 <div class="form-group">
-                    <label>Image link (optional)</label>
+                    <label for="postImageLink">Image link (optional)</label>
                     <input type="text" id="postImageLink" class="form-control" placeholder="https://example.com/photo.jpg or comma-separated links">
                 </div>
                 <div class="form-group">
-                    <label>More image links (optional)</label>
+                    <label for="postImageLinks">More image links (optional)</label>
                     <div id="postImageLinkList" class="image-link-list"></div>
                     <button type="button" id="addPostImageLinkBtn" class="image-link-add">Add more image address</button>
                     <textarea id="postImageLinks" class="form-control" rows="3" placeholder="Add one image URL per line or comma-separated" style="display:none;"></textarea>
@@ -239,7 +239,7 @@
                     <input type="text" id="editTitle" class="form-control" required>
                 </div>
                 <div class="form-group">
-                    <label for="editCategory">Category</label>
+                    <p style="font-weight: 600; margin-bottom: 8px;">Category</p>
                     <div id="editCategoryOptions" class="option-grid">
                         <label class="option-pill"><input type="checkbox" value="Women" data-edit-category> <span>Women</span></label>
                         <label class="option-pill"><input type="checkbox" value="Men" data-edit-category> <span>Men</span></label>
@@ -251,7 +251,7 @@
                     <small style="display:block; margin-top:6px; color: var(--light-text);">Choose one or more categories for this post.</small>
                 </div>
                 <div class="form-group">
-                    <label>Measurement setup (optional)</label>
+                    <p style="font-weight: 600; margin-bottom: 8px;">Measurement setup (optional)</p>
                     <div id="editMeasurementProfileOptions" class="option-grid">
                         <label class="option-pill"><input type="checkbox" value="women" data-edit-measurement-profile> <span>Women's Measurements</span></label>
                         <label class="option-pill"><input type="checkbox" value="men_tshirt" data-edit-measurement-profile> <span>Men's T-Shirt</span></label>
@@ -332,7 +332,7 @@
                     <small style="color: var(--light-text); display:block; margin-top:6px;">If you add image link or upload files, current images will be replaced.</small>
                 </div>
                 <div class="form-group">
-                    <label>Current Images</label>
+                    <p style="font-weight: 600; margin-bottom: 8px;">Current Images</p>
                     <div id="editCurrentImages" style="display:flex; flex-wrap:wrap; gap:8px;"></div>
                     <small style="color: var(--light-text); display:block; margin-top:6px;">Remove deletes that image. Changing Image link replaces only the previous primary image link.</small>
                 </div>
@@ -798,10 +798,10 @@
                                     <div style="margin-top:6px;">${escapeHtml(c.text || '')}</div>
                                     ${c.image_url ? `<div style="margin-top:8px;"><a href="${escapeHtml(c.image_url)}" target="_blank" rel="noopener noreferrer"><img src="${escapeHtml(c.image_url)}" alt="Comment image" style="max-width:180px; width:100%; border-radius:10px; border:1px solid rgba(0,0,0,0.12);"></a></div>` : ''}
                                     <div style="margin-top:8px; display:grid; gap:8px;" data-comment-editor="${escapeHtml(commentId)}">
-                                        <textarea class="form-control" data-comment-text rows="2" placeholder="Edit comment text">${escapeHtml(c.text || '')}</textarea>
-                                        <input type="file" class="form-control" data-comment-image accept="image/*">
+                                        <textarea class="form-control" data-comment-text rows="2" placeholder="Edit comment text" aria-label="Edit comment text">${escapeHtml(c.text || '')}</textarea>
+                                        <input type="file" class="form-control" data-comment-image accept="image/*" aria-label="Upload replacement comment image">
                                         <label style="display:flex; align-items:center; gap:8px; font-size:0.86rem; color:var(--light-text);">
-                                            <input type="checkbox" data-comment-remove-image>
+                                            <input type="checkbox" data-comment-remove-image aria-label="Remove current comment image">
                                             Remove current image
                                         </label>
                                     </div>
@@ -819,12 +819,12 @@
                                                 <button type="button" data-reply-attach style="width:40px; height:40px; border:none; border-radius:999px; background:transparent; color:#463f32; display:inline-flex; align-items:center; justify-content:center; cursor:pointer;" aria-label="Attach reply image">
                                                     <span class="material-symbols-outlined">add_circle</span>
                                                 </button>
-                                                <input type="text" data-reply-text placeholder="Write comment reply..." style="flex:1; min-width:0; width:1%; border:none; background:transparent; color:#5d574a; outline:none; font:inherit; font-size:0.95rem;">
+                                                <input type="text" data-reply-text placeholder="Write comment reply..." aria-label="Reply text" style="flex:1; min-width:0; width:1%; border:none; background:transparent; color:#5d574a; outline:none; font:inherit; font-size:0.95rem;">
                                                 <button class="btn-secondary" type="button" onclick="replyCommentAdmin('${escapeHtml(normalizedPostId)}','${escapeHtml(commentId)}')" style="width:40px; min-width:40px; height:40px; min-height:40px; padding:0; border-radius:999px; display:inline-flex; align-items:center; justify-content:center; background:#d9d3a4; color:#5b5800; border:none;" aria-label="Send reply">
                                                     <span class="material-symbols-outlined">send</span>
                                                 </button>
                                             </div>
-                                            <input type="file" data-reply-image accept="image/*" style="display:none;">
+                                            <input type="file" data-reply-image accept="image/*" aria-label="Reply image file" style="display:none;">
                                         </div>
                                     </div>
                                 </div>
@@ -1055,6 +1055,7 @@
             input.placeholder = 'https://example.com/another-photo.jpg';
             input.value = String(value || '').trim();
             input.setAttribute('data-image-link-item', '1');
+            input.setAttribute('aria-label', 'Additional image link');
 
             const removeBtn = document.createElement('button');
             removeBtn.type = 'button';
