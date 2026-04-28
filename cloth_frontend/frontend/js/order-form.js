@@ -1409,6 +1409,7 @@ function renderSelectedClothPreview(post) {
             </div>
         </div>
     `;
+    bindResilientImages(box);
 }
 
 async function loadSelectedCloth(postId, fallbackTitle) {
@@ -1489,6 +1490,50 @@ function escapeHtml(str) {
         .replace(/'/g, '&#039;');
 }
 
+const IMAGE_FALLBACK_DATA_URI = 'data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==';
+const blockedExternalImageHosts = new Set([
+    'ethiopiantraditionaldress.com',
+    'www.ethiopiantraditionaldress.com'
+]);
+const failedImagePathCache = new Set();
+
+function normalizeImagePathForCache(urlValue) {
+    const raw = String(urlValue || '').trim();
+    if (!raw) return '';
+    try {
+        const parsed = new URL(raw, window.location.origin);
+        return (parsed.pathname || '').toLowerCase();
+    } catch (_) {
+        return raw.split('?')[0].split('#')[0].toLowerCase();
+    }
+}
+
+function rememberFailedImageUrl(urlValue) {
+    const normalized = normalizeImagePathForCache(urlValue);
+    if (!normalized) return;
+    failedImagePathCache.add(normalized);
+}
+
+function isPreviouslyFailedImageUrl(urlValue) {
+    const normalized = normalizeImagePathForCache(urlValue);
+    return normalized ? failedImagePathCache.has(normalized) : false;
+}
+
+function bindResilientImages(root) {
+    const scope = root && typeof root.querySelectorAll === 'function' ? root : document;
+    scope.querySelectorAll('img').forEach((img) => {
+        if (img.dataset.yeshiFallbackBound === '1') return;
+        img.dataset.yeshiFallbackBound = '1';
+        img.addEventListener('error', () => {
+            const failedSrc = String(img.getAttribute('src') || '').trim();
+            rememberFailedImageUrl(failedSrc);
+            if (img.dataset.yeshiFallbackApplied === '1') return;
+            img.dataset.yeshiFallbackApplied = '1';
+            img.src = IMAGE_FALLBACK_DATA_URI;
+        });
+    });
+}
+
 function getImgUrl(pathValue) {
     const v = String(pathValue || '').trim();
     if (!v) return '';
@@ -1496,6 +1541,23 @@ function getImgUrl(pathValue) {
     let base = (v.startsWith('http://') || v.startsWith('https://') || v.startsWith('/'))
         ? v
         : '/' + v.replace(/^\/+/, '');
+
+    if (isPreviouslyFailedImageUrl(base)) {
+        return IMAGE_FALLBACK_DATA_URI;
+    }
+
+    try {
+        const parsed = new URL(base, window.location.origin);
+        if (/^https?:$/i.test(parsed.protocol)) {
+            const host = String(parsed.hostname || '').toLowerCase();
+            if (blockedExternalImageHosts.has(host)) {
+                rememberFailedImageUrl(base);
+                return IMAGE_FALLBACK_DATA_URI;
+            }
+        }
+    } catch (_) {
+        // ignore parse errors and continue
+    }
 
     try {
         const token = localStorage.getItem('token');
@@ -1642,6 +1704,7 @@ async function loadMyOrders() {
                 </div>
             `;
         }).join('');
+        bindResilientImages(container);
     } catch (err) {
         console.error(err);
         const msg = (err?.message || '').toLowerCase();
