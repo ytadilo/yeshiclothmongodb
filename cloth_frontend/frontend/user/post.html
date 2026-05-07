@@ -184,6 +184,10 @@
             top: 88px;
         }
 
+        .media-gallery.single-media {
+            grid-template-columns: minmax(0, 1fr);
+        }
+
         .media-stage {
             background: linear-gradient(180deg, #ffffff 0%, #fbf7ef 100%);
             border-radius: 18px;
@@ -192,6 +196,10 @@
             min-height: 640px;
             border: 1px solid rgba(116, 91, 24, 0.12);
             box-shadow: 0 22px 44px rgba(32, 24, 12, 0.08);
+        }
+
+        .media-stage.zoom-ready {
+            cursor: crosshair;
         }
 
         .media-stage img {
@@ -236,6 +244,46 @@
             display: grid;
             gap: 8px;
             align-content: start;
+        }
+
+        .media-zoom-pane {
+            position: absolute;
+            top: 0;
+            left: calc(100% + 18px);
+            width: min(34vw, 360px);
+            height: 440px;
+            border-radius: 18px;
+            border: 1px solid rgba(116, 91, 24, 0.14);
+            background: linear-gradient(180deg, #ffffff 0%, #fbf7ef 100%);
+            background-repeat: no-repeat;
+            box-shadow: 0 26px 52px rgba(32, 24, 12, 0.12);
+            opacity: 0;
+            pointer-events: none;
+            transform: translateY(8px);
+            transition: opacity 0.18s ease, transform 0.18s ease;
+            z-index: 6;
+            overflow: hidden;
+        }
+
+        .media-zoom-pane.active {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .media-zoom-pane::before {
+            content: 'Zoom';
+            position: absolute;
+            top: 12px;
+            left: 14px;
+            z-index: 1;
+            padding: 5px 10px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.92);
+            color: var(--primary);
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
         }
 
         .thumb-btn {
@@ -761,6 +809,10 @@
             .thumb-strip {
                 grid-template-columns: repeat(auto-fit, minmax(62px, 1fr));
                 order: 2;
+            }
+
+            .media-zoom-pane {
+                display: none;
             }
 
             .media-stage {
@@ -1297,11 +1349,12 @@
                 content.innerHTML = `
                     <div class="post-hero">
                         <div>
-                            <div class="media-gallery">
+                            <div class="media-gallery ${allImages.length > 1 ? '' : 'single-media'}" id="mediaGalleryRoot">
                                 ${thumbHtml}
-                                <div class="media-stage">
+                                <div class="media-stage ${primaryImageUrl ? 'zoom-ready' : ''}" id="mediaStageRoot">
                                     ${primaryImageUrl ? `<img id="primaryPostImage" src="${escapeHtml(primaryImageUrl)}" alt="${safeImageAlt}">` : '<div style="padding:20px;" class="muted">No image available</div>'}
                                     ${multiImageHtml}
+                                    ${primaryImageUrl ? '<div class="media-zoom-pane" id="mediaZoomPane" aria-hidden="true"></div>' : ''}
                                 </div>
                             </div>
                             ${videoHtml}
@@ -1433,6 +1486,54 @@
                             const idx = Number(btn.getAttribute('data-image-index') || 0);
                             setActiveImage(idx);
                         });
+                    });
+                }
+
+                const primary = document.getElementById('primaryPostImage');
+                const mediaStage = document.getElementById('mediaStageRoot');
+                const zoomPane = document.getElementById('mediaZoomPane');
+
+                if (primary && mediaStage && zoomPane) {
+                    const hideZoomPane = () => {
+                        zoomPane.classList.remove('active');
+                    };
+
+                    const syncZoomPane = (event) => {
+                        if (!primary.naturalWidth || !primary.naturalHeight) return;
+
+                        const rect = primary.getBoundingClientRect();
+                        const fitScale = Math.min(rect.width / primary.naturalWidth, rect.height / primary.naturalHeight);
+                        const renderedWidth = primary.naturalWidth * fitScale;
+                        const renderedHeight = primary.naturalHeight * fitScale;
+                        const offsetLeft = (rect.width - renderedWidth) / 2;
+                        const offsetTop = (rect.height - renderedHeight) / 2;
+
+                        const x = event.clientX - rect.left;
+                        const y = event.clientY - rect.top;
+
+                        if (x < offsetLeft || x > offsetLeft + renderedWidth || y < offsetTop || y > offsetTop + renderedHeight) {
+                            hideZoomPane();
+                            return;
+                        }
+
+                        const ratioX = (x - offsetLeft) / Math.max(renderedWidth, 1);
+                        const ratioY = (y - offsetTop) / Math.max(renderedHeight, 1);
+                        const percentX = Math.max(0, Math.min(100, ratioX * 100));
+                        const percentY = Math.max(0, Math.min(100, ratioY * 100));
+
+                        zoomPane.style.backgroundImage = `url("${primary.currentSrc || primary.src}")`;
+                        zoomPane.style.backgroundSize = '220%';
+                        zoomPane.style.backgroundPosition = `${percentX}% ${percentY}%`;
+                        zoomPane.classList.add('active');
+                    };
+
+                    mediaStage.addEventListener('mouseenter', syncZoomPane);
+                    mediaStage.addEventListener('mousemove', syncZoomPane);
+                    mediaStage.addEventListener('mouseleave', hideZoomPane);
+                    mediaStage.addEventListener('touchstart', hideZoomPane, { passive: true });
+
+                    primary.addEventListener('load', () => {
+                        zoomPane.style.backgroundImage = `url("${primary.currentSrc || primary.src}")`;
                     });
                 }
 
