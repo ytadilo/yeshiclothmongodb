@@ -246,44 +246,55 @@
             align-content: start;
         }
 
-        .media-zoom-pane {
+        .media-zoom-hint {
+            position: absolute;
+            top: 14px;
+            right: 14px;
+            z-index: 6;
+            width: 44px;
+            height: 44px;
+            border: 1px solid rgba(255, 255, 255, 0.75);
+            border-radius: 999px;
+            background: rgba(24, 19, 11, 0.44);
+            color: #fff;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 14px 28px rgba(32, 24, 12, 0.18);
+            pointer-events: none;
+            backdrop-filter: blur(10px);
+        }
+
+        .media-zoom-lens {
             position: absolute;
             top: 0;
-            left: calc(100% + 18px);
-            width: min(34vw, 360px);
-            height: 440px;
-            border-radius: 18px;
-            border: 1px solid rgba(116, 91, 24, 0.14);
-            background: linear-gradient(180deg, #ffffff 0%, #fbf7ef 100%);
+            left: 0;
+            width: 168px;
+            height: 168px;
+            border-radius: 50%;
+            border: 2px solid rgba(255, 255, 255, 0.92);
+            background-color: rgba(255, 255, 255, 0.18);
             background-repeat: no-repeat;
-            box-shadow: 0 26px 52px rgba(32, 24, 12, 0.12);
+            box-shadow: 0 18px 36px rgba(32, 24, 12, 0.22);
             opacity: 0;
-            pointer-events: none;
-            transform: translateY(8px);
+            transform: translate(-50%, -50%) scale(0.94);
             transition: opacity 0.18s ease, transform 0.18s ease;
-            z-index: 6;
+            z-index: 5;
             overflow: hidden;
+            pointer-events: none;
         }
 
-        .media-zoom-pane.active {
+        .media-zoom-lens.active {
             opacity: 1;
-            transform: translateY(0);
+            transform: translate(-50%, -50%) scale(1);
         }
 
-        .media-zoom-pane::before {
-            content: 'Zoom';
+        .media-zoom-lens::after {
+            content: '';
             position: absolute;
-            top: 12px;
-            left: 14px;
-            z-index: 1;
-            padding: 5px 10px;
+            inset: 12px;
             border-radius: 999px;
-            background: rgba(255, 255, 255, 0.92);
-            color: var(--primary);
-            font-size: 0.72rem;
-            font-weight: 700;
-            letter-spacing: 0.08em;
-            text-transform: uppercase;
+            border: 1px solid rgba(255, 255, 255, 0.35);
         }
 
         .thumb-btn {
@@ -811,7 +822,8 @@
                 order: 2;
             }
 
-            .media-zoom-pane {
+            .media-zoom-lens,
+            .media-zoom-hint {
                 display: none;
             }
 
@@ -1354,7 +1366,7 @@
                                 <div class="media-stage ${primaryImageUrl ? 'zoom-ready' : ''}" id="mediaStageRoot">
                                     ${primaryImageUrl ? `<img id="primaryPostImage" src="${escapeHtml(primaryImageUrl)}" alt="${safeImageAlt}">` : '<div style="padding:20px;" class="muted">No image available</div>'}
                                     ${multiImageHtml}
-                                    ${primaryImageUrl ? '<div class="media-zoom-pane" id="mediaZoomPane" aria-hidden="true"></div>' : ''}
+                                    ${primaryImageUrl ? '<div class="media-zoom-hint" aria-hidden="true"><span class="material-symbols-outlined">zoom_in</span></div><div class="media-zoom-lens" id="mediaZoomPane" aria-hidden="true"></div>' : ''}
                                 </div>
                             </div>
                             ${videoHtml}
@@ -1522,8 +1534,10 @@
                         const percentY = Math.max(0, Math.min(100, ratioY * 100));
 
                         zoomPane.style.backgroundImage = `url("${primary.currentSrc || primary.src}")`;
-                        zoomPane.style.backgroundSize = '220%';
+                        zoomPane.style.backgroundSize = '260%';
                         zoomPane.style.backgroundPosition = `${percentX}% ${percentY}%`;
+                        zoomPane.style.left = `${x}px`;
+                        zoomPane.style.top = `${y}px`;
                         zoomPane.classList.add('active');
                     };
 
