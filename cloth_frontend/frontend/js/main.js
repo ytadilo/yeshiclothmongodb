@@ -157,7 +157,7 @@ function ensureFirebaseAuthBridge() {
         }
 
         const script = document.createElement('script');
-        script.src = '/js/firebase-auth.js?v=20260414';
+        script.src = '/js/firebase-auth.js?v=20260507a';
         script.async = true;
         script.setAttribute('data-yeshi-firebase-auth', '1');
         script.onload = () => {

@@ -16,6 +16,30 @@ function safeParseJson(value) {
     }
 }
 
+function getDeviceFingerprint() {
+    try {
+        const payload = {
+            ua: navigator.userAgent || '',
+            lang: navigator.language || '',
+            langs: Array.isArray(navigator.languages) ? navigator.languages : [],
+            plat: navigator.platform || '',
+            hc: navigator.hardwareConcurrency || 0,
+            dm: navigator.deviceMemory || 0,
+            scr: {
+                w: (screen && screen.width) || 0,
+                h: (screen && screen.height) || 0,
+                d: (screen && screen.colorDepth) || 0
+            },
+            tz: Intl.DateTimeFormat().resolvedOptions().timeZone || '',
+            tzOff: new Date().getTimezoneOffset()
+        };
+
+        return btoa(unescape(encodeURIComponent(JSON.stringify(payload))));
+    } catch (_) {
+        return '';
+    }
+}
+
 function normalizeNextDestination(rawNext) {
     const fallback = '/index.html';
     if (!rawNext) return fallback;
@@ -177,11 +201,17 @@ function persistSessionFromApi(payload) {
 }
 
 async function loginWithBackendCredentials(email, password) {
+    const headers = {
+        'Content-Type': 'application/json'
+    };
+    const fingerprint = getDeviceFingerprint();
+    if (fingerprint) {
+        headers['x-device-fingerprint'] = fingerprint;
+    }
+
     const response = await fetch('/api/auth/login', {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
+        headers,
         body: JSON.stringify({
             email: String(email || '').trim(),
             password: String(password || '')
@@ -285,7 +315,7 @@ function getFirebaseBridge() {
         }
 
         const script = document.createElement('script');
-        script.src = '/js/firebase-auth.js?v=20260414';
+        script.src = '/js/firebase-auth.js?v=20260507a';
         script.async = true;
         script.setAttribute('data-yeshi-firebase-auth', '1');
         script.onload = () => {

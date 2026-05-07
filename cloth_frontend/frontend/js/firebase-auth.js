@@ -100,6 +100,30 @@
         return String(value || '').trim().toLowerCase();
     }
 
+    function getDeviceFingerprint() {
+        try {
+            const payload = {
+                ua: navigator.userAgent || '',
+                lang: navigator.language || '',
+                langs: Array.isArray(navigator.languages) ? navigator.languages : [],
+                plat: navigator.platform || '',
+                hc: navigator.hardwareConcurrency || 0,
+                dm: navigator.deviceMemory || 0,
+                scr: {
+                    w: (screen && screen.width) || 0,
+                    h: (screen && screen.height) || 0,
+                    d: (screen && screen.colorDepth) || 0
+                },
+                tz: Intl.DateTimeFormat().resolvedOptions().timeZone || '',
+                tzOff: new Date().getTimezoneOffset()
+            };
+
+            return btoa(unescape(encodeURIComponent(JSON.stringify(payload))));
+        } catch (_) {
+            return '';
+        }
+    }
+
     function clearUserScopedStorage() {
         try {
             USER_SCOPED_LOCAL_STORAGE_KEYS.forEach((key) => localStorage.removeItem(key));
@@ -711,6 +735,10 @@
 
             const nextInit = init ? { ...init } : {};
             const headers = new Headers(nextInit.headers || (input && input.headers) || {});
+            const fingerprint = getDeviceFingerprint();
+            if (fingerprint && !headers.has('x-device-fingerprint')) {
+                headers.set('x-device-fingerprint', fingerprint);
+            }
             const hasAuthHeader = headers.has('Authorization') || headers.has('authorization');
             const skipFirebaseBootstrapEndpoints = /\/api\/auth\/firebase\/(config|session)$/i.test(requestUrl);
             const hasFirebaseUser = !!((state.auth && state.auth.currentUser) || state.currentUser);
