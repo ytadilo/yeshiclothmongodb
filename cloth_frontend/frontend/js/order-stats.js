@@ -69,8 +69,8 @@
 
         chartLoadPromise = (async () => {
             const fallbacks = [
-                'https://cdn.jsdelivr.net/npm/chart.js',
-                'https://unpkg.com/chart.js'
+                'https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.3/chart.umd.min.js',
+                'https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js'
             ];
 
             for (const src of fallbacks) {
