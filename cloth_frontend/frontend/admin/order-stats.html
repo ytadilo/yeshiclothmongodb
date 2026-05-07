@@ -88,6 +88,17 @@
             </div>
         </div>
 
+        <div style="display:flex; gap: 12px; flex-wrap:wrap; margin-bottom: 24px;">
+            <div style="flex: 1 1 320px; border: 1px solid rgba(0,0,0,0.08); border-radius: 12px; padding: 12px;">
+                <strong style="color: var(--accent-color);">Location Graph</strong>
+                <div id="orderStatsLocationGraph" style="margin-top: 10px;"></div>
+            </div>
+            <div style="flex: 1 1 420px; border: 1px solid rgba(0,0,0,0.08); border-radius: 12px; padding: 12px;">
+                <strong style="color: var(--accent-color);">Location Table</strong>
+                <div id="orderStatsLocationTable" style="margin-top: 10px;"></div>
+            </div>
+        </div>
+
         <!-- Enhanced Analytics Section -->
         <section style="margin-top: 32px;">
             <h3>Advanced Analytics</h3>
@@ -241,6 +252,64 @@
             `;
         }
 
+        function renderLocationGraph(items) {
+            const rows = Array.isArray(items) ? items : [];
+            if (!rows.length) return '<div style="color: var(--light-text);">No location data available yet.</div>';
+            const max = Math.max(...rows.map((row) => Number(row?.count || 0)), 1);
+            return rows.map((row) => {
+                const count = Number(row?.count || 0);
+                const label = String(row?._id || 'unknown');
+                const width = Math.max(8, Math.round((count / max) * 100));
+                return `
+                    <div style="display:grid; grid-template-columns: 120px 1fr 44px; gap:10px; align-items:center; margin-bottom:8px;">
+                        <div style="font-size:0.85rem; color:#333;">${escapeHtml(label)}</div>
+                        <div style="height:12px; border-radius:999px; background:rgba(30,75,53,0.08); overflow:hidden;">
+                            <div style="width:${width}%; height:100%; background:linear-gradient(90deg, #1E4B35 0%, #D4AF37 100%);"></div>
+                        </div>
+                        <strong>${count}</strong>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function renderLocationTable(locationData) {
+            const countries = Array.isArray(locationData?.countries) ? locationData.countries : [];
+            const regions = Array.isArray(locationData?.regions) ? locationData.regions : [];
+            const cities = Array.isArray(locationData?.cities) ? locationData.cities : [];
+            const rows = [];
+            const maxLength = Math.max(countries.length, regions.length, cities.length);
+            for (let index = 0; index < maxLength; index += 1) {
+                rows.push({
+                    country: countries[index] || null,
+                    region: regions[index] || null,
+                    city: cities[index] || null
+                });
+            }
+            if (!rows.length) return '<div style="color: var(--light-text);">No location data available yet.</div>';
+            return `
+                <div style="overflow:auto;">
+                    <table style="width:100%; border-collapse:collapse; font-size:13px;">
+                        <thead>
+                            <tr>
+                                <th style="text-align:left; padding:8px; border-bottom:1px solid rgba(0,0,0,0.1);">Country</th>
+                                <th style="text-align:left; padding:8px; border-bottom:1px solid rgba(0,0,0,0.1);">Region</th>
+                                <th style="text-align:left; padding:8px; border-bottom:1px solid rgba(0,0,0,0.1);">City</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${rows.map((row) => `
+                                <tr>
+                                    <td style="padding:8px; border-bottom:1px solid rgba(0,0,0,0.06);">${row.country ? `${escapeHtml(String(row.country._id || 'unknown'))} (${Number(row.country.count || 0)})` : '—'}</td>
+                                    <td style="padding:8px; border-bottom:1px solid rgba(0,0,0,0.06);">${row.region ? `${escapeHtml(String(row.region._id || 'unknown'))} (${Number(row.region.count || 0)})` : '—'}</td>
+                                    <td style="padding:8px; border-bottom:1px solid rgba(0,0,0,0.06);">${row.city ? `${escapeHtml(String(row.city._id || 'unknown'))} (${Number(row.city.count || 0)})` : '—'}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+        }
+
         async function loadOrderStats() {
             if (!ensureAdmin()) return;
 
@@ -248,6 +317,8 @@
             const byStatusEl = document.getElementById('orderStatsByStatus');
             const topCatsEl = document.getElementById('orderStatsTopCategories');
             const last7El = document.getElementById('orderStatsLast7');
+            const locationGraphEl = document.getElementById('orderStatsLocationGraph');
+            const locationTableEl = document.getElementById('orderStatsLocationTable');
 
             try {
                 const res = await apiFetch('/api/orders/stats');
@@ -265,6 +336,7 @@
                         <div class="order-card__status" style="background: rgba(0,0,0,0.06); color: #111;">Total orders: <strong>${totalOrders}</strong></div>
                         <div class="order-card__status" style="background: rgba(30,75,53,0.10); color: var(--accent-color);">Payment confirmed: <strong>${confirmedPayments}</strong></div>
                         <div class="order-card__status" style="background: rgba(180,83,9,0.10); color: #b45309;">Payment pending: <strong>${pendingPayments}</strong></div>
+                        <div class="order-card__status" style="background: rgba(16,94,122,0.10); color: #0f5f7a;">Device location captured: <strong>${Number(data.deviceLocationCaptured || 0)}</strong></div>
                         <div class="order-card__status" style="background: rgba(0,0,0,0.06); color: #111;">Last order: <strong>${escapeHtml(lastOrderAt)}</strong></div>
                     `;
                 }
@@ -272,6 +344,8 @@
                 if (byStatusEl) byStatusEl.innerHTML = renderKeyValueList((data.breakdown && data.breakdown.byStatus) || []);
                 if (topCatsEl) topCatsEl.innerHTML = renderKeyValueList((data.top && data.top.categories) || []);
                 if (last7El) last7El.innerHTML = renderKeyValueList(data.last7Days || []);
+                if (locationGraphEl) locationGraphEl.innerHTML = renderLocationGraph((data.locations && data.locations.cities) || []);
+                if (locationTableEl) locationTableEl.innerHTML = renderLocationTable(data.locations || {});
 
             } catch (err) {
                 console.error(err);

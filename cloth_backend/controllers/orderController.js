@@ -220,6 +220,38 @@ function normalizeDeliveryMethod(value) {
     return 'delivery';
 }
 
+function normalizeDeviceLocation(value) {
+    const src = value && typeof value === 'object' ? value : {};
+    const latitude = Number(src.latitude);
+    const longitude = Number(src.longitude);
+    const accuracy = Number(src.accuracy);
+    const hasCoords = Number.isFinite(latitude) && Number.isFinite(longitude);
+    const capturedAtRaw = src.capturedAt || src.captured_at || null;
+    const capturedAt = capturedAtRaw ? new Date(capturedAtRaw) : null;
+    const safeCapturedAt = capturedAt && !Number.isNaN(capturedAt.getTime()) ? capturedAt : null;
+    const normalized = {
+        source: String(src.source || 'browser_geolocation').trim() || 'browser_geolocation',
+        status: String(src.status || (hasCoords ? 'captured' : 'unavailable')).trim() || (hasCoords ? 'captured' : 'unavailable'),
+        latitude: hasCoords ? latitude : null,
+        longitude: hasCoords ? longitude : null,
+        accuracy: Number.isFinite(accuracy) && accuracy >= 0 ? accuracy : null,
+        label: String(src.label || '').trim(),
+        map_url: '',
+        timezone: String(src.timezone || '').trim(),
+        language: String(src.language || '').trim(),
+        captured_at: safeCapturedAt
+    };
+
+    if (hasCoords) {
+        normalized.map_url = `https://www.google.com/maps?q=${latitude},${longitude}`;
+        if (!normalized.label) {
+            normalized.label = `${latitude.toFixed(5)}, ${longitude.toFixed(5)}`;
+        }
+    }
+
+    return normalized;
+}
+
 function getOrderPaymentScreenshotUrl(order) {
     const paymentInfo = order && order.payment_info && typeof order.payment_info === 'object'
         ? order.payment_info
@@ -509,6 +541,7 @@ exports.createOrder = async (req, res) => {
             const paymentComment = String(deliveryPayment.paymentComment || req.body.paymentComment || req.body.payment_comment || '').trim();
             const deliveryMethod = normalizeDeliveryMethod(deliveryPayment.deliveryMethod || req.body.deliveryMethod || 'delivery');
             const proposedPrice = toNonNegativeNumber(req.body.proposedPriceETB ?? req.body.proposed_price_etb, 0);
+            const deviceLocation = normalizeDeviceLocation(req.body.deviceLocation || req.body.device_location || null);
             const rawProductId = String(req.body.productId || req.body.postId || req.body.post_id || '').trim();
             const hasValidPostId = isSupportedPostId(rawProductId);
             const isProductAsIsOrder = hasValidPostId;
@@ -577,6 +610,7 @@ exports.createOrder = async (req, res) => {
                 orderStatus: 'pending',
                 createdAt: new Date(),
                 user_id: currentUserId || undefined,
+                device_location: deviceLocation,
 
                 // Keep legacy-compatible structures for existing admin pages.
                 customer_info: {
@@ -663,6 +697,7 @@ exports.createOrder = async (req, res) => {
         const parsedMeasurements = parseMaybeJSON(req.body.measurements);
         const parsedItems = parseMaybeJSON(req.body.items);
         const parsedAddress = parseMaybeJSON(req.body.address);
+        const parsedDeviceLocation = normalizeDeviceLocation(parseMaybeJSON(req.body.device_location) || req.body.deviceLocation || req.body.device_location || null);
 
         // Determine order type. Default to custom when cloth data is present.
         const hasCustomPayload = !!(parsedCloth || req.body.post_id || req.body.clothCategory || req.body.category);
@@ -670,6 +705,7 @@ exports.createOrder = async (req, res) => {
         orderData.order_type = orderType;
         orderData.order_status = 'Order Placed';
         orderData.sewing_status = 'Pending';
+        orderData.device_location = parsedDeviceLocation;
 
         if (orderType === 'product') {
             // Product order (ready-made from shop)

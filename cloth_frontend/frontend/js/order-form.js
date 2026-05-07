@@ -413,6 +413,57 @@ let savedShippingAddresses = [];
 let savedMeasurementProfiles = [];
 let useSavedShipping = true;
 let useSavedMeasurements = true;
+let deviceLocationSnapshotPromise = null;
+
+async function getDeviceLocationSnapshot() {
+    if (deviceLocationSnapshotPromise) {
+        return deviceLocationSnapshotPromise;
+    }
+
+    deviceLocationSnapshotPromise = (async () => {
+        const base = {
+            source: 'browser_geolocation',
+            status: 'unavailable',
+            latitude: null,
+            longitude: null,
+            accuracy: null,
+            timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || '',
+            language: navigator.language || '',
+            capturedAt: new Date().toISOString()
+        };
+
+        if (!navigator.geolocation || typeof navigator.geolocation.getCurrentPosition !== 'function') {
+            return base;
+        }
+
+        try {
+            const position = await new Promise((resolve, reject) => {
+                navigator.geolocation.getCurrentPosition(resolve, reject, {
+                    enableHighAccuracy: false,
+                    timeout: 7000,
+                    maximumAge: 300000
+                });
+            });
+
+            return {
+                ...base,
+                status: 'captured',
+                latitude: Number(position.coords.latitude),
+                longitude: Number(position.coords.longitude),
+                accuracy: Number(position.coords.accuracy),
+                capturedAt: new Date().toISOString()
+            };
+        } catch (error) {
+            const code = Number(error && error.code);
+            return {
+                ...base,
+                status: code === 1 ? 'denied' : (code === 3 ? 'timeout' : 'unavailable')
+            };
+        }
+    })();
+
+    return deviceLocationSnapshotPromise;
+}
 
 const MEASUREMENT_TEMPLATE_DEFS = {
     general: {
@@ -1966,6 +2017,9 @@ form.addEventListener('submit', async function(e) {
         proposedPriceETB: proposedPriceETB === undefined ? 0 : proposedPriceETB
     };
 
+    const deviceLocation = await getDeviceLocationSnapshot();
+    payload.deviceLocation = deviceLocation;
+
     try {
         const submitBtn = document.getElementById('orderPrimaryBtn');
         if (submitBtn) submitBtn.disabled = true;
@@ -2013,6 +2067,7 @@ form.addEventListener('submit', async function(e) {
             fd.append('measurementProfiles', JSON.stringify(cloth_details.measurement_profiles || []));
             fd.append('event_type', eventType || '');
             fd.append('quantity', String(quantity));
+            fd.append('device_location', JSON.stringify(deviceLocation || {}));
 
             referenceFiles.slice(0, 3).forEach((file) => {
                 fd.append('referenceImages', file);
@@ -2048,6 +2103,7 @@ form.addEventListener('submit', async function(e) {
             fd.append('post_id', productId);
             fd.append('quantity', String(quantity));
             fd.append('payment_comment', paymentComment);
+            fd.append('device_location', JSON.stringify(deviceLocation || {}));
             fd.append('paymentScreenshot', paymentFile);
 
             res = await fetch('/api/orders', {

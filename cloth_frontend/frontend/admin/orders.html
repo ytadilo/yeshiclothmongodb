@@ -472,6 +472,11 @@
                     const woreda = customerAddress.woreda || '—';
                     const landmark = customerAddress.landmark || '—';
                     const specificAddress = customerAddress.specific_address || (typeof customer.address === 'string' ? customer.address : '—');
+                    const deviceLocation = order?.device_location || {};
+                    const deviceLocationText = Number.isFinite(Number(deviceLocation.latitude)) && Number.isFinite(Number(deviceLocation.longitude))
+                        ? `${Number(deviceLocation.latitude).toFixed(5)}, ${Number(deviceLocation.longitude).toFixed(5)}${Number.isFinite(Number(deviceLocation.accuracy)) ? ` (±${Math.round(Number(deviceLocation.accuracy))}m)` : ''}`
+                        : (deviceLocation.label || deviceLocation.status || 'Unavailable');
+                    const deviceMapUrl = String(deviceLocation.map_url || '').trim();
 
                     const designType = cloth.design_type || cloth.designType || '—';
                     const color = cloth.color || '—';
@@ -570,6 +575,7 @@
                         ` : ''}
                         <p><strong>Contact:</strong> ${escapeHtml(phone)}</p>
                         <p><strong>Address:</strong> ${escapeHtml(addressText)}</p>
+                        <p><strong>Device Location:</strong> ${escapeHtml(deviceLocationText)} ${deviceMapUrl ? `<a href="${escapeHtml(deviceMapUrl)}" target="_blank" rel="noopener noreferrer" style="color:#745B18; text-decoration:underline;">Open map</a>` : ''}</p>
 
                         <details style="margin-top: 10px;">
                             <summary style="cursor:pointer; font-weight: 800; color: var(--accent-color);">View full order details</summary>
@@ -590,7 +596,10 @@
                                         <div><span style="color:var(--light-text);">Woreda:</span> ${escapeHtml(woreda)}</div>
                                         <div><span style="color:var(--light-text);">Landmark:</span> ${escapeHtml(landmark)}</div>
                                         <div><span style="color:var(--light-text);">Specific address:</span> ${escapeHtml(specificAddress)}</div>
+                                        <div><span style="color:var(--light-text);">Device location:</span> ${escapeHtml(deviceLocationText)}</div>
+                                        <div><span style="color:var(--light-text);">Timezone:</span> ${escapeHtml(String(deviceLocation.timezone || '—'))}</div>
                                     </div>
+                                    ${deviceMapUrl ? `<div style="margin-top:8px;"><a href="${escapeHtml(deviceMapUrl)}" target="_blank" rel="noopener noreferrer" style="color:#745B18; text-decoration:underline;">Open device location in map</a></div>` : ''}
                                 </div>
 
                                 <div style="border: 1px solid rgba(0,0,0,0.08); border-radius: 12px; padding: 12px;">

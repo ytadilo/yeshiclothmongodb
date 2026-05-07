@@ -21,6 +21,19 @@ const EthiopianAddressSchema = new mongoose.Schema({
     specific_address: { type: String, default: '' } // Detailed address
 }, { _id: false });
 
+const DeviceLocationSchema = new mongoose.Schema({
+    source: { type: String, default: 'browser_geolocation' },
+    status: { type: String, default: 'unavailable' },
+    latitude: { type: Number, default: null },
+    longitude: { type: Number, default: null },
+    accuracy: { type: Number, default: null },
+    label: { type: String, default: '' },
+    map_url: { type: String, default: '' },
+    timezone: { type: String, default: '' },
+    language: { type: String, default: '' },
+    captured_at: { type: Date, default: null }
+}, { _id: false });
+
 const OrderSchema = new mongoose.Schema({
     // Simplified order fields (new flow)
     customerName: { type: String, default: '' },
@@ -179,6 +192,8 @@ const OrderSchema = new mongoose.Schema({
     
     // User reference (for logged in users)
     user_id: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+
+    device_location: { type: DeviceLocationSchema, default: () => ({}) },
     
     created_at: { type: Date, default: Date.now },
     updated_at: { type: Date, default: Date.now }
