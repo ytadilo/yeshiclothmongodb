@@ -4,6 +4,7 @@
 (async function () {
     const { ensureAdmin, escapeHtml, apiFetch } = window.AdminCommon;
     if (!ensureAdmin()) return;
+    let chartLoadPromise = null;
     let visitsLineChart = null;
     let productBarChart = null;
     let devicePieChart = null;
@@ -38,6 +39,61 @@
     function percent(part, total) {
         if (!total || total === 0) return '0%';
         return ((part / total) * 100).toFixed(1) + '%';
+    }
+
+    function loadExternalScript(src) {
+        return new Promise((resolve, reject) => {
+            const existing = Array.from(document.scripts || []).find((script) => String(script.src || '').includes(src));
+            if (existing) {
+                if (typeof window.Chart !== 'undefined') {
+                    resolve(true);
+                    return;
+                }
+                existing.addEventListener('load', () => resolve(true), { once: true });
+                existing.addEventListener('error', () => reject(new Error(`Failed to load ${src}`)), { once: true });
+                return;
+            }
+
+            const script = document.createElement('script');
+            script.src = src;
+            script.async = true;
+            script.onload = () => resolve(true);
+            script.onerror = () => reject(new Error(`Failed to load ${src}`));
+            document.head.appendChild(script);
+        });
+    }
+
+    async function ensureChartLibrary() {
+        if (typeof window.Chart !== 'undefined') return true;
+        if (chartLoadPromise) return chartLoadPromise;
+
+        chartLoadPromise = (async () => {
+            const fallbacks = [
+                'https://cdn.jsdelivr.net/npm/chart.js',
+                'https://unpkg.com/chart.js'
+            ];
+
+            for (const src of fallbacks) {
+                try {
+                    await loadExternalScript(src);
+                    if (typeof window.Chart !== 'undefined') {
+                        return true;
+                    }
+                } catch (_) {
+                    // Try the next CDN.
+                }
+            }
+
+            throw new Error('Chart.js failed to load');
+        })();
+
+        try {
+            return await chartLoadPromise;
+        } finally {
+            if (typeof window.Chart === 'undefined') {
+                chartLoadPromise = null;
+            }
+        }
     }
 
     function normalizeMetricRows(rows) {
@@ -223,6 +279,8 @@
 
     // Fetch and render analytics
     async function loadAnalytics() {
+        await ensureChartLibrary();
+
         let startDate = '', endDate = '', groupBy = '';
         if (startDateFilterEl) startDate = String(startDateFilterEl.value || '').trim();
         if (endDateFilterEl) endDate = String(endDateFilterEl.value || '').trim();
@@ -243,73 +301,92 @@
 
         // Product Analytics
         if (productAnalyticsEl) {
-            productAnalyticsEl.innerHTML = `
-                <h3>Product Analytics</h3>
-                ${renderProductSummary(data.productSummary)}
-                ${renderMetricCanvas('orderedProductsChart', 'Ordered Products')}
-                ${renderMetricAllTable(data.orderedProducts, 'Ordered Products Table (All Data)', 'Product', 'product')}
+            try {
+                productAnalyticsEl.innerHTML = `
+                    <h3>Product Analytics</h3>
+                    ${renderProductSummary(data.productSummary)}
+                    ${renderMetricCanvas('orderedProductsChart', 'Ordered Products')}
+                    ${renderMetricAllTable(data.orderedProducts, 'Ordered Products Table (All Data)', 'Product', 'product')}
 
-                ${renderMetricCanvas('productViewsChart', 'Product Views')}
-                ${renderMetricAllTable(data.productViews, 'Product Views Table (All Data)', 'Product', 'product')}
+                    ${renderMetricCanvas('productViewsChart', 'Product Views')}
+                    ${renderMetricAllTable(data.productViews, 'Product Views Table (All Data)', 'Product', 'product')}
 
-                ${renderMetricCanvas('productAddToCartChart', 'Added To Bag')}
-                ${renderMetricAllTable(data.addToCart, 'Add To Cart Table (All Data)', 'Product', 'product')}
+                    ${renderMetricCanvas('productAddToCartChart', 'Added To Bag')}
+                    ${renderMetricAllTable(data.addToCart, 'Add To Cart Table (All Data)', 'Product', 'product')}
 
-                ${renderMetricCanvas('productLikesChart', 'Liked Products')}
-                ${renderMetricAllTable(data.likes, 'Likes Table (All Data)', 'Product', 'product')}
+                    ${renderMetricCanvas('productLikesChart', 'Liked Products')}
+                    ${renderMetricAllTable(data.likes, 'Likes Table (All Data)', 'Product', 'product')}
 
-                ${renderMetricCanvas('productSharesChart', 'Shared Products')}
-                ${renderMetricAllTable(data.shares, 'Shares Table (All Data)', 'Product', 'product')}
-            `;
+                    ${renderMetricCanvas('productSharesChart', 'Shared Products')}
+                    ${renderMetricAllTable(data.shares, 'Shares Table (All Data)', 'Product', 'product')}
+                `;
 
-            renderMetricChart('orderedProductsChart', data.orderedProducts, 'Ordered');
-            renderMetricChart('productViewsChart', data.productViews, 'Views');
-            renderMetricChart('productAddToCartChart', data.addToCart, 'Add To Cart');
-            renderMetricChart('productLikesChart', data.likes, 'Likes');
-            renderMetricChart('productSharesChart', data.shares, 'Shares');
+                renderMetricChart('orderedProductsChart', data.orderedProducts, 'Ordered');
+                renderMetricChart('productViewsChart', data.productViews, 'Views');
+                renderMetricChart('productAddToCartChart', data.addToCart, 'Add To Cart');
+                renderMetricChart('productLikesChart', data.likes, 'Likes');
+                renderMetricChart('productSharesChart', data.shares, 'Shares');
+            } catch (error) {
+                console.error('product analytics render failed:', error);
+                productAnalyticsEl.innerHTML = '<div style="color:#666;">Product analytics graph failed to load.</div>';
+            }
         }
 
         // Engagement Analytics (Clicks)
         if (engagementAnalyticsEl) {
-            const clickRows = (Array.isArray(data.clicksEnriched) ? data.clicksEnriched : (Array.isArray(data.clicks) ? data.clicks : []))
-                .map((r) => ({
-                    _id: String(r?._id || ''),
-                    label: String(r?.label || r?._id || ''),
-                    link: String(r?.link || r?._id || ''),
-                    count: Number(r?.count || 0)
-                }));
+            try {
+                const clickRows = (Array.isArray(data.clicksEnriched) ? data.clicksEnriched : (Array.isArray(data.clicks) ? data.clicks : []))
+                    .map((r) => ({
+                        _id: String(r?._id || ''),
+                        label: String(r?.label || r?._id || ''),
+                        link: String(r?.link || r?._id || ''),
+                        count: Number(r?.count || 0)
+                    }));
 
-            engagementAnalyticsEl.innerHTML = `
-                <h3>Engagement Analytics</h3>
-                ${renderLinkSummary(data.linkAnalytics)}
-                ${renderMetricCanvas('engagementClicksChart', 'Clicked Links')}
-                ${renderMetricAllTable(clickRows, 'Link Clicks Table (All Data)', 'Product Name / Link', 'linkWithName')}
-            `;
-            renderMetricChart('engagementClicksChart', clickRows, 'Link Clicks', { openOnBarClick: true });
+                engagementAnalyticsEl.innerHTML = `
+                    <h3>Engagement Analytics</h3>
+                    ${renderLinkSummary(data.linkAnalytics)}
+                    ${renderMetricCanvas('engagementClicksChart', 'Clicked Links')}
+                    ${renderMetricAllTable(clickRows, 'Link Clicks Table (All Data)', 'Product Name / Link', 'linkWithName')}
+                `;
+                renderMetricChart('engagementClicksChart', clickRows, 'Link Clicks', { openOnBarClick: true });
+            } catch (error) {
+                console.error('engagement analytics render failed:', error);
+                engagementAnalyticsEl.innerHTML = '<div style="color:#666;">Clicked links graph failed to load.</div>';
+            }
         }
 
         // Media Analytics (Video Views, Image Downloads)
         if (mediaAnalyticsEl) {
-            const videoRows = (Array.isArray(data.videoViews) ? data.videoViews : []).map((v) => {
-                const productId = String(v?._id?.productId || 'N/A');
-                const platform = String(v?._id?.platform || 'unknown');
-                return { _id: `${platform} | ${productId}`, count: Number(v?.count || 0) };
-            });
+            try {
+                const videoRows = (Array.isArray(data.videoViews) ? data.videoViews : []).map((v) => {
+                    const productId = String(v?._id?.productId || 'N/A');
+                    const platform = String(v?._id?.platform || 'unknown');
+                    return { _id: `${platform} | ${productId}`, count: Number(v?.count || 0) };
+                });
 
-            mediaAnalyticsEl.innerHTML = `
-                <h3>Media Analytics</h3>
-                ${renderMetricCanvas('mediaVideoChart', 'Video Views')}
-                ${renderMetricAllTable(videoRows, 'Video Views Table (All Data)', 'Platform | Product', 'text')}
+                mediaAnalyticsEl.innerHTML = `
+                    <h3>Media Analytics</h3>
+                    ${renderMetricCanvas('mediaVideoChart', 'Video Views')}
+                    ${renderMetricAllTable(videoRows, 'Video Views Table (All Data)', 'Platform | Product', 'text')}
 
-                ${renderMetricCanvas('mediaDownloadsChart', 'Image Downloads')}
-                ${renderMetricAllTable(data.imageDownloads, 'Image Downloads Table (All Data)', 'Product', 'product')}
-            `;
+                    ${renderMetricCanvas('mediaDownloadsChart', 'Image Downloads')}
+                    ${renderMetricAllTable(data.imageDownloads, 'Image Downloads Table (All Data)', 'Product', 'product')}
+                `;
 
-            renderMetricChart('mediaVideoChart', videoRows, 'Video Views');
-            renderMetricChart('mediaDownloadsChart', data.imageDownloads, 'Image Downloads');
+                renderMetricChart('mediaVideoChart', videoRows, 'Video Views');
+                renderMetricChart('mediaDownloadsChart', data.imageDownloads, 'Image Downloads');
+            } catch (error) {
+                console.error('media analytics render failed:', error);
+                mediaAnalyticsEl.innerHTML = '<div style="color:#666;">Media graphs failed to load.</div>';
+            }
         }
 
-        renderCharts(data);
+        try {
+            renderCharts(data);
+        } catch (error) {
+            console.error('summary charts render failed:', error);
+        }
     }
 
     function renderCharts(data) {
@@ -612,10 +689,20 @@
         `;
     }
 
-    window.loadAnalytics = () => loadAnalytics().catch(console.error);
+    window.loadAnalytics = () => loadAnalytics().catch((error) => {
+        console.error(error);
+        if (productAnalyticsEl && !String(productAnalyticsEl.innerHTML || '').trim()) {
+            productAnalyticsEl.innerHTML = '<div style="color:#666;">Unable to load analytics graphs right now.</div>';
+        }
+    });
 
     // Initial load
-    loadAnalytics().catch(console.error);
+    loadAnalytics().catch((error) => {
+        console.error(error);
+        if (productAnalyticsEl && !String(productAnalyticsEl.innerHTML || '').trim()) {
+            productAnalyticsEl.innerHTML = '<div style="color:#666;">Unable to load analytics graphs right now.</div>';
+        }
+    });
 
     if (groupByEl) {
         groupByEl.addEventListener('change', () => loadAnalytics().catch(console.error));
