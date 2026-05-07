@@ -71,6 +71,57 @@
             }
         }
 
+        #newdesign-feed {
+            grid-template-columns: repeat(1, minmax(0, 1fr));
+            gap: 1rem;
+        }
+
+        #newdesign-feed > article {
+            min-width: 0;
+            border-radius: 1rem;
+            box-shadow: 0 16px 34px rgba(26, 28, 28, 0.08);
+        }
+
+        #newdesign-feed > article .line-clamp-2.min-h-\[2\.4rem\].text-\[13px\] {
+            min-height: 2.8rem;
+            font-size: 0.98rem;
+            line-height: 1.45rem;
+        }
+
+        #newdesign-feed > article .mt-1.line-clamp-2.min-h-\[2\.3rem\].text-\[11px\] {
+            min-height: 2.75rem;
+            font-size: 0.78rem;
+            line-height: 1.2rem;
+        }
+
+        #newdesign-feed > article .text-lg.font-black.leading-none {
+            font-size: 1.45rem;
+        }
+
+        #newdesign-feed > article a[style="display:block;"] {
+            padding: 0.65rem 0.9rem;
+            font-size: 0.78rem;
+            border-radius: 0.75rem;
+        }
+
+        @media (min-width: 640px) {
+            #newdesign-feed {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+
+        @media (min-width: 1024px) {
+            #newdesign-feed {
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+            }
+        }
+
+        @media (min-width: 1536px) {
+            #newdesign-feed {
+                grid-template-columns: repeat(4, minmax(0, 1fr));
+            }
+        }
+
         mark.search-highlight {
             background: #facc15;
             color: #1a1c1c;
@@ -217,7 +268,7 @@
                     <span class="material-symbols-outlined text-base">arrow_forward</span>
                 </a>
             </div>
-            <div id="newdesign-feed" class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
+            <div id="newdesign-feed" class="grid">
                 <p class="col-span-full py-10 text-center text-brand-muted">Loading feed...</p>
             </div>
         </section>
