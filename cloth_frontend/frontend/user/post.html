@@ -175,19 +175,31 @@
             margin-top: 14px;
         }
 
+        .media-gallery {
+            display: grid;
+            grid-template-columns: 74px minmax(0, 1fr);
+            gap: 14px;
+            align-items: start;
+            position: sticky;
+            top: 88px;
+        }
+
         .media-stage {
-            background: var(--surface-low);
-            border-radius: 14px;
+            background: linear-gradient(180deg, #ffffff 0%, #fbf7ef 100%);
+            border-radius: 18px;
             overflow: hidden;
             position: relative;
-            min-height: 420px;
+            min-height: 640px;
+            border: 1px solid rgba(116, 91, 24, 0.12);
+            box-shadow: 0 22px 44px rgba(32, 24, 12, 0.08);
         }
 
         .media-stage img {
             width: 100%;
             height: 100%;
             display: block;
-            object-fit: cover;
+            object-fit: contain;
+            padding: 26px;
             transition: transform 0.7s ease;
         }
 
@@ -221,10 +233,9 @@
         }
 
         .thumb-strip {
-            margin-top: 10px;
-            display: flex;
-            flex-wrap: wrap;
+            display: grid;
             gap: 8px;
+            align-content: start;
         }
 
         .thumb-btn {
@@ -233,8 +244,8 @@
             border-radius: 8px;
             padding: 2px;
             cursor: pointer;
-            width: 58px;
-            height: 58px;
+            width: 74px;
+            height: 74px;
             overflow: hidden;
         }
 
@@ -742,8 +753,18 @@
                 gap: 20px;
             }
 
+            .media-gallery {
+                position: static;
+                grid-template-columns: 1fr;
+            }
+
+            .thumb-strip {
+                grid-template-columns: repeat(auto-fit, minmax(62px, 1fr));
+                order: 2;
+            }
+
             .media-stage {
-                min-height: 360px;
+                min-height: 420px;
             }
         }
 
@@ -768,6 +789,14 @@
 
             .price-new {
                 font-size: 1.8rem;
+            }
+
+            .media-stage {
+                min-height: 340px;
+            }
+
+            .media-stage img {
+                padding: 16px;
             }
 
             .curated-card {
@@ -1268,11 +1297,13 @@
                 content.innerHTML = `
                     <div class="post-hero">
                         <div>
-                            <div class="media-stage">
-                                ${primaryImageUrl ? `<img id="primaryPostImage" src="${escapeHtml(primaryImageUrl)}" alt="${safeImageAlt}">` : '<div style="padding:20px;" class="muted">No image available</div>'}
-                                ${multiImageHtml}
+                            <div class="media-gallery">
+                                ${thumbHtml}
+                                <div class="media-stage">
+                                    ${primaryImageUrl ? `<img id="primaryPostImage" src="${escapeHtml(primaryImageUrl)}" alt="${safeImageAlt}">` : '<div style="padding:20px;" class="muted">No image available</div>'}
+                                    ${multiImageHtml}
+                                </div>
                             </div>
-                            ${thumbHtml}
                             ${videoHtml}
                         </div>
 

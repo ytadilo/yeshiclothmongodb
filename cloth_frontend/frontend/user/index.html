@@ -861,6 +861,8 @@
             const postId = resolvePostId(post);
             if (!postId) return '';
             const image = post.images && post.images.length ? post.images[0] : '';
+            const orderHref = '/user/order.html?postId=' + encodeURIComponent(postId)
+                + '&title=' + encodeURIComponent(post.title || 'Selected cloth');
             const prices = formatPricePair(post);
             const likes = Array.isArray(post.likes) ? post.likes.length : 0;
             const comments = Array.isArray(post.comments) ? post.comments.length : 0;
@@ -890,13 +892,15 @@
             return [
                 '<article class="group shrink-0 overflow-hidden rounded-xl bg-[#f4f3f3] shadow-sm', matchedCardClass, '" data-post-id="', escapeHtml(postId), '">',
                     '<div class="relative aspect-[4/5] overflow-hidden bg-white">',
+                        '<a href="', orderHref, '" class="absolute inset-0 z-0 block" aria-label="Order ', escapeHtml(post.title || 'Selected cloth'), '">',
+                            (image
+                                ? '<img src="' + escapeHtml(image) + '" alt="' + escapeHtml(post.title) + '" class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" loading="lazy" decoding="async">'
+                                : '<div class="flex h-full items-center justify-center text-brand-muted"><span class="material-symbols-outlined text-5xl">image</span></div>'),
+                        '</a>',
                         '<div class="absolute left-2 top-2 z-10 inline-flex items-center gap-1 rounded-full bg-black/45 px-2 py-1 text-[10px] font-semibold text-white">',
                             '<span class="material-symbols-outlined text-xs">visibility</span>', views.toLocaleString(),
                         '</div>',
                         shippingBadge,
-                        image
-                            ? '<img src="' + escapeHtml(image) + '" alt="' + escapeHtml(post.title) + '" class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" loading="lazy" decoding="async">'
-                            : '<div class="flex h-full items-center justify-center text-brand-muted"><span class="material-symbols-outlined text-5xl">image</span></div>',
                         '<div class="absolute bottom-2 left-2 z-10 flex flex-col items-center gap-2 text-white">',
                             '<button type="button" class="flex h-9 min-w-[54px] items-center justify-center gap-1 rounded-full bg-black/55 px-2 backdrop-blur" data-add-cart-post-id="', escapeHtml(postId), '" aria-label="Add to Bag">',
                                 '<span class="material-symbols-outlined text-base">shopping_bag</span>',
