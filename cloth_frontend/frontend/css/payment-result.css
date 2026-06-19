@@ -1,0 +1,365 @@
+/**
+ * Payment Result Styles
+ */
+
+.result-container {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    background-color: #f8f9fa;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+.result-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 2rem 1rem;
+    text-align: center;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.result-header h1 {
+    margin: 0;
+    font-size: 2rem;
+    font-weight: 700;
+}
+
+.result-main {
+    flex: 1;
+    max-width: 600px;
+    margin: 2rem auto;
+    width: 100%;
+    padding: 0 1rem;
+}
+
+.result-section {
+    background: white;
+    border-radius: 8px;
+    padding: 2rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    text-align: center;
+    animation: fadeIn 0.3s ease;
+}
+
+.result-section.hidden {
+    display: none;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Loading State */
+.result-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 300px;
+}
+
+.spinner-large {
+    width: 60px;
+    height: 60px;
+    border: 4px solid rgba(102, 126, 234, 0.2);
+    border-top-color: #667eea;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-bottom: 1.5rem;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.result-loading h2 {
+    color: #333;
+    margin-bottom: 0.5rem;
+}
+
+.result-loading p {
+    color: #666;
+    margin: 0;
+}
+
+/* Result Icon */
+.result-icon {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 3rem;
+    margin: 0 auto 1.5rem;
+    font-weight: bold;
+}
+
+.result-icon.success {
+    background-color: #d4edda;
+    color: #155724;
+}
+
+.result-icon.failed {
+    background-color: #f8d7da;
+    color: #721c24;
+}
+
+.result-icon.cancelled {
+    background-color: #fff3cd;
+    color: #856404;
+}
+
+.result-icon.pending {
+    background-color: #d1ecf1;
+    color: #0c5460;
+}
+
+.result-icon.error {
+    background-color: #f8d7da;
+    color: #721c24;
+}
+
+/* Result Section Headers */
+.result-section h2 {
+    color: #333;
+    font-size: 1.5rem;
+    margin: 0 0 0.5rem;
+}
+
+.result-section > p {
+    color: #666;
+    margin: 0 0 1.5rem;
+}
+
+/* Result Details */
+.result-details {
+    background-color: #f8f9fa;
+    border-radius: 6px;
+    padding: 1.5rem;
+    margin: 1.5rem 0;
+    text-align: left;
+}
+
+.detail-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 0;
+    border-bottom: 1px solid #eee;
+}
+
+.detail-row:last-child {
+    border-bottom: none;
+}
+
+.detail-row .label {
+    color: #666;
+    font-weight: 600;
+}
+
+.detail-row .value {
+    color: #333;
+    font-family: 'Courier New', monospace;
+    word-break: break-all;
+}
+
+.status-success {
+    color: #28a745;
+    font-weight: 700;
+}
+
+.status-failed {
+    color: #dc3545;
+    font-weight: 700;
+}
+
+/* Result Actions */
+.result-actions {
+    display: flex;
+    gap: 1rem;
+    margin: 1.5rem 0;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.btn {
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 6px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-block;
+    transition: all 0.3s ease;
+    flex: 1;
+    min-width: 140px;
+    text-align: center;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 16px rgba(102, 126, 234, 0.3);
+}
+
+.btn-secondary {
+    background-color: #6c757d;
+    color: white;
+}
+
+.btn-secondary:hover {
+    background-color: #5a6268;
+}
+
+.btn-outline {
+    background-color: transparent;
+    color: #667eea;
+    border: 2px solid #667eea;
+}
+
+.btn-outline:hover {
+    background-color: #f8f9fa;
+}
+
+@media (max-width: 600px) {
+    .result-actions {
+        flex-direction: column;
+    }
+
+    .btn {
+        flex: 1;
+        min-width: unset;
+    }
+}
+
+/* Messages */
+.success-message,
+.info-message {
+    background-color: #e7f3ff;
+    border-left: 4px solid #667eea;
+    color: #004085;
+    padding: 1rem;
+    border-radius: 4px;
+    margin-top: 1.5rem;
+    text-align: left;
+    font-size: 0.9rem;
+}
+
+.success-message p,
+.info-message p {
+    margin: 0 0 0.5rem;
+}
+
+.info-message ul {
+    margin: 0.5rem 0 0;
+    padding-left: 1.5rem;
+}
+
+.info-message li {
+    margin-bottom: 0.5rem;
+}
+
+/* Result Footer */
+.result-footer {
+    background-color: #f8f9fa;
+    border-top: 1px solid #eee;
+    padding: 2rem 1rem;
+    text-align: center;
+    color: #666;
+    font-size: 0.9rem;
+    margin-top: 3rem;
+}
+
+.result-footer a {
+    color: #667eea;
+    text-decoration: none;
+}
+
+.result-footer a:hover {
+    text-decoration: underline;
+}
+
+/* Success State Specific */
+.result-success .btn-primary {
+    flex-basis: auto;
+}
+
+/* Failed State Specific */
+.result-failed .detail-row .value {
+    color: #dc3545;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .result-header {
+        padding: 1.5rem 1rem;
+    }
+
+    .result-header h1 {
+        font-size: 1.5rem;
+    }
+
+    .result-main {
+        margin: 1rem auto;
+    }
+
+    .result-section {
+        padding: 1.5rem;
+    }
+
+    .result-icon {
+        width: 60px;
+        height: 60px;
+        font-size: 2rem;
+    }
+
+    .result-section h2 {
+        font-size: 1.25rem;
+    }
+
+    .result-details {
+        padding: 1rem;
+    }
+
+    .detail-row {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.25rem;
+    }
+
+    .detail-row .label {
+        display: block;
+    }
+
+    .detail-row .value {
+        display: block;
+        width: 100%;
+    }
+}
+
+/* Print Styles */
+@media print {
+    .result-actions,
+    .result-footer {
+        display: none;
+    }
+
+    .result-section {
+        page-break-inside: avoid;
+    }
+}
