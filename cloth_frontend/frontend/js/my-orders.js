@@ -718,32 +718,18 @@ async function loadMyOrders(options = {}) {
                     </div>
                     ` : ''}
 
-                    ${(!isProductAsIsOrder && (!paymentScreenshot || String(paymentStatus).toLowerCase() === 'failed') && String(paymentStatus).toLowerCase() !== 'confirmed' && (hasQuotedPrice || hasQuotedShipping)) ? `
-                            <form class="payment-proof-form" data-order-id="${escapeHtml(orderId)}" style="margin-top:12px; padding:10px; border:1px solid rgba(0,0,0,0.1); border-radius:10px; background:#fff; display:grid; gap:8px;">
-                            <div style="font-weight:800; color:#1a1c1c;">Upload Payment Proof</div>
-                            <select name="paymentMethod" class="form-control" required>
-                                <option value="" ${selectedPaymentMethod ? '' : 'selected'} disabled>Select payment method</option>
-                                <option value="bank_transfer" ${selectedPaymentMethod === 'bank_transfer' ? 'selected' : ''}>Ethiopia Commercial Bank Transfer</option>
-                                <option value="telebirr" ${selectedPaymentMethod === 'telebirr' ? 'selected' : ''}>Telebirr (Manual Screenshot)</option>
-                                <option value="telebirr_api" ${selectedPaymentMethod === 'telebirr_api' ? 'selected' : ''}>Telebirr API (Pay on website)</option>
-                            </select>
-                            <div style="background:#fdfdfd; padding:10px; border:1px dashed #ccc; border-radius:8px;">
-                                <div style="font-weight:700; margin-bottom:6px; color:#1a1c1c;">Payment Details</div>
-                                <div data-payment-details="bank_transfer" style="display:none; font-size:0.9rem; color:#333;">
-                                    <div><strong>Bank:</strong> CBE</div>
-                                    <div><strong>Account:</strong> 1000338448396 (Haileyesus Tadilo)</div>
-                                </div>
-                                <div data-payment-details="telebirr" style="display:none; font-size:0.9rem; color:#333;">
-                                    <div><strong>Telebirr:</strong> +251933797981 (Haileyesus Tadilo)</div>
-                                </div>
-                                <div data-payment-details="telebirr_api" style="display:none; font-size:0.9rem; color:#333;">
-                                    <div><strong>Telebirr API:</strong> You will be redirected to the secure Telebirr checkout.</div>
-                                </div>
-                            </div>
-                            <textarea name="paymentComment" class="form-control" rows="3" placeholder="Add payment comment (optional)"></textarea>
-                            <input type="file" name="paymentScreenshot" accept="image/*" class="form-control" required>
-                            <button type="submit" class="btn">Submit Payment Proof</button>
-                        </form>
+                    ${((!paymentScreenshot || String(paymentStatus).toLowerCase() === 'failed') && String(paymentStatus).toLowerCase() !== 'confirmed' && (hasQuotedPrice || hasQuotedShipping)) ? `
+                        <div class="chapa-payment-trigger-container" style="margin-top:12px; padding:12px; border:1px solid rgba(0,0,0,0.1); border-radius:10px; background:#fff; display:grid; gap:8px;">
+                            <div style="font-weight:800; color:#1a1c1c;">Secure Payment via Chapa</div>
+                            <p style="margin:0; font-size:0.9rem; color:#666;">This order is ready for payment. You can pay securely online via Chapa using Card, Telebirr, or Bank Transfer.</p>
+                            <button type="button" class="btn pay-chapa-btn" 
+                                data-order-id="${escapeHtml(orderId)}" 
+                                data-amount="${escapeHtml(String(payableTotal))}"
+                                data-title="${escapeHtml(String(title))}"
+                                style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border:none; color:white; font-weight:600; width: 100%; padding: 12px; border-radius: 5px; cursor: pointer;">
+                                Pay Now (${payableTotal.toLocaleString()} ETB)
+                            </button>
+                        </div>
                     ` : ''}
 
                     <hr style="border:0; border-top: 1px solid rgba(0,0,0,0.08); margin: 12px 0;">

@@ -551,12 +551,8 @@ exports.createOrder = async (req, res) => {
                 return res.status(400).json({ msg: 'Reference image is required for custom orders.' });
             }
 
-            if (isProductAsIsOrder && !['bank_transfer', 'telebirr', 'telebirr_api'].includes(paymentMethod)) {
-                return res.status(400).json({ msg: 'Payment method is required for product orders.' });
-            }
-
-            if (isProductAsIsOrder && paymentMethod !== 'telebirr_api') {
-                return res.status(400).json({ msg: 'Payment screenshot is required for product orders.' });
+            if (isProductAsIsOrder && paymentMethod !== 'chapa') {
+                return res.status(400).json({ msg: 'Payment method must be chapa.' });
             }
 
             let selectedPost = null;
@@ -877,7 +873,7 @@ exports.createOrder = async (req, res) => {
         const paymentFile = req.files?.paymentScreenshot?.[0];
 
         let paymentInfo = {
-            method: ['bank_transfer', 'telebirr', 'telebirr_api'].includes(paymentMethod) ? paymentMethod : '',
+            method: ['chapa'].includes(paymentMethod) ? paymentMethod : '',
             comment: paymentComment,
             status: 'Pending'
         };
@@ -941,12 +937,8 @@ exports.createOrder = async (req, res) => {
             return res.status(400).json({ msg: 'Shipping address must include country, region, city, and ZIP code.' });
         }
 
-        if (orderData.post_id && !paymentFile && paymentMethod !== 'telebirr_api') {
-            return res.status(400).json({ msg: 'Payment screenshot is required for product orders.' });
-        }
-
-        if (orderData.post_id && !['bank_transfer', 'telebirr', 'telebirr_api'].includes(paymentMethod)) {
-            return res.status(400).json({ msg: 'Payment method is required for product orders.' });
+        if (orderData.post_id && paymentMethod !== 'chapa') {
+            return res.status(400).json({ msg: 'Payment method must be chapa.' });
         }
 
         if (isGuest && (!customer.address?.city || !customer.address?.specific_address)) {
@@ -1500,16 +1492,7 @@ exports.uploadOrderPaymentProof = async (req, res) => {
             return res.status(401).json({ msg: 'Not authorized' });
         }
 
-        const paymentMethod = String(req.body?.payment_method || req.body?.paymentMethod || '').trim();
-        const paymentComment = String(req.body?.payment_comment || req.body?.paymentComment || '').trim();
-        if (!['bank_transfer', 'telebirr'].includes(paymentMethod)) {
-            return res.status(400).json({ msg: 'Please choose a valid payment method: bank transfer or telebirr' });
-        }
-
-        const file = req.file;
-        if (!file || !file.buffer) {
-            return res.status(400).json({ msg: 'Payment screenshot is required' });
-        }
+        return res.status(400).json({ msg: 'Manual payment screenshot upload is not supported. Please pay securely online using Chapa.' });
 
         const up = await savePrivateOrderUpload(
             file,

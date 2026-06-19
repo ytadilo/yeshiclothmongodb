@@ -225,54 +225,20 @@
                 <div class="form-group" id="paymentMethodGroup" style="display:none;">
                     <label for="paymentMethod">Payment Method (Required for Product Orders)</label>
                     <select id="paymentMethod" name="paymentMethod" class="form-control" autocomplete="off">
-                        <option value="" selected disabled>Select payment method</option>
-                        <option value="chapa">💳 Chapa (Card & Mobile Money)</option>
-                        <option value="bank_transfer">🏦 Ethiopia Commercial Bank Transfer</option>
-                        <option value="telebirr">📱 Telebirr (Manual Screenshot)</option>
-                        <option value="telebirr_api">🌐 Telebirr Pay on Website</option>
+                        <option value="chapa" selected>💳 Chapa (Card & Mobile Money)</option>
                     </select>
                 </div>
 
                 <div id="productPaymentDetailsCard" style="display:none; background: #fdfdfd; padding: 15px; border: 1px dashed #ccc; border-radius: 5px; margin-top: 15px;">
                     <h4 style="margin-top:0;">Payment Details</h4>
                     
-                    <div id="chapaDetails" style="display:none;">
+                    <div id="chapaDetails" style="display:block;">
                         <p><strong>🔒 Secure Chapa Payment</strong></p>
                         <p>You will be redirected to our secure payment gateway to complete your payment.</p>
                         <p style="color: #666; font-size: 0.9rem;">Accepted: Debit/Credit Cards, Mobile Money, Bank Transfer</p>
                     </div>
                     
-                    <div id="bankTransferDetails" style="display:none;">
-                        <p><strong>Bank:</strong> CBE</p>
-                        <p><strong>Account:</strong> 1000338448396 (Haileyesus Tadilo)</p>
-                    </div>
-                    
-                    <div id="telebirrDetails" style="display:none;">
-                        <p><strong>Telebirr:</strong> +251933797981 (Haileyesus Tadilo)</p>
-                    </div>
-                    
-                    <div id="telebirrApiDetails" style="display:none;">
-                        <p><strong>Telebirr API:</strong> You will be redirected to pay seamlessly through Telebirr securely.</p>
-                    </div>
-                    
                     <div id="productPriceSummary" style="margin-top:10px; padding:10px; border-radius:8px; background:#fff7e8; border:1px solid rgba(116,91,24,0.2); color:#1a1c1c; font-size:0.92rem;"></div>
-                    
-                    <div id="chapaPaymentGroup" style="display:none; margin-top: 15px;">
-                        <button type="button" id="proceedChapaPaymentBtn" class="btn btn-primary" style="width: 100%; padding: 12px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; color: white; border-radius: 5px; cursor: pointer; font-weight: 600;">
-                            Proceed to Chapa Payment
-                        </button>
-                    </div>
-                    
-                    <div id="manualPaymentGroup" style="display:none;">
-                        <div class="form-group" id="paymentScreenshotGroup" style="margin-top: 10px; margin-bottom:0;">
-                            <label for="paymentScreenshot">Upload Payment Screenshot (Required)</label>
-                            <input type="file" id="paymentScreenshot" name="paymentScreenshot" class="form-control" accept="image/*">
-                        </div>
-                        <div class="form-group" style="margin-top: 10px; margin-bottom:0;">
-                            <label for="paymentComment">Payment Comment (Optional)</label>
-                            <textarea id="paymentComment" name="paymentComment" class="form-control" rows="3" placeholder="Add any note about your payment"></textarea>
-                        </div>
-                    </div>
                 </div>
             </div>
 
