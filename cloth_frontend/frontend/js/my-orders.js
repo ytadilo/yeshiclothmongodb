@@ -718,16 +718,44 @@ async function loadMyOrders(options = {}) {
                     </div>
                     ` : ''}
 
-                    ${((!paymentScreenshot || String(paymentStatus).toLowerCase() === 'failed') && String(paymentStatus).toLowerCase() !== 'confirmed' && (hasQuotedPrice || hasQuotedShipping)) ? `
+                    ${(isProductAsIsOrder && String(paymentStatus).toLowerCase() !== 'confirmed' && String(paymentStatus).toLowerCase() !== 'completed' && Number.isFinite(payableTotal) && payableTotal > 0) ? `
                         <div class="chapa-payment-trigger-container" style="margin-top:12px; padding:12px; border:1px solid rgba(0,0,0,0.1); border-radius:10px; background:#fff; display:grid; gap:8px;">
                             <div style="font-weight:800; color:#1a1c1c;">Secure Payment via Chapa</div>
-                            <p style="margin:0; font-size:0.9rem; color:#666;">This order is ready for payment. You can pay securely online via Chapa using Card, Telebirr, or Bank Transfer.</p>
+                            <p style="margin:0; font-size:0.9rem; color:#666;">Pay securely online via Chapa using Card, Telebirr, or Bank Transfer.</p>
                             <button type="button" class="btn pay-chapa-btn" 
                                 data-order-id="${escapeHtml(orderId)}" 
                                 data-amount="${escapeHtml(String(payableTotal))}"
                                 data-title="${escapeHtml(String(title))}"
-                                style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border:none; color:white; font-weight:600; width: 100%; padding: 12px; border-radius: 5px; cursor: pointer;">
-                                Pay Now (${payableTotal.toLocaleString()} ETB)
+                                data-shipping="${escapeHtml(String(Number.isFinite(shippingPrice) ? shippingPrice : 0))}"
+                                data-subtotal="${escapeHtml(String(Number.isFinite(price) ? price * orderedQty : payableTotal))}"
+                                style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border:none; color:white; font-weight:700; width: 100%; padding: 14px; border-radius: 8px; cursor: pointer; font-size:1rem;">
+                                💳 Pay Now (${payableTotal.toLocaleString()} ETB)
+                            </button>
+                            <button type="button" class="remove-order-btn" 
+                                data-order-id="${escapeHtml(orderId)}"
+                                style="background:transparent; border:1px solid rgba(186,26,26,0.4); color:#ba1a1a; font-weight:600; width:100%; padding:10px; border-radius:8px; cursor:pointer; font-size:0.9rem; margin-top:4px;">
+                                🗑 Remove Order
+                            </button>
+                        </div>
+                    ` : ''}
+
+                    ${(!isProductAsIsOrder && ((!paymentScreenshot || String(paymentStatus).toLowerCase() === 'failed') && String(paymentStatus).toLowerCase() !== 'confirmed' && (hasQuotedPrice || hasQuotedShipping))) ? `
+                        <div class="chapa-payment-trigger-container" style="margin-top:12px; padding:12px; border:1px solid rgba(0,0,0,0.1); border-radius:10px; background:#fff; display:grid; gap:8px;">
+                            <div style="font-weight:800; color:#1a1c1c;">Secure Payment via Chapa</div>
+                            <p style="margin:0; font-size:0.9rem; color:#666;">This order is ready for payment. Pay securely online via Chapa.</p>
+                            <button type="button" class="btn pay-chapa-btn" 
+                                data-order-id="${escapeHtml(orderId)}" 
+                                data-amount="${escapeHtml(String(computeQuantityTotal(hasQuotedPrice ? clothPrice : 0, hasQuotedShipping ? quotedShipping : 0, orderedQty)))}"
+                                data-title="${escapeHtml(String(title))}"
+                                data-shipping="${escapeHtml(String(hasQuotedShipping ? quotedShipping * orderedQty : 0))}"
+                                data-subtotal="${escapeHtml(String(hasQuotedPrice ? clothPrice * orderedQty : 0))}"
+                                style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border:none; color:white; font-weight:700; width: 100%; padding: 14px; border-radius: 8px; cursor: pointer; font-size:1rem;">
+                                💳 Pay Now (${computeQuantityTotal(hasQuotedPrice ? clothPrice : 0, hasQuotedShipping ? quotedShipping : 0, orderedQty).toLocaleString()} ETB)
+                            </button>
+                            <button type="button" class="remove-order-btn" 
+                                data-order-id="${escapeHtml(orderId)}"
+                                style="background:transparent; border:1px solid rgba(186,26,26,0.4); color:#ba1a1a; font-weight:600; width:100%; padding:10px; border-radius:8px; cursor:pointer; font-size:0.9rem; margin-top:4px;">
+                                🗑 Remove Order
                             </button>
                         </div>
                     ` : ''}
@@ -858,34 +886,6 @@ async function loadMyOrders(options = {}) {
                 const paymentComment = String(frm.querySelector('textarea[name="paymentComment"]')?.value || '').trim();
                 markPaymentInteraction();
                 
-                if (method === 'telebirr_api') {
-                    if (!orderId) return;
-                    const btn = frm.querySelector('button[type="submit"]');
-                    if (btn) btn.disabled = true;
-                    try {
-                        const token = localStorage.getItem('token');
-                        const tRes = await fetch(`/api/telebirr/checkout/${orderId}`, {
-                            method: 'POST',
-                            headers: { 'x-auth-token': token }
-                        });
-                        if (!tRes.ok) {
-                            const errorBody = await tRes.json().catch(() => ({}));
-                            throw new Error(errorBody.msg || errorBody.error || `Server error`);
-                        }
-                        const tData = await tRes.json();
-                        if (tData.checkoutUrl) {
-                            window.location.href = tData.checkoutUrl;
-                        } else {
-                            throw new Error('Telebirr routing failed');
-                        }
-                    } catch (e) {
-                        alert(e?.message || 'Server error');
-                    } finally {
-                        if (btn) btn.disabled = false;
-                    }
-                    return;
-                }
-                
                 if (!orderId || !method || !file) {
                     alert('Please select payment method and screenshot.');
                     return;
@@ -901,6 +901,77 @@ async function loadMyOrders(options = {}) {
                     alert(e?.message || 'Failed to upload payment proof');
                 } finally {
                     if (btn) btn.disabled = false;
+                }
+            });
+        });
+
+        // Pay Now via Chapa
+        Array.from(container.querySelectorAll('.pay-chapa-btn')).forEach((btn) => {
+            btn.addEventListener('click', async () => {
+                markPaymentInteraction();
+                const orderId = String(btn.getAttribute('data-order-id') || '').trim();
+                const amount = parseFloat(btn.getAttribute('data-amount') || '0');
+                const title = String(btn.getAttribute('data-title') || 'Order Payment').trim();
+                const shipping = parseFloat(btn.getAttribute('data-shipping') || '0');
+                const subtotal = parseFloat(btn.getAttribute('data-subtotal') || String(amount));
+
+                if (!orderId || !amount || amount <= 0) {
+                    alert('Invalid order or amount.');
+                    return;
+                }
+
+                // Get user info for pre-filling the checkout form
+                let userEmail = '';
+                let userName = '';
+                let userPhone = '';
+                try {
+                    const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
+                    userEmail = storedUser.email || '';
+                    userName = storedUser.name || storedUser.displayName || '';
+                    userPhone = storedUser.phone || '';
+                } catch (_) {}
+
+                // Build checkout_order for payment-checkout.js
+                const checkoutOrder = {
+                    order_id: orderId,
+                    total: amount,
+                    subtotal: subtotal,
+                    shipping: shipping,
+                    amount: amount,
+                    description: `Payment for: ${title}`,
+                    customer_email: userEmail,
+                    customer_name: userName,
+                    customer_phone: userPhone,
+                    items: [{ name: title, quantity: 1, price: amount }]
+                };
+
+                localStorage.setItem('checkout_order', JSON.stringify(checkoutOrder));
+                window.location.href = '/user/payment-checkout.html';
+            });
+        });
+
+        // Remove / Cancel Order
+        Array.from(container.querySelectorAll('.remove-order-btn')).forEach((btn) => {
+            btn.addEventListener('click', async () => {
+                const orderId = String(btn.getAttribute('data-order-id') || '').trim();
+                if (!orderId) return;
+                if (!confirm('Are you sure you want to remove this order? This cannot be undone.')) return;
+
+                btn.disabled = true;
+                btn.textContent = 'Removing...';
+                try {
+                    const token = localStorage.getItem('token');
+                    const res = await fetch(`/api/orders/${encodeURIComponent(orderId)}/cancel`, {
+                        method: 'DELETE',
+                        headers: { 'x-auth-token': token }
+                    });
+                    const data = await res.json().catch(() => ({}));
+                    if (!res.ok) throw new Error(data?.msg || 'Failed to remove order');
+                    await loadMyOrders();
+                } catch (e) {
+                    alert(e?.message || 'Failed to remove order');
+                    btn.disabled = false;
+                    btn.textContent = '🗑 Remove Order';
                 }
             });
         });

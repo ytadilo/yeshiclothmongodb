@@ -294,10 +294,15 @@ function isValidEmail(email) {
 }
 
 function isValidPhone(phone) {
-    // Remove spaces and special characters
-    const cleaned = phone.replace(/\D/g, '');
-    // Check if at least 9 digits
-    return cleaned.length >= 9;
+    const cleaned = phone.trim();
+    // Accept: 09XXXXXXXX, 07XXXXXXXX, 9XXXXXXXX, +2519..., 2519...
+    if (/^(09|07)\d{8}$/.test(cleaned)) return true;
+    if (/^(9|7)\d{8}$/.test(cleaned)) return true;
+    if (/^\+?2519\d{8}$/.test(cleaned)) return true;
+    if (/^\+?2517\d{8}$/.test(cleaned)) return true;
+    // Fallback: at least 9 digits
+    const digits = cleaned.replace(/\D/g, '');
+    return digits.length >= 9 && digits.length <= 15;
 }
 
 function formatCurrency(amount) {

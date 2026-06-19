@@ -9,7 +9,8 @@ const {
 	updateOrderPayment,
 	updateOrderStatusStep,
 	addNegotiationMessage,
-	uploadOrderPaymentProof
+	uploadOrderPaymentProof,
+	cancelOrder
 } = require('../controllers/orderController');
 const { getOrderStats } = require('../controllers/orderStatsController');
 const auth = require('../middleware/authMiddleware');
@@ -56,6 +57,7 @@ router.put('/:id/payment', auth, adminOnly, updateOrderPayment);
 router.put('/:id/status', auth, adminOnly, updateOrderStatusStep);
 router.post('/:id/negotiation', auth, upload.single('image'), addNegotiationMessage);
 router.post('/:id/payment-proof', auth, upload.single('paymentScreenshot'), uploadOrderPaymentProof);
+router.delete('/:id/cancel', auth, cancelOrder);
 
 router.use((err, _req, res, _next) => {
 	if (!err) {

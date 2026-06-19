@@ -160,6 +160,10 @@
   ],
   "rewrites": [
     {
+      "source": "/favicon.ico",
+      "destination": "https://myclothefullstackhaile.onrender.com/favicon.ico"
+    },
+    {
       "source": "/api/:path*",
       "destination": "https://myclothefullstackhaile.onrender.com/api/:path*"
     },

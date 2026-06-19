@@ -1525,3 +1525,42 @@ exports.uploadOrderPaymentProof = async (req, res) => {
         return res.status(500).json({ msg: 'Server Error' });
     }
 };
+
+/**
+ * DELETE /api/orders/:id/cancel
+ * Allow a user to cancel (remove) their own order if payment is still pending
+ */
+exports.cancelOrder = async (req, res) => {
+    try {
+        const orderId = String(req.params.id || '').trim();
+        if (!orderId || !mongoose.Types.ObjectId.isValid(orderId)) {
+            return res.status(400).json({ msg: 'Invalid order ID' });
+        }
+
+        const order = await Order.findById(orderId);
+        if (!order) {
+            return res.status(404).json({ msg: 'Order not found' });
+        }
+
+        // Only the owner or admin can cancel
+        const isAdmin = req.user && (req.user.role === 'admin' || req.user.isAdmin);
+        const isOwner = order.user_id && String(order.user_id) === String(req.user && (req.user._id || req.user.id));
+        if (!isAdmin && !isOwner) {
+            return res.status(401).json({ msg: 'Not authorized' });
+        }
+
+        // Prevent cancellation if payment is already confirmed
+        const paymentStatus = String(order.payment_status || order.payment_info?.status || 'Pending').toLowerCase();
+        const orderStatus = String(order.order_status || order.status || '').toLowerCase();
+        if (paymentStatus === 'confirmed' || paymentStatus === 'completed' || orderStatus === 'payment confirmed') {
+            return res.status(400).json({ msg: 'Cannot cancel an order that has already been paid.' });
+        }
+
+        await Order.findByIdAndDelete(orderId);
+
+        return res.json({ msg: 'Order cancelled and removed successfully.' });
+    } catch (err) {
+        console.error('cancelOrder error:', err?.message || err);
+        return res.status(500).json({ msg: 'Server Error' });
+    }
+};

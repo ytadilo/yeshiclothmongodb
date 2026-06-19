@@ -57,11 +57,24 @@ exports.initializePayment = async (req, res) => {
             });
         }
 
-        // Validate phone number (basic validation)
-        if (!validator.isMobilePhone(customer_phone, 'any', { strictMode: false })) {
+        // Normalize Ethiopian phone numbers to E.164 format
+        let normalizedPhone = String(customer_phone).trim();
+        // Remove all spaces, dashes, parentheses
+        normalizedPhone = normalizedPhone.replace(/[\s\-().]/g, '');
+        // Convert 09XXXXXXXX or 9XXXXXXXX -> +2519XXXXXXXX
+        if (/^09\d{8}$/.test(normalizedPhone)) {
+            normalizedPhone = '+251' + normalizedPhone.slice(1);
+        } else if (/^9\d{8}$/.test(normalizedPhone)) {
+            normalizedPhone = '+251' + normalizedPhone;
+        } else if (/^2519\d{8}$/.test(normalizedPhone)) {
+            normalizedPhone = '+' + normalizedPhone;
+        }
+
+        // Validate phone number
+        if (!validator.isMobilePhone(normalizedPhone, 'any', { strictMode: false })) {
             return res.status(400).json({
                 success: false,
-                message: 'Invalid phone number',
+                message: 'Invalid phone number. Please use format: 09XXXXXXXX or +2519XXXXXXXX',
                 data: null
             });
         }
@@ -109,7 +122,7 @@ exports.initializePayment = async (req, res) => {
             currency: currency,
             customer_name: customer_name,
             customer_email: customer_email,
-            customer_phone: customer_phone,
+            customer_phone: normalizedPhone,
             payment_status: 'pending',
             description: description || '',
             metadata: {
@@ -132,7 +145,7 @@ exports.initializePayment = async (req, res) => {
             amount: parsedAmount,
             currency: currency,
             email: customer_email,
-            phone: customer_phone,
+            phone: normalizedPhone,
             first_name: firstName,
             last_name: lastName,
             tx_ref: tx_ref,
