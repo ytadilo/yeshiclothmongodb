@@ -276,11 +276,27 @@ async function initShippingAddressUI() {
 
 function updatePaymentDetailsVisibility() {
     const paymentMethod = String(document.getElementById('paymentMethod')?.value || '').trim();
+    const chapaDetails = document.getElementById('chapaDetails');
     const bankTransferDetails = document.getElementById('bankTransferDetails');
     const telebirrDetails = document.getElementById('telebirrDetails');
     const telebirrApiDetails = document.getElementById('telebirrApiDetails');
+    const chapaPaymentGroup = document.getElementById('chapaPaymentGroup');
+    const manualPaymentGroup = document.getElementById('manualPaymentGroup');
     const paymentScreenshotGroup = document.getElementById('paymentScreenshotGroup');
     const submitBtn = document.getElementById('orderPrimaryBtn');
+
+    // Show/hide Chapa details
+    if (chapaDetails) {
+        chapaDetails.style.display = paymentMethod === 'chapa' ? 'block' : 'none';
+    }
+    if (chapaPaymentGroup) {
+        chapaPaymentGroup.style.display = paymentMethod === 'chapa' ? 'block' : 'none';
+    }
+
+    // Show/hide manual payment groups
+    if (manualPaymentGroup) {
+        manualPaymentGroup.style.display = paymentMethod !== 'chapa' && paymentMethod !== 'telebirr_api' ? 'block' : 'none';
+    }
 
     if (bankTransferDetails) {
         bankTransferDetails.style.display = paymentMethod === 'bank_transfer' ? 'block' : 'none';
@@ -292,7 +308,7 @@ function updatePaymentDetailsVisibility() {
         telebirrApiDetails.style.display = paymentMethod === 'telebirr_api' ? 'block' : 'none';
     }
     if (paymentScreenshotGroup) {
-        paymentScreenshotGroup.style.display = paymentMethod === 'telebirr_api' ? 'none' : 'block';
+        paymentScreenshotGroup.style.display = paymentMethod === 'telebirr_api' ? 'none' : (paymentMethod === 'chapa' ? 'none' : 'block');
     }
     
     // Default text
@@ -367,7 +383,81 @@ function initPaymentMethodUI() {
     const paymentMethodInput = document.getElementById('paymentMethod');
     if (!paymentMethodInput) return;
     paymentMethodInput.addEventListener('change', updatePaymentDetailsVisibility);
+    
+    // Add Chapa payment button handler
+    const proceedChapaBtn = document.getElementById('proceedChapaPaymentBtn');
+    if (proceedChapaBtn) {
+        proceedChapaBtn.addEventListener('click', handleChapaPayment);
+    }
+    
     updatePaymentDetailsVisibility();
+}
+
+async function handleChapaPayment(e) {
+    e.preventDefault();
+    
+    try {
+        // Get form data
+        const formData = new FormData(form);
+        const fullName = formData.get('fullName');
+        const phone = formData.get('phone');
+        const quantity = parseInt(formData.get('productQuantity') || 1);
+        
+        // Calculate total
+        const unitPrice = Number(form?.dataset?.postPriceEtb || 0);
+        const freeShipping = String(form?.dataset?.postFreeShipping || '').toLowerCase() === 'true';
+        const unitShipping = freeShipping ? 0 : Number(form?.dataset?.postShippingPriceEtb || 0);
+        const subtotal = unitPrice * quantity;
+        const shipping = unitShipping * quantity;
+        const total = subtotal + shipping;
+        
+        if (total <= 0) {
+            alert('Invalid order amount');
+            return;
+        }
+        
+        // Get user email from localStorage or profile
+        let customerEmail = localStorage.getItem('yeshi_firebase_email') || localStorage.getItem('email') || '';
+        if (!customerEmail) {
+            try {
+                const userStr = localStorage.getItem('user');
+                const user = userStr ? JSON.parse(userStr) : {};
+                customerEmail = user.email || '';
+            } catch (_) {}
+        }
+        
+        if (!customerEmail) {
+            alert('Email not found. Please check your profile.');
+            return;
+        }
+        
+        // Prepare checkout data
+        const checkoutData = {
+            total: total,
+            subtotal: subtotal,
+            shipping: shipping,
+            items: [{
+                name: form.dataset.postTitle || 'Product',
+                price: unitPrice,
+                quantity: quantity
+            }],
+            customer_name: fullName,
+            customer_email: customerEmail,
+            customer_phone: phone,
+            order_id: form.dataset.postId,
+            description: `Ordering: ${form.dataset.postTitle || 'Product'}`
+        };
+        
+        // Save to localStorage for checkout page
+        localStorage.setItem('checkout_order', JSON.stringify(checkoutData));
+        
+        // Redirect to checkout page
+        window.location.href = '/user/payment-checkout.html';
+        
+    } catch (error) {
+        console.error('Chapa payment error:', error);
+        alert('Failed to initiate payment. Please try again.');
+    }
 }
 
 function getSavedProfileShipping() {
