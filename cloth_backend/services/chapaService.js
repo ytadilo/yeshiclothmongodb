@@ -7,7 +7,7 @@
 
 const axios = require('axios');
 const crypto = require('crypto');
-const logger = require('./logger');
+const logger = require('../utils/logger');
 
 class ChapaService {
     constructor() {
