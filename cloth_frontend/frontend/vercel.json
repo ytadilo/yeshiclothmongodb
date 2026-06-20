@@ -6,7 +6,7 @@
       "headers": [
         {
           "key": "Content-Security-Policy",
-          "value": "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tailwindcss.com https://cdnjs.cloudflare.com https://www.gstatic.com https://www.googleapis.com https://apis.google.com https://accounts.google.com https://fonts.googleapis.com https://fonts.gstatic.com https://pagead2.googlesyndication.com https://partner.googleadservices.com https://tpc.googlesyndication.com;"
+          "value": "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tailwindcss.com https://cdnjs.cloudflare.com https://www.gstatic.com https://www.googleapis.com https://apis.google.com https://accounts.google.com https://fonts.googleapis.com https://fonts.gstatic.com https://pagead2.googlesyndication.com https://partner.googleadservices.com https://tpc.googlesyndication.com; frame-src https://checkout.chapa.co https://www.google.com; connect-src 'self' https://api.chapa.co https://checkout.chapa.co https://myclothefullstackhaile.onrender.com https://www.googleapis.com https://apis.google.com https://accounts.google.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; form-action 'self' https://checkout.chapa.co;"
         }
       ]
     }
@@ -170,6 +170,22 @@
     {
       "source": "/admin/:path*",
       "destination": "https://myclothefullstackhaile.onrender.com/admin/:path*"
+    },
+    {
+      "source": "/payment-result",
+      "destination": "/user/payment-result.html"
+    },
+    {
+      "source": "/payment-result.html",
+      "destination": "/user/payment-result.html"
+    },
+    {
+      "source": "/payment-checkout",
+      "destination": "/user/payment-checkout.html"
+    },
+    {
+      "source": "/payment-checkout.html",
+      "destination": "/user/payment-checkout.html"
     },
     {
       "source": "/",

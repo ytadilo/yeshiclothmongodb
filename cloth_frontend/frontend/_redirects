@@ -47,6 +47,9 @@
 
 # Pretty URLs for user pages
 /  /user/index.html  200
+/payment-result  /user/payment-result.html  200
+/payment-result.html  /user/payment-result.html  200
+/payment-checkout  /user/payment-checkout.html  200
 /post  /user/post.html  200
 /post.html  /user/post.html  200
 /my-orders  /user/my-orders.html  200
