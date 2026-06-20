@@ -2,7 +2,7 @@
 
 **Frontend:** https://www.yeshiclothe.com.et  
 **Backend (API):** https://myclothefullstackhaile.onrender.com  
-**Last Updated:** June 2026 | **Version:** 1.1.0
+**Last Updated:** June 2026 | **Version:** 1.2.0
 
 ---
 

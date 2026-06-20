@@ -1571,7 +1571,8 @@ exports.cancelOrder = async (req, res) => {
             return res.status(400).json({ msg: 'Cannot cancel an order that has already been paid or is in progress.' });
         }
 
-        await Order.findByIdAndDelete(orderId);
+        // Use deleteOne instead of findByIdAndDelete for Firestore compatibility
+        await Order.deleteOne({ _id: orderId });
 
         return res.json({ msg: 'Order cancelled and removed successfully.' });
     } catch (err) {
