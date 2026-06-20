@@ -763,6 +763,18 @@ async function loadMyOrders(options = {}) {
                     ` : ''}
 
                     <hr style="border:0; border-top: 1px solid rgba(0,0,0,0.08); margin: 12px 0;">
+
+                    ${(String(paymentStatus).toLowerCase() !== 'confirmed' &&
+                       String(paymentStatus).toLowerCase() !== 'completed' &&
+                       String(paymentStatus).toLowerCase() !== 'success') ? `
+                        <div style="margin-top:4px;">
+                            <button type="button" class="remove-order-btn"
+                                data-order-id="${escapeHtml(String(order?._id || ''))}"
+                                style="background:transparent; border:1px solid rgba(186,26,26,0.4); color:#ba1a1a; font-weight:600; width:100%; padding:10px; border-radius:8px; cursor:pointer; font-size:0.9rem;">
+                                🗑 Remove Order
+                            </button>
+                        </div>
+                    ` : ''}
                 </div>
             `;
         }).join('');

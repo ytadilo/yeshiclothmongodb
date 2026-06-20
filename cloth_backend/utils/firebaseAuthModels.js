@@ -1521,7 +1521,11 @@ class FirebaseAuditLog {
         });
     }
 }
-\nmodule.exports = {\n    FirebasePayment,\n    FirebaseAnalyticsUserSummary,\n    FirebaseAuditLog,
+
+module.exports = {
+    FirebasePayment,
+    FirebaseAnalyticsUserSummary,
+    FirebaseAuditLog,
     isFirebaseMode,
     FirebaseUser,
     FirebaseOTPCode,
