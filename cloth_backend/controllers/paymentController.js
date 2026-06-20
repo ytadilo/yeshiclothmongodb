@@ -171,13 +171,23 @@ exports.initializePayment = async (req, res) => {
 
             logger.error('Chapa initialization failed', {
                 tx_ref: tx_ref,
-                message: initializeResult.message
+                message: initializeResult.message,
+                details: initializeResult.details,
+                requestData: {
+                    amount: parsedAmount,
+                    email: customer_email,
+                    phone: finalPhone,
+                    firstName,
+                    lastName
+                }
             });
 
             return res.status(400).json({
                 success: false,
                 message: initializeResult.message,
-                data: null
+                data: null,
+                // Include error details in development for debugging
+                ...(process.env.NODE_ENV !== 'production' && { error_details: initializeResult.details })
             });
         }
 

@@ -127,16 +127,32 @@ class ChapaService {
                 };
             }
         } catch (error) {
-            logger.error('Chapa payment initialization error', {
+            // Log detailed error information from Chapa API
+            const errorDetails = {
                 error: error.message,
-                tx_ref: paymentData.tx_ref
-            });
+                tx_ref: paymentData.tx_ref,
+                status: error.response?.status,
+                statusText: error.response?.statusText,
+                chapaResponse: error.response?.data,
+                requestPayload: {
+                    amount: paymentData.amount,
+                    email: paymentData.email,
+                    phone: paymentData.phone,
+                    tx_ref: paymentData.tx_ref
+                }
+            };
+
+            logger.error('Chapa payment initialization error', errorDetails);
+
+            // Extract specific error message from Chapa if available
+            const chapaMessage = error.response?.data?.message || error.response?.data?.msg || error.message;
 
             return {
                 success: false,
-                message: `Payment initialization failed: ${error.message}`,
+                message: `Payment initialization failed: ${chapaMessage}`,
                 data: null,
-                error: error.message
+                error: error.message,
+                details: error.response?.data
             };
         }
     }
