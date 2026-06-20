@@ -27,9 +27,12 @@ router.post('/initialize', auth, paymentController.initializePayment);
  * POST /api/payments/chapa/webhook
  * Webhook endpoint for Chapa callbacks
  * Auth: None (Chapa posts to this endpoint)
- * Note: In production, validate webhook signatures
+ * Signature is validated via Chapa-Signature header in production
  */
-router.post('/chapa/webhook', express.json(), paymentController.chapaWebhook);
+router.post('/chapa/webhook', express.json({
+    // Capture raw body so we can verify the Chapa-Signature header
+    verify: (req, _res, buf) => { req.rawBody = buf; }
+}), paymentController.chapaWebhook);
 
 /**
  * GET /api/payments/verify/:tx_ref
@@ -39,16 +42,10 @@ router.post('/chapa/webhook', express.json(), paymentController.chapaWebhook);
 router.get('/verify/:tx_ref', optionalAuth, paymentController.verifyPayment);
 
 /**
- * GET /api/payments/:tx_ref
- * Get payment details
- * Auth: Optional (for public reference, auth required for owned payments)
- */
-router.get('/:tx_ref', optionalAuth, paymentController.getPaymentDetails);
-
-/**
  * GET /api/payments/user/:userId
  * Get user's payment history
  * Auth: Required
+ * NOTE: must be defined BEFORE /:tx_ref to avoid route shadowing
  */
 router.get('/user/:userId', auth, paymentController.getUserPayments);
 
@@ -56,7 +53,16 @@ router.get('/user/:userId', auth, paymentController.getUserPayments);
  * POST /api/payments/:tx_ref/retry
  * Retry a failed payment
  * Auth: Required
+ * NOTE: must be defined BEFORE /:tx_ref to avoid route shadowing
  */
 router.post('/:tx_ref/retry', auth, paymentController.retryPayment);
+
+/**
+ * GET /api/payments/:tx_ref
+ * Get payment details
+ * Auth: Optional (for public reference, auth required for owned payments)
+ * NOTE: keep this LAST among parameterised GET routes
+ */
+router.get('/:tx_ref', optionalAuth, paymentController.getPaymentDetails);
 
 module.exports = router;

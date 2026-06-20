@@ -15,9 +15,12 @@ class ChapaService {
         this.secretKey = process.env.CHAPA_SECRET_KEY || '';
         this.publicKey = process.env.CHAPA_PUBLIC_KEY || '';
         this.baseUrl = process.env.CHAPA_BASE_URL || 'https://api.chapa.co/v1';
-        this.baseReturnUrl = process.env.BASE_URL || 'http://localhost:3000';
-        this.callbackUrl = process.env.CALLBACK_URL || `${this.baseReturnUrl}/api/payments/chapa/webhook`;
-        this.returnUrl = process.env.RETURN_URL || `${this.baseReturnUrl}/payment-result`;
+        // Default to production URLs so the service works without extra config on Render
+        this.baseReturnUrl = process.env.BASE_URL || 'https://myclothefullstackhaile.onrender.com';
+        this.callbackUrl = process.env.CALLBACK_URL ||
+            `${this.baseReturnUrl}/api/payments/chapa/webhook`;
+        this.returnUrl = process.env.RETURN_URL ||
+            'https://www.yeshiclothe.com.et/payment-result';
 
         if (!this.secretKey) {
             logger.warn('CHAPA_SECRET_KEY is not configured in environment variables');
@@ -217,19 +220,32 @@ class ChapaService {
     }
 
     /**
-     * Validate webhook signature
-     * Note: Implement based on Chapa's signature validation method
+     * Validate Chapa webhook signature.
+     *
+     * Chapa sends a `Chapa-Signature` header that is an HMAC-SHA256 of the
+     * raw request body, keyed with your CHAPA_SECRET_KEY.
+     *
+     * Usage in controller:
+     *   const sig = req.headers['chapa-signature'];
+     *   const rawBody = req.rawBody; // set by express.json({ verify: ... })
+     *   const valid = chapaService.validateWebhookSignature(rawBody, sig);
+     *
+     * @param {string|Buffer} rawBody  - The raw (unparsed) request body
+     * @param {string}        signature - Value of the Chapa-Signature header
+     * @returns {boolean}
      */
-    validateWebhookSignature(payload, signature) {
+    validateWebhookSignature(rawBody, signature) {
         try {
-            // Create signature from payload
-            const message = JSON.stringify(payload);
+            if (!signature || !rawBody) return false;
             const hash = crypto
                 .createHmac('sha256', this.secretKey)
-                .update(message)
+                .update(rawBody)
                 .digest('hex');
-
-            return hash === signature;
+            // Constant-time comparison to prevent timing attacks
+            return crypto.timingSafeEqual(
+                Buffer.from(hash, 'utf8'),
+                Buffer.from(signature, 'utf8')
+            );
         } catch (error) {
             logger.error('Webhook signature validation error', { error: error.message });
             return false;

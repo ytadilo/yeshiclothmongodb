@@ -1,5 +1,5 @@
 const Order = require('../models/Order');
-const mongoose = require('mongoose');
+
 const Upload = require('../models/Upload');
 const Product = require('../models/Product');
 const Post = require('../models/Post');
@@ -35,8 +35,7 @@ function normalizeCountryCode(value, fallback = '+251') {
 
 function isSupportedPostId(value) {
     const id = String(value || '').trim();
-    if (!id) return false;
-    return getDatabaseProvider() === 'firebase' ? id.length > 0 : mongoose.Types.ObjectId.isValid(id);
+    return id.length > 0;
 }
 
 function isCountryAllowedByRule(country, ruleScope, ruleCountries) {
@@ -1533,7 +1532,7 @@ exports.uploadOrderPaymentProof = async (req, res) => {
 exports.cancelOrder = async (req, res) => {
     try {
         const orderId = String(req.params.id || '').trim();
-        if (!orderId || !mongoose.Types.ObjectId.isValid(orderId)) {
+        if (!orderId) {
             return res.status(400).json({ msg: 'Invalid order ID' });
         }
 

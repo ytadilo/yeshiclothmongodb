@@ -61,22 +61,24 @@ exports.initializePayment = async (req, res) => {
         let normalizedPhone = String(customer_phone).trim();
         // Remove all spaces, dashes, parentheses
         normalizedPhone = normalizedPhone.replace(/[\s\-().]/g, '');
-        // Convert 09XXXXXXXX or 9XXXXXXXX -> +2519XXXXXXXX
+        // Convert 09XXXXXXXX or 9XXXXXXXX -> +2519XXXXXXXX, 07XXXXXXXX -> +2517XXXXXXXX
         if (/^09\d{8}$/.test(normalizedPhone)) {
+            normalizedPhone = '+251' + normalizedPhone.slice(1);
+        } else if (/^07\d{8}$/.test(normalizedPhone)) {
             normalizedPhone = '+251' + normalizedPhone.slice(1);
         } else if (/^9\d{8}$/.test(normalizedPhone)) {
             normalizedPhone = '+251' + normalizedPhone;
-        } else if (/^2519\d{8}$/.test(normalizedPhone)) {
+        } else if (/^7\d{8}$/.test(normalizedPhone)) {
+            normalizedPhone = '+251' + normalizedPhone;
+        } else if (/^2519\d{8}$/.test(normalizedPhone) || /^2517\d{8}$/.test(normalizedPhone)) {
             normalizedPhone = '+' + normalizedPhone;
         }
 
-        // Validate phone number
+        // Validate phone number, if invalid provide a default Ethiopian number to prevent Chapa crash
+        let finalPhone = normalizedPhone;
         if (!validator.isMobilePhone(normalizedPhone, 'any', { strictMode: false })) {
-            return res.status(400).json({
-                success: false,
-                message: 'Invalid phone number. Please use format: 09XXXXXXXX or +2519XXXXXXXX',
-                data: null
-            });
+            logger.warn('Invalid phone number provided for Chapa, using fallback', { phone: customer_phone });
+            finalPhone = '0900000000'; // Default valid-looking phone to allow checkout
         }
 
         // Split customer name
@@ -122,7 +124,7 @@ exports.initializePayment = async (req, res) => {
             currency: currency,
             customer_name: customer_name,
             customer_email: customer_email,
-            customer_phone: normalizedPhone,
+            customer_phone: finalPhone,
             payment_status: 'pending',
             description: description || '',
             metadata: {
@@ -145,7 +147,7 @@ exports.initializePayment = async (req, res) => {
             amount: parsedAmount,
             currency: currency,
             email: customer_email,
-            phone: normalizedPhone,
+            phone: finalPhone,
             first_name: firstName,
             last_name: lastName,
             tx_ref: tx_ref,
@@ -221,6 +223,36 @@ exports.chapaWebhook = async (req, res) => {
     const startTime = Date.now();
 
     try {
+        // --- Signature validation (enforce in production) ---
+        const chapaSignature = req.headers['chapa-signature'];
+        if (process.env.NODE_ENV === 'production') {
+            if (!chapaSignature) {
+                logger.warn('Webhook rejected - missing Chapa-Signature header');
+                return res.status(401).json({
+                    success: false,
+                    message: 'Missing webhook signature'
+                });
+            }
+            const isValid = chapaService.validateWebhookSignature(req.rawBody, chapaSignature);
+            if (!isValid) {
+                logger.warn('Webhook rejected - invalid Chapa-Signature', {
+                    signature: chapaSignature
+                });
+                return res.status(401).json({
+                    success: false,
+                    message: 'Invalid webhook signature'
+                });
+            }
+        } else if (chapaSignature) {
+            // In development, validate if header is present but don't block if missing
+            const isValid = chapaService.validateWebhookSignature(req.rawBody, chapaSignature);
+            if (!isValid) {
+                logger.warn('DEV: Webhook signature mismatch (not blocking in dev)', {
+                    signature: chapaSignature
+                });
+            }
+        }
+
         const payload = req.body;
 
         logger.info('Webhook received from Chapa', {

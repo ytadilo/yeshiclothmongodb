@@ -23,7 +23,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         } else {
             // If verification failed, still show the status
             const detailsResponse = await fetch(`/api/payments/${txRef}`);
-            const detailsResult = detailsResponse.json();
+            const detailsResult = await detailsResponse.json();
             
             if (detailsResult.success) {
                 const payment = detailsResult.data;

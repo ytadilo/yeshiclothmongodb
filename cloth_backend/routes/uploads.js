@@ -1,7 +1,7 @@
 const express = require('express');
 const fs = require('fs');
 const path = require('path');
-const mongoose = require('mongoose');
+
 const { getDatabaseProvider } = require('../utils/db');
 
 const Upload = require('../models/Upload');
@@ -54,16 +54,6 @@ async function resolveUploadByReference(rawId, provider) {
         }
     })();
 
-    if (provider === 'mongo') {
-        const suffixMatcher = new RegExp(`(^|/)${escapeRegex(maybeDecoded)}(\\.[^./\\\\]+)?$`, 'i');
-        return Upload.findOne({
-            $or: [
-                { storage_path: suffixMatcher },
-                { originalName: maybeDecoded }
-            ]
-        }).select(selectFields);
-    }
-
     // Firebase fallback: resolve legacy references by storage path basename.
     const all = await Upload.find({}).select(selectFields).lean();
     if (!Array.isArray(all) || !all.length) return null;
@@ -91,9 +81,6 @@ router.get('/:id', skipAdminDeviceCheck, optionalAuth, async (req, res) => {
     try {
         const { id } = req.params;
         const provider = getDatabaseProvider();
-        if (provider === 'mongo' && !mongoose.Types.ObjectId.isValid(id)) {
-            // Allow legacy non-ObjectId references to be resolved via storage_path fallback.
-        }
 
         const upload = await resolveUploadByReference(id, provider);
 

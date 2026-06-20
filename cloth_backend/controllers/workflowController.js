@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
@@ -90,14 +90,12 @@ function isFirebaseProvider() {
 
 function isValidAppId(value) {
     const id = String(value || '').trim();
-    if (!id) return false;
-    return isFirebaseProvider() ? id.length > 0 : mongoose.isValidObjectId(id);
+    return id.length > 0;
 }
 
 function isValidChatReferenceId(value) {
     const id = String(value || '').trim();
-    if (!id) return false;
-    return isFirebaseProvider() ? id.length > 0 : mongoose.isValidObjectId(id);
+    return id.length > 0;
 }
 
 exports.createJob = async (_req, res) => staffingFeatureRemoved(res);
@@ -146,8 +144,8 @@ exports.sendMessage = async (req, res) => {
         const message = await ChatMessage.create({
             sender_id: req.user.id,
             receiver_id: receiverId,
-            job_id: mongoose.isValidObjectId(jobId) ? jobId : null,
-            delivery_id: mongoose.isValidObjectId(deliveryId) ? deliveryId : null,
+            job_id: jobId || null,
+            delivery_id: deliveryId || null,
             message: text,
             reply_to: replyTo
         });
@@ -280,8 +278,8 @@ exports.listMessages = async (req, res) => {
         const otherId = String(req.query.other_user_id || '').trim();
 
         const query = {};
-        if (mongoose.isValidObjectId(jobId)) query.job_id = jobId;
-        if (mongoose.isValidObjectId(deliveryId)) query.delivery_id = deliveryId;
+        if (jobId) query.job_id = jobId;
+        if (deliveryId) query.delivery_id = deliveryId;
 
         if (!isAdmin(req)) {
             // User: only allow chat with admin(s), and only see their own messages
@@ -501,10 +499,6 @@ exports.markNotificationRead = async (req, res) => {
         }
         const id = String(req.params.id || '').trim();
         if (!id) return res.status(400).json({ msg: 'Invalid notification id' });
-        const isFirebaseNotificationModel = typeof Notification.collection === 'function';
-        if (!isFirebaseNotificationModel && !mongoose.isValidObjectId(id)) {
-            return res.status(400).json({ msg: 'Invalid notification id' });
-        }
         const doc = await Notification.findOneAndUpdate(
             { _id: id, user_id: req.user.id },
             { $set: { is_read: true } },
@@ -561,7 +555,6 @@ exports.getAuditLogs = async (req, res) => {
         const limit = Math.min(Math.max(Number(req.query.limit) || 100, 1), 300);
 
         const logs = await AuditLog.find({})
-            .populate('actor_id', 'fullName email role')
             .sort({ timestamp: -1 })
             .limit(limit)
             .lean();
