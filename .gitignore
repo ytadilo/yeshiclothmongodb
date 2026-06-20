@@ -1,65 +1,83 @@
-# Dependencies
+# ──────────────────────────────────────────────
+# Node / NPM
+# ──────────────────────────────────────────────
 node_modules/
+**/node_modules/
+cloth_backend/node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-package-lock.json
-yarn.lock
+cloth_backend\node_modules
+# Keep package-lock.json tracked so Render can do reproducible installs.
+# Remove the next line if you intentionally want to ignore it.
+# package-lock.json
 
-# Environment variables
+# ──────────────────────────────────────────────
+# Environment / Secrets
+# ──────────────────────────────────────────────
 .env
 .env.local
 .env.*.local
-.env.example
+# Keep .env.example files so new devs know what to set
+!.env.example
+!.env.example.chapa
+!**/.env.example
 
-# IDE
+# ──────────────────────────────────────────────
+# Editor / IDE
+# ──────────────────────────────────────────────
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
-.DS_Store
 .project
 .classpath
 *.sublime-project
 *.sublime-workspace
 
+# ──────────────────────────────────────────────
+# OS artefacts
+# ──────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+
+# ──────────────────────────────────────────────
 # Build outputs
+# ──────────────────────────────────────────────
 dist/
 build/
+out/
+.next/
 *.o
 *.a
 *.so
 
+# ──────────────────────────────────────────────
 # Logs
+# ──────────────────────────────────────────────
 logs/
 *.log
-npm-debug.log
 
-# Runtime data
+# ──────────────────────────────────────────────
+# Runtime / temp
+# ──────────────────────────────────────────────
 pids/
+*.pid
 *.seed
 *.pid.lock
-
-# Coverage
-coverage/
-
-# OS
-Thumbs.db
-.DS_Store
-
-# Firebase
-.firebaserc
-firebase-debug.log
-
-# Temporary files
 temp/
 tmp/
 *.tmp
 
-# Testing
+# ──────────────────────────────────────────────
+# Test / Coverage
+# ──────────────────────────────────────────────
+coverage/
 .nyc_output/
 
-# Production
-.next/
-out/
+# ──────────────────────────────────────────────
+# Firebase
+# ──────────────────────────────────────────────
+.firebaserc
+firebase-debug.log
