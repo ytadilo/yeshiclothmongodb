@@ -945,8 +945,42 @@ async function loadMyOrders(options = {}) {
                     items: [{ name: title, quantity: 1, price: amount }]
                 };
 
-                localStorage.setItem('checkout_order', JSON.stringify(checkoutOrder));
-                window.location.href = '/user/payment-checkout.html';
+                try {
+                    const token = localStorage.getItem('token') || '';
+                    btn.disabled = true;
+                    btn.textContent = 'Processing...';
+
+                    const initRes = await fetch('/api/payments/initialize', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'x-auth-token': token
+                        },
+                        body: JSON.stringify({
+                            customer_name: userName || 'Customer',
+                            customer_email: userEmail || 'customer@example.com',
+                            customer_phone: userPhone || '0900000000',
+                            amount: amount,
+                            currency: 'ETB',
+                            description: `Payment for: ${title}`,
+                            order_id: orderId
+                        })
+                    });
+                    
+                    const initResult = await initRes.json();
+                    
+                    if (initRes.ok && initResult.success && initResult.data && initResult.data.checkout_url) {
+                        localStorage.setItem('last_payment_ref', initResult.data.tx_ref);
+                        window.location.href = initResult.data.checkout_url;
+                    } else {
+                        throw new Error(initResult.message || 'Failed to initialize payment');
+                    }
+                } catch (chapaErr) {
+                    console.error('Chapa init error:', chapaErr);
+                    alert('Failed to connect to Chapa: ' + chapaErr.message);
+                    btn.disabled = false;
+                    btn.textContent = `💳 Pay Now (${amount.toLocaleString()} ETB)`;
+                }
             });
         });
 

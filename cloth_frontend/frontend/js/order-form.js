@@ -2254,9 +2254,38 @@ form.addEventListener('submit', async function(e) {
                     description: `Ordering: ${title}`
                 };
 
-                localStorage.setItem('checkout_order', JSON.stringify(checkoutData));
-                alert('Order placed successfully! Redirecting to secure Chapa checkout...');
-                window.location.href = '/user/payment-checkout.html';
+                try {
+                    const initRes = await fetch('/api/payments/initialize', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'x-auth-token': token
+                        },
+                        body: JSON.stringify({
+                            customer_name: name,
+                            customer_email: customerEmail,
+                            customer_phone: phone,
+                            amount: total,
+                            currency: 'ETB',
+                            description: `Ordering: ${title}`,
+                            order_id: orderId
+                        })
+                    });
+                    
+                    const initResult = await initRes.json();
+                    
+                    if (initRes.ok && initResult.success && initResult.data && initResult.data.checkout_url) {
+                        localStorage.setItem('last_payment_ref', initResult.data.tx_ref);
+                        alert('Order placed successfully! Redirecting to secure Chapa checkout...');
+                        window.location.href = initResult.data.checkout_url;
+                    } else {
+                        throw new Error(initResult.message || 'Failed to initialize payment');
+                    }
+                } catch (chapaErr) {
+                    console.error('Chapa init error:', chapaErr);
+                    alert('Order placed, but failed to connect to Chapa: ' + chapaErr.message);
+                    window.location.href = '/user/my-orders.html';
+                }
                 return;
             }
 
