@@ -74,11 +74,11 @@ exports.initializePayment = async (req, res) => {
             normalizedPhone = '+' + normalizedPhone;
         }
 
-        // Validate phone number, if invalid provide a default Ethiopian number to prevent Chapa crash
+        // Validate phone number; use a proper E.164 fallback if invalid so Chapa never sees a bare local number
         let finalPhone = normalizedPhone;
         if (!validator.isMobilePhone(normalizedPhone, 'any', { strictMode: false })) {
             logger.warn('Invalid phone number provided for Chapa, using fallback', { phone: customer_phone });
-            finalPhone = '0900000000'; // Default valid-looking phone to allow checkout
+            finalPhone = '+251900000000'; // Valid E.164 fallback — Chapa accepts this for checkout flow
         }
 
         // Split customer name

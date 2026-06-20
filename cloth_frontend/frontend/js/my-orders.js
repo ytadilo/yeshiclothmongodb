@@ -726,6 +726,7 @@ async function loadMyOrders(options = {}) {
                                 data-order-id="${escapeHtml(orderId)}" 
                                 data-amount="${escapeHtml(String(payableTotal))}"
                                 data-title="${escapeHtml(String(title))}"
+                                data-phone="${escapeHtml(String(order?.customer_info?.phone || order?.phone || ''))}"
                                 data-shipping="${escapeHtml(String(Number.isFinite(shippingPrice) ? shippingPrice : 0))}"
                                 data-subtotal="${escapeHtml(String(Number.isFinite(price) ? price * orderedQty : payableTotal))}"
                                 style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border:none; color:white; font-weight:700; width: 100%; padding: 14px; border-radius: 8px; cursor: pointer; font-size:1rem;">
@@ -747,6 +748,7 @@ async function loadMyOrders(options = {}) {
                                 data-order-id="${escapeHtml(orderId)}" 
                                 data-amount="${escapeHtml(String(computeQuantityTotal(hasQuotedPrice ? clothPrice : 0, hasQuotedShipping ? quotedShipping : 0, orderedQty)))}"
                                 data-title="${escapeHtml(String(title))}"
+                                data-phone="${escapeHtml(String(order?.customer_info?.phone || order?.phone || ''))}"
                                 data-shipping="${escapeHtml(String(hasQuotedShipping ? quotedShipping * orderedQty : 0))}"
                                 data-subtotal="${escapeHtml(String(hasQuotedPrice ? clothPrice * orderedQty : 0))}"
                                 style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border:none; color:white; font-weight:700; width: 100%; padding: 14px; border-radius: 8px; cursor: pointer; font-size:1rem;">
@@ -914,6 +916,8 @@ async function loadMyOrders(options = {}) {
                 const title = String(btn.getAttribute('data-title') || 'Order Payment').trim();
                 const shipping = parseFloat(btn.getAttribute('data-shipping') || '0');
                 const subtotal = parseFloat(btn.getAttribute('data-subtotal') || String(amount));
+                // Phone may come from the button's data-phone (set from order customer_info)
+                const orderPhone = String(btn.getAttribute('data-phone') || '').trim();
 
                 if (!orderId || !amount || amount <= 0) {
                     alert('Invalid order or amount.');
@@ -928,8 +932,11 @@ async function loadMyOrders(options = {}) {
                     const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
                     userEmail = storedUser.email || '';
                     userName = storedUser.name || storedUser.displayName || '';
-                    userPhone = storedUser.phone || '';
+                    userPhone = storedUser.phone || storedUser.phoneNumber || '';
                 } catch (_) {}
+
+                // Prefer phone from the order's customer_info over user profile
+                const finalPhone = orderPhone || userPhone || '+251900000000';
 
                 // Build checkout_order for payment-checkout.js
                 const checkoutOrder = {
@@ -941,7 +948,7 @@ async function loadMyOrders(options = {}) {
                     description: `Payment for: ${title}`,
                     customer_email: userEmail,
                     customer_name: userName,
-                    customer_phone: userPhone,
+                    customer_phone: finalPhone,
                     items: [{ name: title, quantity: 1, price: amount }]
                 };
 
@@ -959,7 +966,7 @@ async function loadMyOrders(options = {}) {
                         body: JSON.stringify({
                             customer_name: userName || 'Customer',
                             customer_email: userEmail || 'customer@example.com',
-                            customer_phone: userPhone || '0900000000',
+                            customer_phone: finalPhone,
                             amount: amount,
                             currency: 'ETB',
                             description: `Payment for: ${title}`,

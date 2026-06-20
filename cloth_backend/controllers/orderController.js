@@ -1548,11 +1548,27 @@ exports.cancelOrder = async (req, res) => {
             return res.status(401).json({ msg: 'Not authorized' });
         }
 
-        // Prevent cancellation if payment is already confirmed
-        const paymentStatus = String(order.payment_status || order.payment_info?.status || 'Pending').toLowerCase();
-        const orderStatus = String(order.order_status || order.status || '').toLowerCase();
-        if (paymentStatus === 'confirmed' || paymentStatus === 'completed' || orderStatus === 'payment confirmed') {
-            return res.status(400).json({ msg: 'Cannot cancel an order that has already been paid.' });
+        // Prevent cancellation if payment is already confirmed / completed
+        // Covers: 'Confirmed', 'confirmed', 'Completed', 'completed', 'success' (Chapa webhook value)
+        const paymentStatus = String(
+            order.payment_status ||
+            order.payment_info?.status ||
+            order.paymentStatus ||
+            'Pending'
+        ).toLowerCase().trim();
+
+        const orderStatus = String(order.order_status || order.status || '').toLowerCase().trim();
+
+        const isPaid =
+            paymentStatus === 'confirmed' ||
+            paymentStatus === 'completed' ||
+            paymentStatus === 'success' ||
+            orderStatus === 'payment confirmed' ||
+            orderStatus === 'delivered' ||
+            orderStatus === 'shipped';
+
+        if (isPaid) {
+            return res.status(400).json({ msg: 'Cannot cancel an order that has already been paid or is in progress.' });
         }
 
         await Order.findByIdAndDelete(orderId);

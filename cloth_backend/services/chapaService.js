@@ -275,10 +275,11 @@ class ChapaService {
             throw new Error('Invalid email address');
         }
 
-        // Validate phone (basic check)
+        // Validate phone (basic check — controller already normalizes/falls back before calling this)
         const phoneRegex = /^\+?[0-9\s\-()]{6,}$/;
-        if (!phoneRegex.test(data.phone)) {
-            throw new Error('Invalid phone number');
+        if (data.phone && !phoneRegex.test(String(data.phone))) {
+            logger.warn('ChapaService: phone failed regex, will proceed anyway', { phone: data.phone });
+            // Do NOT throw — controller already applied a valid fallback
         }
     }
 
