@@ -51,9 +51,11 @@
     }
 
     async function fetchRemoteCountries() {
-        const res = await fetch('https://restcountries.com/v3.1/all?fields=name,idd');
-        if (!res.ok) throw new Error('country list fetch failed');
-        const data = await res.json();
+        // restcountries.com is blocked by our CSP — always use the built-in fallback
+        // to avoid a console error. Remove this early return if you ever add
+        // restcountries.com to the connect-src CSP directive.
+        throw new Error('remote fetch disabled — using fallback list');
+    }
 
         const rows = (Array.isArray(data) ? data : []).map((country) => {
             const name = String(country && country.name && country.name.common || '').trim();

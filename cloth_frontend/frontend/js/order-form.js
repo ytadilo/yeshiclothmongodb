@@ -1,4 +1,26 @@
 // Initialize form on load
+
+/**
+ * Accept Ethiopian phone numbers in any common format:
+ *   09XXXXXXXX, 07XXXXXXXX (local 10-digit)
+ *   +2519XXXXXXXX, +2517XXXXXXXX (E.164)
+ *   2519XXXXXXXX, 2517XXXXXXXX (no plus)
+ *   9XXXXXXXX, 7XXXXXXXX (no leading zero)
+ * Also accepts generic international format: +[country][number]
+ */
+function isValidPhone(phone) {
+    const p = String(phone || '').trim().replace(/[\s\-().]/g, '');
+    // Ethiopian local format
+    if (/^(09|07)\d{8}$/.test(p)) return true;
+    // Ethiopian with country code
+    if (/^(\+?251)(9|7)\d{8}$/.test(p)) return true;
+    // Short form without leading zero
+    if (/^(9|7)\d{8}$/.test(p)) return true;
+    // Generic international +XX...
+    if (/^\+[1-9]\d{5,14}$/.test(p)) return true;
+    return false;
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
     if (window.YeshiAuth && typeof window.YeshiAuth.resolveSession === 'function') {
         await window.YeshiAuth.resolveSession().catch(() => null);
@@ -1377,8 +1399,8 @@ function validateStepTwoInputs() {
         return false;
     }
 
-    if (!phone || !/^\+[1-9]\d{0,3}[\s\-]?\d{5,14}$/.test(phone)) {
-        alert('Please enter a valid phone number with country code (example: +251...).');
+    if (!phone || !isValidPhone(phone)) {
+        alert('Please enter a valid phone number (example: 0911223344 or +251911223344).');
         focusAndScrollToField(useSavedShipping ? document.getElementById('savedAddressSelect') : document.getElementById('phone'));
         return false;
     }
