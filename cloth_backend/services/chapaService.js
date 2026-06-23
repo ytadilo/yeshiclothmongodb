@@ -1,11 +1,22 @@
 /**
  * Chapa Payment Service
  * Uses the official chapa-nodejs SDK: https://github.com/Chapa-Et/chapa-nodejs
+ *
+ * The SDK throws HttpException(message: string, status: number) on errors.
+ * HttpException extends Error, so error.message is always a plain string.
  */
 
 const { Chapa } = require('chapa-nodejs');
 const crypto = require('crypto');
 const logger = require('../utils/logger');
+
+// Extract a safe string message from any thrown value
+function extractMessage(error) {
+    if (!error) return 'Unknown error';
+    if (typeof error === 'string') return error;
+    if (typeof error.message === 'string' && error.message) return error.message;
+    try { return JSON.stringify(error); } catch (_) { return String(error); }
+}
 
 class ChapaService {
     constructor() {
@@ -19,16 +30,10 @@ class ChapaService {
         if (!this.secretKey) {
             logger.warn('CHAPA_SECRET_KEY is not configured in environment variables');
         } else {
-            // Instantiate official Chapa SDK
-            this.chapa = new Chapa({
-                secretKey: this.secretKey
-            });
+            this.chapa = new Chapa({ secretKey: this.secretKey });
         }
     }
 
-    /**
-     * Generate a unique transaction reference
-     */
     generateTxRef(userId = '') {
         const timestamp = Date.now();
         const random = crypto.randomBytes(8).toString('hex');
@@ -36,136 +41,93 @@ class ChapaService {
         return `TXREF_${timestamp}${userPart}_${random}`;
     }
 
-    /**
-     * Initialize payment checkout with Chapa using official SDK
-     */
     async initializePayment(paymentData) {
         try {
             if (!this.chapa) {
-                throw new Error('Chapa SDK not initialized — CHAPA_SECRET_KEY is missing');
+                return {
+                    success: false,
+                    message: 'Payment not configured — CHAPA_SECRET_KEY missing on server',
+                    data: null
+                };
             }
 
-            // Build only the fields Chapa requires
             const initOptions = {
                 amount: String(paymentData.amount),
                 currency: paymentData.currency || 'ETB',
                 email: paymentData.email,
-                phone_number: paymentData.phone,
+                phone_number: paymentData.phone,   // must be 09XXXXXXXX or 07XXXXXXXX
                 first_name: paymentData.first_name,
                 last_name: paymentData.last_name,
                 tx_ref: paymentData.tx_ref,
                 callback_url: this.callbackUrl,
                 return_url: `${this.returnUrl}?tx_ref=${paymentData.tx_ref}`,
                 customization: {
-                    title: (paymentData.customization && paymentData.customization.title) || 'Yeshi Clothe',
-                    description: (paymentData.customization && paymentData.customization.description) || 'Complete your purchase'
+                    title: String((paymentData.customization && paymentData.customization.title) || 'Yeshi Clothe'),
+                    description: String((paymentData.customization && paymentData.customization.description) || 'Complete your purchase')
                 }
             };
 
-            logger.info('Initializing Chapa payment via SDK', {
+            logger.info('Chapa initialize request', {
                 tx_ref: paymentData.tx_ref,
-                amount: paymentData.amount,
-                email: paymentData.email,
-                phone: paymentData.phone
+                amount: initOptions.amount,
+                email: initOptions.email,
+                phone: initOptions.phone_number,
+                keyPrefix: this.secretKey.substring(0, 7) + '...'
             });
 
+            // SDK throws HttpException on failure — caught below
             const response = await this.chapa.initialize(initOptions);
 
-            logger.info('Chapa SDK raw response', {
+            logger.info('Chapa initialize success', {
                 tx_ref: paymentData.tx_ref,
-                status: response.status,
-                data: response.data
+                status: response && response.status,
+                hasUrl: !!(response && response.data && response.data.checkout_url)
             });
 
-            if (response.status === 'success' && response.data && response.data.checkout_url) {
+            if (response && response.status === 'success' && response.data && response.data.checkout_url) {
                 return {
                     success: true,
                     data: {
                         checkout_url: response.data.checkout_url,
-                        transaction_id: response.data.transaction_id || null,
+                        transaction_id: (response.data && response.data.transaction_id) || null,
                         tx_ref: paymentData.tx_ref
                     },
                     message: 'Payment initialized successfully'
                 };
             }
 
-            logger.error('Chapa SDK returned non-success', {
-                tx_ref: paymentData.tx_ref,
-                response
-            });
-
-            return {
-                success: false,
-                message: response.message || 'Payment initialization failed',
-                data: null
-            };
+            const msg = extractMessage(response && response.message) || 'Chapa returned no checkout URL';
+            logger.error('Chapa initialize non-success', { tx_ref: paymentData.tx_ref, msg, response });
+            return { success: false, message: msg, data: null };
 
         } catch (error) {
-            // Log the full Chapa error response for debugging
-            const chapaError = error.response && error.response.data;
-            logger.error('Chapa SDK initialization error', {
+            // SDK throws HttpException which extends Error — .message is always a string
+            const msg = extractMessage(error);
+            const status = error && error.status;
+            logger.error('Chapa initialize error', {
                 tx_ref: paymentData.tx_ref,
-                error: error.message,
-                httpStatus: error.response && error.response.status,
-                chapaResponse: chapaError,
-                sentPayload: {
-                    amount: paymentData.amount,
-                    email: paymentData.email,
-                    phone: paymentData.phone,
-                    first_name: paymentData.first_name,
-                    last_name: paymentData.last_name,
-                    tx_ref: paymentData.tx_ref
-                }
+                message: msg,
+                status,
+                phone: paymentData.phone,
+                keyPrefix: this.secretKey ? this.secretKey.substring(0, 7) + '...' : 'NOT SET'
             });
-
-            // Extract a clean string message from whatever Chapa returned
-            let userMessage = error.message || 'Unknown error';
-            if (chapaError) {
-                if (typeof chapaError === 'string') {
-                    userMessage = chapaError;
-                } else if (chapaError.message && typeof chapaError.message === 'string') {
-                    userMessage = chapaError.message;
-                } else if (chapaError.msg && typeof chapaError.msg === 'string') {
-                    userMessage = chapaError.msg;
-                } else {
-                    userMessage = JSON.stringify(chapaError);
-                }
-            }
-
-            return {
-                success: false,
-                message: userMessage,
-                data: null,
-                error: error.message,
-                details: chapaError
-            };
+            return { success: false, message: msg, data: null, httpStatus: status };
         }
     }
 
-    /**
-     * Verify a payment transaction with Chapa SDK
-     */
     async verifyPayment(txRef) {
         try {
             if (!this.chapa) {
-                throw new Error('Chapa SDK not initialized — CHAPA_SECRET_KEY is missing');
+                return { success: false, message: 'Chapa not configured', data: null };
             }
-
             if (!txRef) {
-                throw new Error('Transaction reference is required');
+                return { success: false, message: 'Transaction reference is required', data: null };
             }
 
-            logger.info('Verifying Chapa payment via SDK', { tx_ref: txRef });
-
+            logger.info('Chapa verify request', { tx_ref: txRef });
             const response = await this.chapa.verify({ tx_ref: txRef });
 
-            logger.info('Chapa verify raw response', {
-                tx_ref: txRef,
-                status: response.status,
-                data: response.data
-            });
-
-            if (response.status === 'success') {
+            if (response && response.status === 'success') {
                 const d = response.data || {};
                 return {
                     success: true,
@@ -184,31 +146,17 @@ class ChapaService {
 
             return {
                 success: false,
-                message: response.message || 'Payment verification failed',
-                data: response.data || null
+                message: extractMessage(response && response.message) || 'Verification failed',
+                data: (response && response.data) || null
             };
 
         } catch (error) {
-            const chapaError = error.response && error.response.data;
-            logger.error('Chapa SDK verification error', {
-                tx_ref: txRef,
-                error: error.message,
-                httpStatus: error.response && error.response.status,
-                chapaResponse: chapaError
-            });
-
-            return {
-                success: false,
-                message: `Payment verification failed: ${error.message}`,
-                data: null,
-                error: error.message
-            };
+            const msg = extractMessage(error);
+            logger.error('Chapa verify error', { tx_ref: txRef, message: msg });
+            return { success: false, message: msg, data: null };
         }
     }
 
-    /**
-     * Validate Chapa webhook signature
-     */
     validateWebhookSignature(rawBody, signature) {
         try {
             if (!signature || !rawBody) return false;
@@ -226,9 +174,6 @@ class ChapaService {
         }
     }
 
-    /**
-     * Check if Chapa secret key is configured
-     */
     isConfigured() {
         return !!this.secretKey;
     }
