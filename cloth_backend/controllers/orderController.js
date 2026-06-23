@@ -17,8 +17,16 @@ function toNonNegativeNumber(value, fallback = 0) {
 }
 
 function isValidInternationalPhone(value) {
-    const v = String(value || '').trim();
-    return /^\+[1-9]\d{0,3}[\s\-]?\d{5,14}$/.test(v);
+    const v = String(value || '').trim().replace(/[\s\-().]/g, '');
+    // Accept Ethiopian local format: 09XXXXXXXX or 07XXXXXXXX
+    if (/^(09|07)\d{8}$/.test(v)) return true;
+    // Accept short without leading zero: 9XXXXXXXX or 7XXXXXXXX
+    if (/^(9|7)\d{8}$/.test(v)) return true;
+    // Accept with country code: +2519XXXXXXXX, 2519XXXXXXXX etc
+    if (/^(\+?251)(9|7)\d{8}$/.test(v)) return true;
+    // Accept generic international: +[country][number]
+    if (/^\+[1-9]\d{5,14}$/.test(v)) return true;
+    return false;
 }
 
 function normalizeCountryName(value, fallback = 'Ethiopia') {
@@ -85,7 +93,7 @@ function validateSimpleOrderPayload(body) {
     if (!productName) errors.push('productName is required');
     if (!fullName) errors.push('customer full name is required');
     if (!phone) errors.push('customer phone is required');
-    if (phone && !isValidInternationalPhone(phone)) errors.push('phone must include valid country code (e.g. +251...)');
+    if (phone && !isValidInternationalPhone(phone)) errors.push('phone must be a valid number (e.g. 0911223344 or +251911223344)');
     if (!country) errors.push('country is required');
     if (!region) errors.push('region is required');
     if (!city) errors.push('city is required');

@@ -51,24 +51,8 @@
     }
 
     async function fetchRemoteCountries() {
-        // restcountries.com is blocked by our CSP — always use the built-in fallback
-        // to avoid a console error. Remove this early return if you ever add
-        // restcountries.com to the connect-src CSP directive.
+        // restcountries.com is blocked by CSP — always use built-in fallback
         throw new Error('remote fetch disabled — using fallback list');
-    }
-
-        const rows = (Array.isArray(data) ? data : []).map((country) => {
-            const name = String(country && country.name && country.name.common || '').trim();
-            const root = String(country && country.idd && country.idd.root || '').trim();
-            const suffixes = country && country.idd && Array.isArray(country.idd.suffixes)
-                ? country.idd.suffixes
-                : [];
-            const suffix = String(suffixes[0] || '').trim();
-            const code = root ? `${root}${suffix}` : '';
-            return { name, code };
-        });
-
-        return dedupeSorted(rows);
     }
 
     let cache = null;
