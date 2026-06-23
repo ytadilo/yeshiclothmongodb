@@ -25,7 +25,7 @@ class ChapaService {
         this.callbackUrl = process.env.CALLBACK_URL ||
             `${this.baseReturnUrl}/api/payments/chapa/webhook`;
         this.returnUrl = process.env.RETURN_URL ||
-            'https://www.yeshiclothe.com.et/payment-result';
+            'https://www.yeshiclothe.com.et/success';
 
         if (!this.secretKey) {
             logger.warn('CHAPA_SECRET_KEY is not configured in environment variables');

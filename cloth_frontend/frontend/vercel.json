@@ -173,11 +173,15 @@
     },
     {
       "source": "/payment-result",
-      "destination": "/user/payment-result.html"
+      "destination": "/user/success.html"
     },
     {
       "source": "/payment-result.html",
-      "destination": "/user/payment-result.html"
+      "destination": "/user/success.html"
+    },
+    {
+      "source": "/success",
+      "destination": "/user/success.html"
     },
     {
       "source": "/payment-checkout",

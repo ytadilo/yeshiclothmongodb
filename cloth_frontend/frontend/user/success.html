@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payment Success - Yeshi Clothe</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="/css/payment-result.css">
+</head>
+<body>
+    <div class="result-container">
+        <!-- Header -->
+        <header class="result-header">
+            <div class="header-content">
+                <h1>Payment Status</h1>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="result-main">
+            <!-- Loading State -->
+            <section id="loadingState" class="result-section result-loading">
+                <div class="spinner-large"></div>
+                <h2>Verifying Your Payment</h2>
+                <p>Please wait while we confirm your payment with Chapa...</p>
+            </section>
+
+            <!-- Success State -->
+            <section id="successState" class="result-section result-success hidden">
+                <div class="result-icon success">✓</div>
+                <h2>Payment Successful!</h2>
+                <p>Your payment has been processed successfully.</p>
+                
+                <div class="result-details">
+                    <div class="detail-row">
+                        <span class="label">Transaction Reference:</span>
+                        <span class="value" id="successTxRef">-</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="label">Amount:</span>
+                        <span class="value" id="successAmount">-</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="label">Date & Time:</span>
+                        <span class="value" id="successTime">-</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="label">Status:</span>
+                        <span class="value status-success">Verified</span>
+                    </div>
+                </div>
+
+                <div class="result-actions">
+                    <a href="/my-orders" class="btn btn-primary">View My Orders</a>
+                    <a href="/" class="btn btn-secondary">Continue Shopping</a>
+                </div>
+
+                <div class="success-message">
+                    <p>A confirmation email has been sent to your email address. 
+                       You will be able to track your order status from your account.</p>
+                </div>
+            </section>
+
+            <!-- Failed State -->
+            <section id="failedState" class="result-section result-failed hidden">
+                <div class="result-icon failed">✕</div>
+                <h2>Payment Failed</h2>
+                <p>Unfortunately, your payment could not be processed.</p>
+                
+                <div class="result-details">
+                    <div class="detail-row">
+                        <span class="label">Transaction Reference:</span>
+                        <span class="value" id="failedTxRef">-</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="label">Reason:</span>
+                        <span class="value" id="failedReason">-</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="label">Amount:</span>
+                        <span class="value" id="failedAmount">-</span>
+                    </div>
+                </div>
+
+                <div class="result-actions">
+                    <button id="retryButton" class="btn btn-primary">Retry Payment</button>
+                    <a href="/checkout" class="btn btn-secondary">Back to Checkout</a>
+                    <a href="/contact" class="btn btn-outline">Contact Support</a>
+                </div>
+
+                <div class="info-message">
+                    <p><strong>Troubleshooting Tips:</strong></p>
+                    <ul>
+                        <li>Check your internet connection and try again</li>
+                        <li>Ensure your card/account has sufficient funds</li>
+                        <li>Verify your payment method is activated</li>
+                        <li>Contact your bank if the issue persists</li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- Cancelled State -->
+            <section id="cancelledState" class="result-section result-cancelled hidden">
+                <div class="result-icon cancelled">⚠</div>
+                <h2>Payment Cancelled</h2>
+                <p>You have cancelled the payment process.</p>
+                
+                <div class="result-details">
+                    <div class="detail-row">
+                        <span class="label">Transaction Reference:</span>
+                        <span class="value" id="cancelledTxRef">-</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="label">Amount:</span>
+                        <span class="value" id="cancelledAmount">-</span>
+                    </div>
+                </div>
+
+                <div class="result-actions">
+                    <a href="/checkout" class="btn btn-primary">Try Again</a>
+                    <a href="/" class="btn btn-secondary">Return Home</a>
+                </div>
+            </section>
+
+            <!-- Pending State -->
+            <section id="pendingState" class="result-section result-pending hidden">
+                <div class="result-icon pending">⏱</div>
+                <h2>Payment Pending</h2>
+                <p>Your payment is still being processed. This may take a few moments.</p>
+                
+                <div class="result-details">
+                    <div class="detail-row">
+                        <span class="label">Transaction Reference:</span>
+                        <span class="value" id="pendingTxRef">-</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="label">Amount:</span>
+                        <span class="value" id="pendingAmount">-</span>
+                    </div>
+                </div>
+
+                <div class="result-actions">
+                    <button id="checkStatusButton" class="btn btn-primary">Check Status</button>
+                    <a href="/" class="btn btn-secondary">Return Home</a>
+                </div>
+
+                <div class="info-message">
+                    <p>You will receive an email notification once your payment is confirmed.</p>
+                </div>
+            </section>
+
+            <!-- Error State -->
+            <section id="errorState" class="result-section result-error hidden">
+                <div class="result-icon error">!</div>
+                <h2>Something Went Wrong</h2>
+                <p>We encountered an error while processing your request.</p>
+                
+                <div class="result-details">
+                    <div class="detail-row">
+                        <span class="label">Error:</span>
+                        <span class="value" id="errorMessage">-</span>
+                    </div>
+                </div>
+
+                <div class="result-actions">
+                    <a href="/checkout" class="btn btn-primary">Try Again</a>
+                    <a href="/contact" class="btn btn-secondary">Contact Support</a>
+                    <a href="/" class="btn btn-outline">Home</a>
+                </div>
+
+                <div class="info-message">
+                    <p>Please contact our support team if the problem persists. 
+                       Include the error details above in your message.</p>
+                </div>
+            </section>
+        </main>
+
+        <!-- Footer -->
+        <footer class="result-footer">
+            <p>&copy; 2024 My Clothe Shop. All rights reserved. | 
+                <a href="/contact">Support</a> | 
+                <a href="/privacy">Privacy Policy</a>
+            </p>
+        </footer>
+    </div>
+
+    <!-- Scripts -->
+    <script src="/js/firebase-auth.js"></script>
+    <script src="/js/success.js"></script>
+</body>
+</html>
