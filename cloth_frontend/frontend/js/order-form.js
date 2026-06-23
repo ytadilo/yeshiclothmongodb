@@ -2301,11 +2301,18 @@ form.addEventListener('submit', async function(e) {
                         alert('Order placed successfully! Redirecting to secure Chapa checkout...');
                         window.location.href = initResult.data.checkout_url;
                     } else {
-                        throw new Error(initResult.message || 'Failed to initialize payment');
+                        // Extract message safely — initResult.message may be an object
+                        const errMsg = (typeof initResult.message === 'string')
+                            ? initResult.message
+                            : (initResult.message && typeof initResult.message === 'object')
+                                ? (initResult.message.message || JSON.stringify(initResult.message))
+                                : 'Failed to initialize payment';
+                        throw new Error(errMsg);
                     }
                 } catch (chapaErr) {
                     console.error('Chapa init error:', chapaErr);
-                    alert('Order placed, but failed to connect to Chapa: ' + chapaErr.message);
+                    const displayMsg = chapaErr.message || String(chapaErr) || 'Unknown error';
+                    alert('Order placed, but failed to connect to Chapa: ' + displayMsg);
                     window.location.href = '/user/my-orders.html';
                 }
                 return;

@@ -118,11 +118,23 @@ class ChapaService {
                 }
             });
 
-            const userMessage = (chapaError && (chapaError.message || chapaError.msg)) || error.message;
+            // Extract a clean string message from whatever Chapa returned
+            let userMessage = error.message || 'Unknown error';
+            if (chapaError) {
+                if (typeof chapaError === 'string') {
+                    userMessage = chapaError;
+                } else if (chapaError.message && typeof chapaError.message === 'string') {
+                    userMessage = chapaError.message;
+                } else if (chapaError.msg && typeof chapaError.msg === 'string') {
+                    userMessage = chapaError.msg;
+                } else {
+                    userMessage = JSON.stringify(chapaError);
+                }
+            }
 
             return {
                 success: false,
-                message: `Payment initialization failed: ${userMessage}`,
+                message: userMessage,
                 data: null,
                 error: error.message,
                 details: chapaError

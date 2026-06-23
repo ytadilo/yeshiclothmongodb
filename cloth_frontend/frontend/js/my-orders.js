@@ -982,11 +982,17 @@ async function loadMyOrders(options = {}) {
                         localStorage.setItem('last_payment_ref', initResult.data.tx_ref);
                         window.location.href = initResult.data.checkout_url;
                     } else {
-                        throw new Error(initResult.message || 'Failed to initialize payment');
+                        const errMsg = (typeof initResult.message === 'string')
+                            ? initResult.message
+                            : (initResult.message && typeof initResult.message === 'object')
+                                ? (initResult.message.message || JSON.stringify(initResult.message))
+                                : 'Failed to initialize payment';
+                        throw new Error(errMsg);
                     }
                 } catch (chapaErr) {
                     console.error('Chapa init error:', chapaErr);
-                    alert('Failed to connect to Chapa: ' + chapaErr.message);
+                    const displayMsg = chapaErr.message || String(chapaErr) || 'Unknown error';
+                    alert('Failed to connect to Chapa: ' + displayMsg);
                     btn.disabled = false;
                     btn.textContent = `💳 Pay Now (${amount.toLocaleString()} ETB)`;
                 }

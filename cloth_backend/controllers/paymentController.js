@@ -167,12 +167,19 @@ exports.initializePayment = async (req, res) => {
         if (!initializeResult.success) {
             // Update payment record with error
             payment.payment_status = 'failed';
-            payment.error_message = initializeResult.message;
+            payment.error_message = String(initializeResult.message || 'Chapa error');
             await payment.save();
+
+            // Always convert message to a plain string — SDK can return objects
+            const errMessage = typeof initializeResult.message === 'string'
+                ? initializeResult.message
+                : (initializeResult.message && typeof initializeResult.message === 'object')
+                    ? (initializeResult.message.message || JSON.stringify(initializeResult.message))
+                    : 'Payment initialization failed';
 
             logger.error('Chapa initialization failed', {
                 tx_ref: tx_ref,
-                message: initializeResult.message,
+                message: errMessage,
                 details: initializeResult.details,
                 requestData: {
                     amount: parsedAmount,
@@ -185,10 +192,8 @@ exports.initializePayment = async (req, res) => {
 
             return res.status(400).json({
                 success: false,
-                message: initializeResult.message,
-                data: null,
-                // Include error details in development for debugging
-                ...(process.env.NODE_ENV !== 'production' && { error_details: initializeResult.details })
+                message: errMessage,
+                data: null
             });
         }
 
