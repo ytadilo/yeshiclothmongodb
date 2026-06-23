@@ -113,9 +113,13 @@ app.use(
 
 // Health endpoints (useful for Render + quick checks)
 app.get('/api/health', (req, res) => {
+    const key = process.env.CHAPA_SECRET_KEY || '';
     res.json({
         ok: true,
-        commit: process.env.RENDER_GIT_COMMIT || process.env.COMMIT_SHA || null
+        commit: process.env.RENDER_GIT_COMMIT || process.env.COMMIT_SHA || null,
+        chapa_key_set: !!key,
+        chapa_key_prefix: key ? key.substring(0, 10) + '...' : 'NOT SET',
+        return_url: process.env.RETURN_URL || 'https://www.yeshiclothe.com.et/success (default)'
     });
 });
 
