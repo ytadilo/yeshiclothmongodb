@@ -71,14 +71,10 @@ class ChapaService {
                 return_url: `${this.returnUrl}?tx_ref=${paymentData.tx_ref}`,
                 customization: {
                     title: paymentData.customization?.title || 'Payment',
-                    description: paymentData.customization?.description || 'Complete your payment',
-                    logo: paymentData.customization?.logo || null
-                },
-                meta: {
-                    user_id: paymentData.meta?.user_id,
-                    order_id: paymentData.meta?.order_id,
-                    ...paymentData.meta
+                    description: paymentData.customization?.description || 'Complete your payment'
+                    // logo omitted — Chapa rejects null/empty logo field
                 }
+                // meta omitted at top level — Chapa only accepts specific fields
             };
 
             logger.info('Initializing Chapa payment', {

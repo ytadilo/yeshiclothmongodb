@@ -732,11 +732,6 @@ async function loadMyOrders(options = {}) {
                                 style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border:none; color:white; font-weight:700; width: 100%; padding: 14px; border-radius: 8px; cursor: pointer; font-size:1rem;">
                                 💳 Pay Now (${payableTotal.toLocaleString()} ETB)
                             </button>
-                            <button type="button" class="remove-order-btn" 
-                                data-order-id="${escapeHtml(orderId)}"
-                                style="background:transparent; border:1px solid rgba(186,26,26,0.4); color:#ba1a1a; font-weight:600; width:100%; padding:10px; border-radius:8px; cursor:pointer; font-size:0.9rem; margin-top:4px;">
-                                🗑 Remove Order
-                            </button>
                         </div>
                     ` : ''}
 
@@ -753,11 +748,6 @@ async function loadMyOrders(options = {}) {
                                 data-subtotal="${escapeHtml(String(hasQuotedPrice ? clothPrice * orderedQty : 0))}"
                                 style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border:none; color:white; font-weight:700; width: 100%; padding: 14px; border-radius: 8px; cursor: pointer; font-size:1rem;">
                                 💳 Pay Now (${computeQuantityTotal(hasQuotedPrice ? clothPrice : 0, hasQuotedShipping ? quotedShipping : 0, orderedQty).toLocaleString()} ETB)
-                            </button>
-                            <button type="button" class="remove-order-btn" 
-                                data-order-id="${escapeHtml(orderId)}"
-                                style="background:transparent; border:1px solid rgba(186,26,26,0.4); color:#ba1a1a; font-weight:600; width:100%; padding:10px; border-radius:8px; cursor:pointer; font-size:0.9rem; margin-top:4px;">
-                                🗑 Remove Order
                             </button>
                         </div>
                     ` : ''}
