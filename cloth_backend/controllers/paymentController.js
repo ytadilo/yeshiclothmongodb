@@ -57,28 +57,29 @@ exports.initializePayment = async (req, res) => {
             });
         }
 
-        // Normalize Ethiopian phone numbers to E.164 format
-        let normalizedPhone = String(customer_phone).trim();
-        // Remove all spaces, dashes, parentheses
-        normalizedPhone = normalizedPhone.replace(/[\s\-().]/g, '');
-        // Convert 09XXXXXXXX or 9XXXXXXXX -> +2519XXXXXXXX, 07XXXXXXXX -> +2517XXXXXXXX
-        if (/^09\d{8}$/.test(normalizedPhone)) {
-            normalizedPhone = '+251' + normalizedPhone.slice(1);
-        } else if (/^07\d{8}$/.test(normalizedPhone)) {
-            normalizedPhone = '+251' + normalizedPhone.slice(1);
-        } else if (/^9\d{8}$/.test(normalizedPhone)) {
-            normalizedPhone = '+251' + normalizedPhone;
-        } else if (/^7\d{8}$/.test(normalizedPhone)) {
-            normalizedPhone = '+251' + normalizedPhone;
-        } else if (/^2519\d{8}$/.test(normalizedPhone) || /^2517\d{8}$/.test(normalizedPhone)) {
-            normalizedPhone = '+' + normalizedPhone;
+        // Normalize phone to local Ethiopian format (09XXXXXXXX or 07XXXXXXXX)
+        // The chapa-nodejs SDK requires exactly this format — NOT E.164
+        let finalPhone = String(customer_phone).trim().replace(/[\s\-().]/g, '');
+
+        // Strip country code prefixes to get back to local 09/07 format
+        if (/^\+2519\d{8}$/.test(finalPhone)) {
+            finalPhone = '0' + finalPhone.slice(4);   // +2519XXXXXXXX -> 09XXXXXXXX
+        } else if (/^\+2517\d{8}$/.test(finalPhone)) {
+            finalPhone = '0' + finalPhone.slice(4);   // +2517XXXXXXXX -> 07XXXXXXXX
+        } else if (/^2519\d{8}$/.test(finalPhone)) {
+            finalPhone = '0' + finalPhone.slice(3);   // 2519XXXXXXXX  -> 09XXXXXXXX
+        } else if (/^2517\d{8}$/.test(finalPhone)) {
+            finalPhone = '0' + finalPhone.slice(3);   // 2517XXXXXXXX  -> 07XXXXXXXX
+        } else if (/^9\d{8}$/.test(finalPhone)) {
+            finalPhone = '0' + finalPhone;             // 9XXXXXXXX     -> 09XXXXXXXX
+        } else if (/^7\d{8}$/.test(finalPhone)) {
+            finalPhone = '0' + finalPhone;             // 7XXXXXXXX     -> 07XXXXXXXX
         }
 
-        // Validate phone number; use a proper E.164 fallback if invalid so Chapa never sees a bare local number
-        let finalPhone = normalizedPhone;
-        if (!validator.isMobilePhone(normalizedPhone, 'any', { strictMode: false })) {
-            logger.warn('Invalid phone number provided for Chapa, using fallback', { phone: customer_phone });
-            finalPhone = '+251900000000'; // Valid E.164 fallback — Chapa accepts this for checkout flow
+        // If still not valid local format, use a safe fallback
+        if (!/^(09|07)\d{8}$/.test(finalPhone)) {
+            logger.warn('Phone not in Ethiopian local format, using fallback', { original: customer_phone, normalized: finalPhone });
+            finalPhone = '0900000000'; // Chapa SDK accepts this as a valid fallback
         }
 
         // Split customer name
