@@ -1,43 +1,40 @@
 /**
  * admin-config.js — MUST be the first script on every admin page.
  *
- * When the admin site is deployed on a different domain from the backend
- * (e.g. yeshiclothe.app.aletcloud.com vs myclothefullstackhaile.onrender.com),
- * every fetch() call with a relative /api/* or /auth/* path would go to the
- * wrong origin. This shim patches window.fetch so those relative paths are
- * automatically prefixed with the backend base URL.
+ * Patches window.fetch so all relative /api/* and /auth/* paths are
+ * prefixed with the Render backend URL. This makes the old admin HTML
+ * pages work correctly when hosted on a different domain (aletcloud)
+ * from the backend (onrender.com).
+ *
+ * Compatible with firebase-auth.js which also wraps fetch — both can
+ * coexist because each wrapper calls the previous fetch (chain).
  */
 (function () {
-    var BACKEND = 'https://myclothefullstackhaile.onrender.com';
+    if (window.__ADMIN_CONFIG_PATCHED__) return;
+    window.__ADMIN_CONFIG_PATCHED__ = true;
 
-    // Expose for inline scripts that build URLs manually
+    var BACKEND = 'https://myclothefullstackhaile.onrender.com';
     window.__ADMIN_API_BASE = BACKEND;
 
-    var _nativeFetch = window.fetch.bind(window);
+    var _prev = window.fetch.bind(window);
 
-    window.fetch = function (input, init) {
+    window.fetch = function adminConfigFetch(input, init) {
         var url = typeof input === 'string'
             ? input
             : (input instanceof Request ? input.url : String(input || ''));
 
-        // Only rewrite relative paths that start with /api/ or /auth/
-        if (url.charAt(0) === '/' && (url.indexOf('/api/') === 0 || url.indexOf('/auth/') === 0)) {
+        // Rewrite only relative paths starting with /api/ or /auth/
+        if (url.length > 1 && url.charAt(0) === '/' &&
+            (url.indexOf('/api/') === 0 || url.indexOf('/auth/') === 0)) {
+
             var fullUrl = BACKEND + url;
-            if (input instanceof Request) {
-                // Rebuild Request with new URL
-                input = new Request(fullUrl, input);
-            } else {
-                input = fullUrl;
-            }
+            input = (input instanceof Request) ? new Request(fullUrl, input) : fullUrl;
         }
 
-        var options = init ? Object.assign({}, init) : {};
-        // credentials:'include' sends the cookie if any; 'omit' avoids CORS preflight issues
-        // We use 'omit' since the admin uses x-auth-token header, not cookies
-        if (!options.credentials) {
-            options.credentials = 'omit';
-        }
+        var opts = init ? Object.assign({}, init) : {};
+        // Use 'omit' — the admin sends auth via x-auth-token header, not cookies
+        if (!opts.credentials) opts.credentials = 'omit';
 
-        return _nativeFetch(input, options);
+        return _prev(input, opts);
     };
 })();
