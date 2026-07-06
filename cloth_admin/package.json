@@ -2,8 +2,9 @@
   "name": "cloth_admin",
   "private": true,
   "version": "1.0.0",
-  "description": "Yeshi Clothe admin panel — pure static HTML/CSS/JS, no build step required.",
+  "description": "Yeshi Clothe admin panel — pure static HTML/CSS/JS.",
   "scripts": {
+    "build": "cp -r public dist",
     "start": "npx serve public -p 3001",
     "dev": "npx serve public -p 3001"
   }
