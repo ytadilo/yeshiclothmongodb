@@ -1,0 +1,994 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Orders - Yeshi</title>
+    <script src="/js/admin-config.js"></script><script src="/js/admin-guard.js"></script>
+    <script>window.__yeshiWarnPatch=window.__yeshiWarnPatch||(()=>{const w=console.warn;console.warn=function(...a){if(String(a[0]||'').includes('cdn.tailwindcss.com should not be used in production'))return;return w.apply(console,a);};return true;})();</script>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/png" href="/images/logo.png">
+    <meta name="theme-color" content="#1E4B35">
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="/css/admin-dashboard.css">
+    <style>
+        .nav-item-active { background: linear-gradient(90deg, #735c00 0%, #D4AF37 100%); color: #fff !important; font-weight: 700; }
+        .admin-shell {
+            min-height: 100vh;
+            display: flex;
+            align-items: stretch;
+        }
+        .admin-main {
+            flex: 1;
+            min-height: 100vh;
+            max-height: 100vh;
+            overflow-y: auto;
+            overflow-x: hidden;
+        }
+        .admin-content-scroll {
+            padding: 20px;
+        }
+    </style>
+</head>
+<body class="admin-page">
+    <div class="admin-shell">
+        <aside class="admin-sidebar w-64 bg-white border-r border-cream-300 flex flex-col z-30">
+            <div class="admin-content">
+            <div class="h-16 flex items-center px-6 border-b border-cream-300">
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 bg-black rounded-lg flex items-center justify-center text-gold-500">
+                        <span class="material-symbols-outlined text-xl font-bold">account_balance</span>
+                    </div>
+                    <h1 class="text-sm font-bold tracking-tight text-gray-900">Administrative</h1>
+                </div>
+            </div>
+            <nav class="flex-1 py-6 space-y-1">
+                <a class="flex items-center gap-3 px-6 py-3 text-sm font-medium text-gray-500 hover:bg-cream-50 hover:text-gold-600 transition-colors" href="/admin/posts">
+                    <span class="material-symbols-outlined text-xl">article</span>
+                    <span>Manage Posts</span>
+                </a>
+                <a class="flex items-center gap-3 px-6 py-3 text-sm font-medium text-gray-500 hover:bg-cream-50 hover:text-gold-600 transition-colors" href="/admin/users">
+                    <span class="material-symbols-outlined text-xl">group</span>
+                    <span>User Management</span>
+                </a>
+                <a class="flex items-center gap-3 px-6 py-3 text-sm font-bold nav-item-active" href="/admin/orders">
+                    <span class="material-symbols-outlined text-xl">shopping_bag</span>
+                    <span>All Customer Orders</span>
+                </a>
+                <a class="flex items-center gap-3 px-6 py-3 text-sm font-medium text-gray-500 hover:bg-cream-50 hover:text-gold-600 transition-colors" href="/admin/chat">
+                    <span class="material-symbols-outlined text-xl">chat_bubble</span>
+                    <span>Customer Chats</span>
+                </a>
+                <a class="flex items-center gap-3 px-6 py-3 text-sm font-medium text-gray-500 hover:bg-cream-50 hover:text-gold-600 transition-colors" href="/admin/order-stats">
+                    <span class="material-symbols-outlined text-xl">leaderboard</span>
+                    <span>Order Statistics</span>
+                </a>
+                <a class="flex items-center gap-3 px-6 py-3 text-sm font-medium text-gray-500 hover:bg-cream-50 hover:text-gold-600 transition-colors" href="/admin/links">
+                    <span class="material-symbols-outlined text-xl">link</span>
+                    <span>Follow / Contact Links</span>
+                </a>
+            </nav>
+            <div class="p-4 border-t border-cream-300 space-y-1">
+                <button id="changePasswordLink" class="w-full flex items-center gap-3 px-2 py-2 text-xs font-semibold text-gray-500 hover:text-gold-600 transition-colors" type="button">
+                    <span class="material-symbols-outlined text-lg">lock_reset</span>
+                    <span>Change Password</span>
+                </button>
+                <button onclick="logout()" class="w-full flex items-center gap-3 px-2 py-2 text-xs font-semibold text-[#525454] hover:bg-red-50 rounded-lg transition-colors" type="button">
+                    <span class="material-symbols-outlined text-lg">logout</span>
+                    <span>Logout</span>
+                </button>
+            </div>
+            </div>
+        </aside>
+        <div class="admin-main">
+            <div id="changePasswordModal" class="modal" aria-hidden="true">
+        <div class="modal__card" role="dialog" aria-modal="true" aria-label="Change password">
+            <h3>Change Password</h3>
+            <form id="changePasswordForm">
+                <div class="form-group">
+                    <label for="currentPass">Current password</label>
+                    <input type="password" id="currentPass" class="form-control" placeholder="Current password" autocomplete="current-password" required>
+                </div>
+                <div class="form-group">
+                    <label for="newPass">New password</label>
+                    <input type="password" id="newPass" class="form-control" placeholder="New password" autocomplete="new-password" required minlength="6">
+                </div>
+                <div class="modal__actions">
+                    <button type="submit" class="btn">Update</button>
+                    <button type="button" class="btn-secondary" id="cancelChangePassword">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+            <main class="admin-content-scroll">
+                <div class="dashboard-wrap">
+                    <div class="dashboard-top">
+                        <div>
+                            <h2 class="dashboard-title">All Customer Orders</h2>
+                            <div class="dashboard-subtitle">Review orders, confirm payments, and update statuses.</div>
+                        </div>
+                    </div>
+
+                    <section class="panel">
+                        <h3>Orders</h3>
+                        <div class="order-grid" id="orders-container" style="display: block;">
+                            <p>Loading orders...</p>
+                        </div>
+                    </section>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script src="/js/auth.js?v=20260414"></script>
+    <script src="/js/admin-common.js"></script>
+    <script>
+        const { ensureAdmin, escapeHtml, getImgUrl, apiFetch } = window.AdminCommon;
+        const expandedOrderIds = new Set();
+
+        document.getElementById('changePasswordLink').addEventListener('click', (e) => {
+            e.preventDefault();
+            document.getElementById('changePasswordModal').style.display = 'flex';
+        });
+        document.getElementById('cancelChangePassword').addEventListener('click', () => {
+            document.getElementById('changePasswordModal').style.display = 'none';
+        });
+        document.getElementById('changePasswordModal').addEventListener('click', (e) => {
+            if (e.target && e.target.id === 'changePasswordModal') {
+                document.getElementById('changePasswordModal').style.display = 'none';
+            }
+        });
+        document.getElementById('changePasswordForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const currentPassword = document.getElementById('currentPass').value;
+            const newPassword = document.getElementById('newPass').value;
+            try {
+                const res = await apiFetch('/api/auth/admin/change-password', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ currentPassword, newPassword })
+                });
+                const data = await res.json();
+                alert(data.msg || (res.ok ? 'Password updated' : 'Failed to update password'));
+                if (res.ok) {
+                    document.getElementById('changePasswordModal').style.display = 'none';
+                    e.target.reset();
+                }
+            } catch (err) {
+                console.error(err);
+                alert('Error changing password');
+            }
+        });
+
+        function fmtDate(value) {
+            if (!value) return '';
+            const d = new Date(value);
+            if (Number.isNaN(d.getTime())) return '';
+            return d.toLocaleString();
+        }
+
+        function resolveOrderId(order) {
+            if (!order || typeof order !== 'object') return '';
+            return String(order._id || order.id || order.orderId || '').trim();
+        }
+
+        function deriveFlowStatus(paymentStatus, sewingStatus, fallbackStatus) {
+            const p = String(paymentStatus || '').toLowerCase();
+            const s = String(sewingStatus || '').toLowerCase();
+
+            if (p === 'failed' || p === 'refunded') return 'Cancelled';
+            if (p !== 'confirmed') return 'Order Placed';
+            if (s === 'delivered') return 'Delivered';
+            if (s === 'shipped') return 'Shipped';
+            if (s === 'ready') return 'Preparing';
+            return fallbackStatus || 'Payment Confirmed';
+        }
+
+        function buildItemLabel(cloth, fallbackCategory) {
+            const category = Array.isArray(cloth?.categories) && cloth.categories.length
+                ? cloth.categories.map((row) => String(row || '').trim()).filter(Boolean).join(', ')
+                : String(cloth?.category || fallbackCategory || '').trim();
+            const designType = String(cloth?.design_type || cloth?.designType || '').trim();
+            const eventType = String(cloth?.event_type || cloth?.eventType || '').trim();
+            const bits = [category || 'Custom Cloth'];
+            if (designType && designType.toLowerCase() !== category.toLowerCase()) bits.push(designType);
+            if (eventType) bits.push(eventType);
+            return bits.join(' ┬╖ ');
+        }
+
+        function computeQuantityTotal(price, shipping, qty) {
+            const unitPrice = Number.isFinite(Number(price)) ? Number(price) : 0;
+            const unitShipping = Number.isFinite(Number(shipping)) ? Number(shipping) : 0;
+            const quantity = Math.max(1, Math.floor(Number(qty) || 1));
+            return (unitPrice + unitShipping) * quantity;
+        }
+
+        function sanitizeWholeNumberText(value) {
+            const raw = String(value ?? '').trim();
+            if (!raw) return '';
+            const matched = raw.replace(/,/g, '').match(/\d+/);
+            if (!matched) return '';
+            return matched[0];
+        }
+
+        function parseWholeNumberInputValue(value) {
+            const sanitized = sanitizeWholeNumberText(value);
+            if (!sanitized) return NaN;
+            return Number(sanitized);
+        }
+
+        function getOrderPaymentScreenshot(order) {
+            const paymentInfo = order?.payment_info && typeof order.payment_info === 'object'
+                ? order.payment_info
+                : {};
+            return getImgUrl(
+                paymentInfo.screenshot_url
+                || paymentInfo.screenshotUrl
+                || order?.payment_screenshot_url
+                || order?.paymentScreenshotUrl
+                || order?.screenshot_url
+                || ''
+            );
+        }
+
+        function getOrderPaymentScreenshotMimeType(order) {
+            const paymentInfo = order?.payment_info && typeof order.payment_info === 'object'
+                ? order.payment_info
+                : {};
+
+            return String(
+                paymentInfo.screenshot_mime_type
+                || paymentInfo.screenshotMimeType
+                || order?.payment_screenshot_mime_type
+                || order?.paymentScreenshotMimeType
+                || ''
+            ).trim().toLowerCase();
+        }
+
+        function isImagePaymentProof(mimeType, screenshotUrl) {
+            const normalizedMime = String(mimeType || '').trim().toLowerCase();
+            if (normalizedMime.startsWith('image/')) return true;
+            if (normalizedMime === 'application/pdf') return false;
+
+            const normalizedUrl = String(screenshotUrl || '').trim().toLowerCase();
+            return /\.(png|jpe?g|gif|webp|bmp|avif|heic|heif)(\?|$)/.test(normalizedUrl);
+        }
+
+        function renderPaymentProofPreviewHtml(screenshotUrl, screenshotMimeType) {
+            if (!screenshotUrl) {
+                return `<div style="margin-top:10px; color:var(--light-text);">No screenshot uploaded.</div>`;
+            }
+
+            const escapedUrl = escapeHtml(screenshotUrl);
+            const normalizedMime = String(screenshotMimeType || '').trim().toLowerCase();
+
+            if (isImagePaymentProof(normalizedMime, screenshotUrl)) {
+                return `
+                    <div style="margin-top:12px; display:flex; gap:12px; align-items:flex-start; flex-wrap:wrap;">
+                        <a href="${escapedUrl}" target="_blank" rel="noopener noreferrer" style="display:inline-block;">
+                            <img src="${escapedUrl}" alt="Payment proof" style="max-width:100%; width:420px; border-radius:12px; border:1px solid rgba(0,0,0,0.08); box-shadow:0 10px 22px rgba(0,0,0,0.08); object-fit:contain; background:#fff;">
+                        </a>
+                        <div style="font-size:0.86rem; color:var(--light-text); min-width:180px; flex:1;">
+                            <div style="font-weight:700; color:#1a1c1c;">Customer payment proof saved</div>
+                            <div style="margin-top:4px;">Open the image to inspect the full payment proof before confirming payment.</div>
+                            <div style="margin-top:6px; word-break:break-word;">Link: <a href="${escapedUrl}" target="_blank" rel="noopener noreferrer">Open payment proof</a></div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            if (normalizedMime === 'application/pdf') {
+                return `
+                    <div style="margin-top:12px; display:flex; gap:12px; align-items:flex-start; flex-wrap:wrap;">
+                        <a href="${escapedUrl}" target="_blank" rel="noopener noreferrer" style="display:flex; align-items:center; justify-content:center; width:180px; min-height:180px; border-radius:12px; border:1px solid rgba(0,0,0,0.08); background:#fff7e6; color:#7a5200; font-weight:800; text-decoration:none;">Open PDF proof</a>
+                        <div style="font-size:0.86rem; color:var(--light-text); min-width:180px; flex:1;">
+                            <div style="font-weight:700; color:#1a1c1c;">Customer payment proof is a PDF</div>
+                            <div style="margin-top:4px;">This payment proof cannot be previewed as an image. Open the document in a new tab to inspect it.</div>
+                            <div style="margin-top:6px; word-break:break-word;">Link: <a href="${escapedUrl}" target="_blank" rel="noopener noreferrer">Open payment proof PDF</a></div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            return `
+                <div style="margin-top:12px; display:flex; gap:12px; align-items:flex-start; flex-wrap:wrap;">
+                    <a href="${escapedUrl}" target="_blank" rel="noopener noreferrer" style="display:flex; align-items:center; justify-content:center; width:180px; min-height:180px; border-radius:12px; border:1px solid rgba(0,0,0,0.08); background:#f4f3f3; color:#463f32; font-weight:800; text-decoration:none;">Open uploaded proof</a>
+                    <div style="font-size:0.86rem; color:var(--light-text); min-width:180px; flex:1;">
+                        <div style="font-weight:700; color:#1a1c1c;">Customer payment proof uploaded</div>
+                        <div style="margin-top:4px;">The uploaded proof is not a previewable image. Open the file directly to inspect it.</div>
+                        <div style="margin-top:6px; word-break:break-word;">Link: <a href="${escapedUrl}" target="_blank" rel="noopener noreferrer">Open payment proof</a></div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function getOrderPaymentComment(order) {
+            const paymentInfo = order?.payment_info && typeof order.payment_info === 'object'
+                ? order.payment_info
+                : {};
+
+            return String(paymentInfo.comment || order?.payment_comment || '').trim();
+        }
+
+        function parseMeasurementPack(measurements) {
+            const raw = String(measurements?.size || '').trim();
+            if (!raw) return null;
+            try {
+                const parsed = JSON.parse(raw);
+                if (!parsed || typeof parsed !== 'object') return null;
+                if (!Array.isArray(parsed.entries)) return null;
+                return parsed;
+            } catch (_) {
+                return null;
+            }
+        }
+
+        function renderMeasurementDetailsHtml(measurements) {
+            const pack = parseMeasurementPack(measurements);
+            if (pack && Array.isArray(pack.entries) && pack.entries.length) {
+                const qty = Number(pack.quantity || 1);
+                const header = `
+                    <div style="margin-bottom:8px; display:grid; grid-template-columns:1fr 1fr; gap:8px 14px; color:#333;">
+                        <div><span style="color:var(--light-text);">Rule:</span> ${escapeHtml(String(pack.rule || 'ΓÇö'))}</div>
+                        <div><span style="color:var(--light-text);">Quantity:</span> ${escapeHtml(String(Number.isFinite(qty) ? qty : 1))}</div>
+                        <div><span style="color:var(--light-text);">Mode:</span> ${escapeHtml(String(pack.mode || 'ΓÇö'))}</div>
+                        <div><span style="color:var(--light-text);">Total measurements:</span> ${escapeHtml(String(pack.entries.length))}</div>
+                    </div>
+                `;
+
+                const entriesHtml = pack.entries.map((entry) => {
+                    const productIndex = Number(entry?.productIndex || 1);
+                    const label = String(entry?.label || 'Measurement');
+                    const personName = String(entry?.personName || 'ΓÇö');
+                    const fieldDefs = Array.isArray(entry?.measurementFields) && entry.measurementFields.length
+                        ? entry.measurementFields
+                        : Object.keys(entry?.measurementDetails || {}).map((key) => ({ key, label: key }));
+                    const detailObj = entry?.measurementDetails && typeof entry.measurementDetails === 'object'
+                        ? entry.measurementDetails
+                        : {};
+                    const detailLines = fieldDefs
+                        .map((field) => `<div style="font-size:0.88rem;"><span style="color:var(--light-text);">${escapeHtml(String(field.label || field.key))}:</span> ${escapeHtml(String(detailObj[field.key] || 'ΓÇö'))}</div>`)
+                        .join('');
+                    const notes = String(entry?.notes || '').trim();
+                    return `
+                        <div style="margin-top:8px; padding:10px; border-radius:8px; background:#f9f9f9; border:1px solid rgba(0,0,0,0.08);">
+                            <div style="font-weight:800; color:#1a1c1c;">Product ${escapeHtml(String(productIndex))} ┬╖ ${escapeHtml(label)}</div>
+                            <div style="margin-top:4px;"><span style="color:var(--light-text);">Person Name:</span> ${escapeHtml(personName)}</div>
+                            <div style="margin-top:6px; display:grid; grid-template-columns:1fr 1fr; gap:6px 10px;">${detailLines}</div>
+                            ${notes ? `<div style="margin-top:6px; font-size:0.88rem;"><span style="color:var(--light-text);">Notes:</span> ${escapeHtml(notes)}</div>` : ''}
+                        </div>
+                    `;
+                }).join('');
+
+                return header + entriesHtml;
+            }
+
+            const size = measurements?.size || 'ΓÇö';
+            const height = measurements?.height ?? 'ΓÇö';
+            const shoulder = measurements?.shoulder ?? 'ΓÇö';
+            const chest = measurements?.chest ?? 'ΓÇö';
+            const waist = measurements?.waist ?? 'ΓÇö';
+            const hip = measurements?.hip ?? 'ΓÇö';
+            const length = measurements?.length ?? 'ΓÇö';
+            const sleeve = measurements?.sleeve ?? 'ΓÇö';
+
+            return `
+                <div style="margin-top: 8px; color:#333; display:grid; grid-template-columns: 1fr 1fr; gap: 8px 14px;">
+                    <div><span style="color:var(--light-text);">Standard size:</span> ${escapeHtml(String(size))}</div>
+                    <div><span style="color:var(--light-text);">Height:</span> ${escapeHtml(String(height))}</div>
+                    <div><span style="color:var(--light-text);">Shoulder:</span> ${escapeHtml(String(shoulder))}</div>
+                    <div><span style="color:var(--light-text);">Chest:</span> ${escapeHtml(String(chest))}</div>
+                    <div><span style="color:var(--light-text);">Waist:</span> ${escapeHtml(String(waist))}</div>
+                    <div><span style="color:var(--light-text);">Hip:</span> ${escapeHtml(String(hip))}</div>
+                    <div><span style="color:var(--light-text);">Length:</span> ${escapeHtml(String(length))}</div>
+                    <div><span style="color:var(--light-text);">Sleeve:</span> ${escapeHtml(String(sleeve))}</div>
+                </div>
+            `;
+        }
+
+        function renderNegotiationMessages(order) {
+            const messages = Array.isArray(order?.negotiation_messages) ? order.negotiation_messages : [];
+            if (!messages.length) {
+                return '<div style="font-size:0.86rem; color:var(--light-text);">No negotiation messages yet.</div>';
+            }
+
+            return messages.slice(-6).map((msg) => {
+                const role = String(msg?.sender_role || '').toLowerCase() === 'admin' ? 'Admin' : 'Customer';
+                const stamp = fmtDate(msg?.timestamp);
+                const imageUrl = getImgUrl(msg?.image_url || '');
+                return `
+                    <div style="margin-top:6px; padding:8px 10px; border-radius:8px; background:rgba(0,0,0,0.03); border:1px solid rgba(0,0,0,0.08);">
+                        <div style="font-size:0.8rem; font-weight:700;">${escapeHtml(role)}${stamp ? ` ┬╖ ${escapeHtml(stamp)}` : ''}</div>
+                        ${msg?.message ? `<div style="margin-top:3px; font-size:0.9rem;">${escapeHtml(msg?.message || '')}</div>` : ''}
+                        ${imageUrl ? `<div style="margin-top:6px;"><a href="${escapeHtml(imageUrl)}" target="_blank" rel="noopener noreferrer"><img src="${escapeHtml(imageUrl)}" alt="Negotiation attachment" style="max-width:220px; width:100%; border-radius:10px; border:1px solid rgba(0,0,0,0.12);"></a></div>` : ''}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        async function loadOrders() {
+            if (!ensureAdmin()) return;
+
+            const container = document.getElementById('orders-container');
+            if (!container) return;
+
+            // Capture currently expanded cards before re-render, so actions don't collapse them.
+            expandedOrderIds.clear();
+            document.querySelectorAll('.order-card[data-order-id] details[open]').forEach((detailsEl) => {
+                const card = detailsEl.closest('.order-card[data-order-id]');
+                const id = card ? card.getAttribute('data-order-id') : '';
+                if (id) expandedOrderIds.add(String(id));
+            });
+
+            try {
+                const res = await apiFetch('/api/orders');
+                const payload = await res.json();
+                if (!res.ok) throw new Error(payload?.msg || 'Failed to load orders');
+
+                const orders = Array.isArray(payload)
+                    ? payload
+                    : (Array.isArray(payload?.orders) ? payload.orders : []);
+                container.innerHTML = '';
+
+                orders.forEach(order => {
+                    const orderId = resolveOrderId(order);
+                    if (!orderId) return;
+                    const customer = order?.customer_info || order?.customerInfo || {};
+                    const userProfile = order?.user_profile || {};
+                    const customerAddress = customer.address && typeof customer.address === 'object' ? customer.address : {};
+                    const cloth = order?.cloth_details || order?.clothDetails || {};
+                    const meas = order?.measurements || {};
+                    const paymentInfo = order?.payment_info || {};
+                    const refImages = Array.isArray(order?.reference_images) ? order.reference_images : [];
+                    const sewingStatus = order?.sewing_status || 'Pending';
+
+                    const fullName =
+                        userProfile.fullName ||
+                        customer.full_name ||
+                        customer.fullName ||
+                        order?.full_name ||
+                        order?.fullName ||
+                        'Unknown customer';
+
+                    const status = order?.order_status || order?.status || 'Received';
+                    const category = (Array.isArray(cloth?.categories) && cloth.categories.length
+                        ? cloth.categories.map((row) => String(row || '').trim()).filter(Boolean).join(', ')
+                        : (cloth?.category || order?.category || 'ΓÇö'));
+                    const phone = userProfile.phone || customer.phone || order?.phone || 'ΓÇö';
+                    const email = userProfile.email || 'ΓÇö';
+                    const age = userProfile.age ?? 'ΓÇö';
+                    const sex = userProfile.sex || 'ΓÇö';
+                    const profileImage = getImgUrl(userProfile.profileImage || '');
+
+                    const fatherName = customer.father_name || customer.fatherName || 'ΓÇö';
+                    const country = customer.country || customerAddress.country || 'Ethiopia';
+                    const region = customer.region || customerAddress.region || 'ΓÇö';
+                    const regionCustom = customer.region_custom || customerAddress.region_custom || '';
+                    const city = customer.city || customerAddress.city || 'ΓÇö';
+                    const zipCode = customer.zip_code || customerAddress.zip_code || 'ΓÇö';
+                    const subCity = customerAddress.sub_city || 'ΓÇö';
+                    const woreda = customerAddress.woreda || 'ΓÇö';
+                    const landmark = customerAddress.landmark || 'ΓÇö';
+                    const specificAddress = customerAddress.specific_address || (typeof customer.address === 'string' ? customer.address : 'ΓÇö');
+                    const deviceLocation = order?.device_location || {};
+                    const deviceLocationText = Number.isFinite(Number(deviceLocation.latitude)) && Number.isFinite(Number(deviceLocation.longitude))
+                        ? `${Number(deviceLocation.latitude).toFixed(5)}, ${Number(deviceLocation.longitude).toFixed(5)}${Number.isFinite(Number(deviceLocation.accuracy)) ? ` (┬▒${Math.round(Number(deviceLocation.accuracy))}m)` : ''}`
+                        : (deviceLocation.label || deviceLocation.status || 'Unavailable');
+                    const deviceMapUrl = String(deviceLocation.map_url || '').trim();
+
+                    const designType = cloth.design_type || cloth.designType || 'ΓÇö';
+                    const color = cloth.color || 'ΓÇö';
+                    const eventType = cloth.event_type || cloth.eventType || 'ΓÇö';
+                    const deadline = cloth.deadline_date || cloth.deadlineDate || null;
+                    const hasSelectedPostData = Boolean(order?.post_id || cloth.post_title || cloth.postTitle || cloth.post_image || cloth.postImage);
+                    const isProductAsIsOrder =
+                        String(order?.order_type || '').toLowerCase() === 'product'
+                        || Boolean(order?.post_id || order?.productId);
+                    const clothTitle = hasSelectedPostData
+                        ? (cloth.post_title || cloth.postTitle || category)
+                        : (category || designType || 'ΓÇö');
+                    const itemLabel = buildItemLabel(cloth, category);
+                    const clothImage = getImgUrl(cloth.post_image || cloth.postImage || '');
+                    const clothDescription = cloth.post_description || cloth.postDescription || '';
+                    const clothPrice = Number(cloth.post_price_etb ?? cloth.postPriceEtb);
+                    const clothShippingPrice = Number(cloth.post_shipping_price_etb ?? cloth.postShippingPriceEtb);
+                    const clothFreeShipping = Boolean(cloth.post_free_shipping ?? cloth.postFreeShipping);
+
+                    const measurementType = meas.type || 'ΓÇö';
+                    const measurementDetailsHtml = renderMeasurementDetailsHtml(meas);
+
+                    const deliveryMethod = order?.delivery_method || order?.deliveryMethod || 'ΓÇö';
+                    const paymentMethod = paymentInfo?.method || order?.payment_method || 'ΓÇö';
+                    const paymentStatus = order?.payment_status || order?.paymentStatus || paymentInfo?.status || 'Pending';
+                    const paymentSubmittedAt = fmtDate(paymentInfo?.paid_at);
+                    const effectiveStatus = deriveFlowStatus(paymentStatus, sewingStatus, status);
+                    const screenshotUrl = getOrderPaymentScreenshot(order);
+                    const screenshotMimeType = getOrderPaymentScreenshotMimeType(order);
+                    const paymentComment = getOrderPaymentComment(order);
+                    const createdAt = fmtDate(order?.created_at || order?.createdAt);
+                    const orderedQty = Math.max(1, Math.floor(Number(order?.quantity || 1)));
+                    const payableTotal = computeQuantityTotal(
+                        Number.isFinite(clothPrice) ? clothPrice : 0,
+                        clothFreeShipping ? 0 : (Number.isFinite(clothShippingPrice) ? clothShippingPrice : 0),
+                        orderedQty
+                    );
+                    const proposedPrice = Number(order?.proposed_price_etb);
+                    const negotiationHtml = renderNegotiationMessages(order);
+
+                    const finalRegion = region === 'Other' && regionCustom ? regionCustom : region;
+                    const locationBits = [
+                        `Country: ${country || 'ΓÇö'}`,
+                        `Region: ${finalRegion || 'ΓÇö'}`,
+                        `City: ${city || 'ΓÇö'}`,
+                        `ZIP: ${zipCode || 'ΓÇö'}`
+                    ];
+                    if (subCity && subCity !== 'ΓÇö') locationBits.push(`Sub-city: ${subCity}`);
+                    if (woreda && woreda !== 'ΓÇö') locationBits.push(`Woreda: ${woreda}`);
+                    if (landmark && landmark !== 'ΓÇö') locationBits.push(`Landmark: ${landmark}`);
+
+                    const specificAddressNorm = String(specificAddress || '').toLowerCase();
+                    const duplicateSummary = [country, finalRegion, city, zipCode]
+                        .filter((v) => v && v !== 'ΓÇö')
+                        .every((v) => specificAddressNorm.includes(String(v).toLowerCase()));
+                    if (specificAddress && specificAddress !== 'ΓÇö' && !duplicateSummary) {
+                        locationBits.push(`Address Detail: ${specificAddress}`);
+                    }
+
+                    const addressText = locationBits.join(' | ');
+
+                    const div = document.createElement('div');
+                    div.className = 'order-card';
+                    div.setAttribute('data-order-id', orderId);
+                    div.setAttribute('data-country', String(country || '').trim().toLowerCase());
+                    div.setAttribute('data-region', String(finalRegion || '').trim().toLowerCase());
+                    div.setAttribute('data-city', String(city || '').trim().toLowerCase());
+
+                    div.innerHTML = `
+                        <div class="order-card__header">
+                            <div style="display:flex; align-items:center; gap:10px;">
+                                ${profileImage
+                                    ? `<img src="${escapeHtml(profileImage)}" alt="Customer profile" style="width:44px; height:44px; object-fit:cover; border-radius:999px; border:1px solid rgba(0,0,0,0.12);">`
+                                    : `<div style="width:44px; height:44px; border-radius:999px; background:#f4f3f3; color:#745B18; display:flex; align-items:center; justify-content:center; font-weight:800; border:1px solid rgba(0,0,0,0.08);">${escapeHtml(String(fullName || 'U').slice(0,2).toUpperCase())}</div>`}
+                                <div>
+                                <h4 class="order-card__name">${escapeHtml(fullName)}</h4>
+                                <div class="order-card__status">${escapeHtml(effectiveStatus)} ┬╖ Sewing: ${escapeHtml(sewingStatus)} ┬╖ Payment: ${escapeHtml(paymentStatus)}</div>
+                                <div style="color: var(--light-text); font-size: 0.9rem; margin-top: 4px;">${createdAt ? `Ordered: ${escapeHtml(createdAt)}` : ''}</div>
+                                <div style="color: var(--light-text); font-size: 0.84rem; margin-top: 2px;">${paymentSubmittedAt ? `Payment submitted: ${escapeHtml(paymentSubmittedAt)}` : 'Payment submitted: ΓÇö'}</div>
+                                </div>
+                            </div>
+                        </div>
+                        <p><strong>Item:</strong> ${escapeHtml(itemLabel)}</p>
+                        <p><strong>Quantity:</strong> ${escapeHtml(String(orderedQty))}</p>
+                        ${hasSelectedPostData ? `
+                            <div style="display:flex; gap:10px; align-items:flex-start; margin: 8px 0 2px;">
+                                ${clothImage ? `<img src="${escapeHtml(clothImage)}" alt="Selected cloth" style="width:72px; height:72px; object-fit:cover; border-radius:10px; border:1px solid rgba(0,0,0,0.1);">` : ''}
+                                <div style="min-width:0; font-size: 0.92rem;">
+                                    <div style="font-weight:800; color:#1a1c1c;">${escapeHtml(clothTitle || 'Selected cloth')}</div>
+                                    <div style="margin-top:3px; color:#666;">Category: ${escapeHtml(category)}</div>
+                                    <div style="margin-top:3px; color:#ba1a1a; font-weight:700;">Product Price (per 1): ${Number.isFinite(clothPrice) && clothPrice > 0 ? `${escapeHtml(clothPrice.toLocaleString())} ETB` : 'Price on request'}</div>
+                                    <div style="margin-top:2px; color:#745B18; font-weight:700;">Shipping (per 1): ${clothFreeShipping ? 'Free shipping' : (Number.isFinite(clothShippingPrice) && clothShippingPrice >= 0 ? `${escapeHtml(clothShippingPrice.toLocaleString())} ETB` : 'Shipping: ΓÇö')}</div>
+                                    <div style="margin-top:2px; color:#0f2f21; font-weight:800;">Total payable: ${escapeHtml(payableTotal.toLocaleString())} ETB</div>
+                                </div>
+                            </div>
+                        ` : ''}
+                        <p><strong>Contact:</strong> ${escapeHtml(phone)}</p>
+                        <p><strong>Address:</strong> ${escapeHtml(addressText)}</p>
+                        <p><strong>Device Location:</strong> ${escapeHtml(deviceLocationText)} ${deviceMapUrl ? `<a href="${escapeHtml(deviceMapUrl)}" target="_blank" rel="noopener noreferrer" style="color:#745B18; text-decoration:underline;">Open map</a>` : ''}</p>
+
+                        <details style="margin-top: 10px;">
+                            <summary style="cursor:pointer; font-weight: 800; color: var(--accent-color);">View full order details</summary>
+                            <div style="margin-top: 10px; display:flex; flex-direction:column; gap: 12px;">
+
+                                <div style="border: 1px solid rgba(0,0,0,0.08); border-radius: 12px; padding: 12px;">
+                                    <strong>Customer Information</strong>
+                                    <div style="margin-top: 8px; color:#333; display:grid; grid-template-columns: 1fr 1fr; gap: 8px 14px;">
+                                        <div><span style="color:var(--light-text);">Full name:</span> ${escapeHtml(fullName)}</div>
+                                        <div><span style="color:var(--light-text);">Father name:</span> ${escapeHtml(fatherName)}</div>
+                                        <div><span style="color:var(--light-text);">Email:</span> ${escapeHtml(email)}</div>
+                                        <div><span style="color:var(--light-text);">Phone:</span> ${escapeHtml(phone)}</div>
+                                        <div><span style="color:var(--light-text);">Age:</span> ${escapeHtml(String(age))}</div>
+                                        <div><span style="color:var(--light-text);">Sex:</span> ${escapeHtml(String(sex))}</div>
+                                        <div><span style="color:var(--light-text);">Region:</span> ${escapeHtml(region)}</div>
+                                        <div><span style="color:var(--light-text);">City:</span> ${escapeHtml(city)}</div>
+                                        <div><span style="color:var(--light-text);">Sub-city:</span> ${escapeHtml(subCity)}</div>
+                                        <div><span style="color:var(--light-text);">Woreda:</span> ${escapeHtml(woreda)}</div>
+                                        <div><span style="color:var(--light-text);">Landmark:</span> ${escapeHtml(landmark)}</div>
+                                        <div><span style="color:var(--light-text);">Specific address:</span> ${escapeHtml(specificAddress)}</div>
+                                        <div><span style="color:var(--light-text);">Device location:</span> ${escapeHtml(deviceLocationText)}</div>
+                                        <div><span style="color:var(--light-text);">Timezone:</span> ${escapeHtml(String(deviceLocation.timezone || 'ΓÇö'))}</div>
+                                    </div>
+                                    ${deviceMapUrl ? `<div style="margin-top:8px;"><a href="${escapeHtml(deviceMapUrl)}" target="_blank" rel="noopener noreferrer" style="color:#745B18; text-decoration:underline;">Open device location in map</a></div>` : ''}
+                                </div>
+
+                                <div style="border: 1px solid rgba(0,0,0,0.08); border-radius: 12px; padding: 12px;">
+                                    <strong>Cloth Details</strong>
+                                    ${clothImage ? `
+                                        <div style="margin-top:10px;">
+                                            <a href="${escapeHtml(clothImage)}" target="_blank" rel="noopener noreferrer">
+                                                <img src="${escapeHtml(clothImage)}" alt="Ordered cloth" style="width:120px; height:120px; object-fit:cover; border-radius:12px; border:1px solid rgba(0,0,0,0.08);">
+                                            </a>
+                                        </div>
+                                    ` : ''}
+                                    <div style="margin-top: 8px; color:#333; display:grid; grid-template-columns: 1fr 1fr; gap: 8px 14px;">
+                                        <div><span style="color:var(--light-text);">Title:</span> ${escapeHtml(clothTitle || 'ΓÇö')}</div>
+                                        <div><span style="color:var(--light-text);">Category:</span> ${escapeHtml(category)}</div>
+                                        <div><span style="color:var(--light-text);">Design type:</span> ${escapeHtml(designType)}</div>
+                                        <div><span style="color:var(--light-text);">Color:</span> ${escapeHtml(color)}</div>
+                                        <div><span style="color:var(--light-text);">Event type:</span> ${escapeHtml(eventType)}</div>
+                                        <div><span style="color:var(--light-text);">Deadline:</span> ${deadline ? escapeHtml(new Date(deadline).toLocaleDateString()) : 'ΓÇö'}</div>
+                                        <div><span style="color:var(--light-text);">Product price (per 1):</span> ${Number.isFinite(clothPrice) && clothPrice > 0 ? escapeHtml(clothPrice.toLocaleString()) + ' ETB' : 'ΓÇö'}</div>
+                                        <div><span style="color:var(--light-text);">Shipping (per 1):</span> ${clothFreeShipping ? 'Free shipping' : (Number.isFinite(clothShippingPrice) && clothShippingPrice >= 0 ? escapeHtml(clothShippingPrice.toLocaleString()) + ' ETB' : 'ΓÇö')}</div>
+                                        <div><span style="color:var(--light-text);">Total payable:</span> ${escapeHtml(payableTotal.toLocaleString())} ETB</div>
+                                    </div>
+                                    ${clothDescription ? `<p style="margin-top:10px; color:#444;"><span style="color:var(--light-text);">Description:</span> ${escapeHtml(clothDescription)}</p>` : ''}
+                                </div>
+
+                                <div style="border: 1px solid rgba(0,0,0,0.08); border-radius: 12px; padding: 12px;">
+                                    <strong>Measurements</strong>
+                                    <div style="margin-top: 8px; color:#333;"><span style="color:var(--light-text);">Type:</span> ${escapeHtml(String(measurementType))}</div>
+                                    ${measurementDetailsHtml}
+                                </div>
+
+                                <div style="border: 1px solid rgba(0,0,0,0.08); border-radius: 12px; padding: 12px;">
+                                    <strong>Delivery & Payment</strong>
+                                    <div style="margin-top: 8px; color:#333; display:grid; grid-template-columns: 1fr 1fr; gap: 8px 14px;">
+                                        <div><span style="color:var(--light-text);">Delivery method:</span> ${escapeHtml(deliveryMethod)}</div>
+                                        <div><span style="color:var(--light-text);">Payment method:</span> ${escapeHtml(paymentMethod)}</div>
+                                        <div><span style="color:var(--light-text);">Payment status:</span> ${escapeHtml(paymentStatus)}</div>
+                                        <div><span style="color:var(--light-text);">Payment date:</span> ${paymentSubmittedAt ? escapeHtml(paymentSubmittedAt) : 'ΓÇö'}</div>
+                                        <div><span style="color:var(--light-text);">Payment comment:</span> ${paymentComment ? escapeHtml(paymentComment) : 'ΓÇö'}</div>
+                                        <div><span style="color:var(--light-text);">Sewing status:</span> ${escapeHtml(sewingStatus)}</div>
+                                        <div><span style="color:var(--light-text);">Customer proposed cloth price:</span> ${Number.isFinite(proposedPrice) && proposedPrice > 0 ? escapeHtml(proposedPrice.toLocaleString()) + ' ETB' : 'ΓÇö'}</div>
+                                        <div><span style="color:var(--light-text);">Submitted date:</span> ${createdAt ? escapeHtml(createdAt) : 'ΓÇö'}</div>
+                                        <div><span style="color:var(--light-text);">Ordered quantity:</span> ${escapeHtml(String(orderedQty))}</div>
+                                    </div>
+
+                                    <div style="margin-top: 12px; display:flex; gap: 10px; align-items:center; flex-wrap:wrap;">
+                                        <select class="form-control" style="max-width: 220px;" aria-label="Update sewing status" data-sewing-status name="sewing_status">
+                                            <option value="Pending" ${sewingStatus === 'Pending' ? 'selected' : ''}>Pending</option>
+                                            <option value="Sewing" ${sewingStatus === 'Sewing' ? 'selected' : ''}>Sewing</option>
+                                            <option value="Ready" ${sewingStatus === 'Ready' ? 'selected' : ''}>Ready</option>
+                                            <option value="Shipped" ${sewingStatus === 'Shipped' ? 'selected' : ''}>Shipped</option>
+                                            <option value="Delivered" ${sewingStatus === 'Delivered' ? 'selected' : ''}>Delivered</option>
+                                        </select>
+                                        <button type="button" class="btn-secondary" onclick="updateSewingStatus('${orderId}')">Update Sewing</button>
+                                    </div>
+
+                                    <div style="margin-top: 12px; display:flex; gap: 10px; align-items:center; flex-wrap:wrap;">
+                                        ${paymentMethod === 'telebirr_api' ? `
+                                            <span style="padding: 8px 16px; background: #eef5ff; border: 1px solid #cce0ff; border-radius: 8px; color: #0056b3; font-weight: 600;">
+                                                <i class="fas fa-robot"></i> Automatic Telebirr Validation
+                                            </span>
+                                            ${paymentStatus === 'Failed' ? '<span style="color: red; font-weight: bold; margin-left: 10px;">Payment Failed (Customer must try again)</span>' : ''}
+                                            ${!screenshotUrl ? '' : '' /* No screenshot expected for api */ }
+                                        ` : `
+                                            <select class="form-control" style="max-width: 220px;" aria-label="Update payment status" data-payment-status name="payment_status">
+                                                <option value="Pending" ${paymentStatus === 'Pending' ? 'selected' : ''}>Pending</option>
+                                                <option value="Confirmed" ${paymentStatus === 'Confirmed' ? 'selected' : ''}>Confirmed</option>
+                                                <option value="Failed" ${paymentStatus === 'Failed' ? 'selected' : ''}>Failed</option>
+                                                <option value="Refunded" ${paymentStatus === 'Refunded' ? 'selected' : ''}>Refunded</option>
+                                            </select>
+                                            <button type="button" class="btn" onclick="updatePaymentStatus('${orderId}')">
+                                                ${paymentStatus === 'Confirmed' ? 'Update Payment' : 'Confirm Payment'}
+                                            </button>
+                                            ${!screenshotUrl ? '<span style="color: var(--light-text);">No screenshot uploaded.</span>' : ''}
+                                        `}
+                                    </div>
+
+                                    <div style="margin-top:12px; padding:12px; border:1px solid rgba(30,75,53,0.14); border-radius:14px; background:linear-gradient(180deg, rgba(249,252,250,0.96) 0%, rgba(241,247,243,0.96) 100%);">
+                                        <div style="display:flex; justify-content:space-between; gap:10px; align-items:flex-start; flex-wrap:wrap;">
+                                            <div>
+                                                <div style="font-weight:800; color:#0f2f21;">Payment Proof</div>
+                                                <div style="margin-top:4px; font-size:0.86rem; color:var(--light-text);">Review the payment method, comment, and screenshot submitted by the customer.</div>
+                                            </div>
+                                            <div style="display:inline-flex; align-items:center; gap:6px; padding:6px 10px; border-radius:999px; background:${screenshotUrl ? 'rgba(30,75,53,0.10)' : 'rgba(186,26,26,0.10)'}; color:${screenshotUrl ? '#0f2f21' : '#8a1c1c'}; font-size:0.82rem; font-weight:800;">
+                                                ${screenshotUrl ? 'Proof uploaded' : 'Proof not found'}
+                                            </div>
+                                        </div>
+                                        <div style="margin-top:10px; display:grid; grid-template-columns:repeat(auto-fit, minmax(160px, 1fr)); gap:8px 12px; font-size:0.9rem; color:#1a1c1c;">
+                                            <div><span style="color:var(--light-text);">Method:</span> ${escapeHtml(paymentMethod)}</div>
+                                            <div><span style="color:var(--light-text);">Status:</span> ${escapeHtml(paymentStatus)}</div>
+                                            <div><span style="color:var(--light-text);">Submitted:</span> ${paymentSubmittedAt ? escapeHtml(paymentSubmittedAt) : 'ΓÇö'}</div>
+                                        </div>
+                                        <div style="margin-top:8px; font-size:0.9rem; color:#1a1c1c;"><span style="color:var(--light-text);">Comment:</span> ${paymentComment ? escapeHtml(paymentComment) : 'ΓÇö'}</div>
+
+                                        ${renderPaymentProofPreviewHtml(screenshotUrl, screenshotMimeType)}
+                                    </div>
+
+                                    ${!isProductAsIsOrder ? `
+                                    <div style="margin-top: 12px; display:flex; gap: 10px; align-items:center; flex-wrap:wrap;">
+                                        <input type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" class="form-control" style="max-width: 160px;" aria-label="Set cloth price ETB" data-price-etb name="cloth_price_etb" placeholder="Cloth ETB" value="${Number.isFinite(clothPrice) && clothPrice >= 0 ? String(clothPrice) : ''}">
+                                        <input type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" class="form-control" style="max-width: 160px;" aria-label="Set shipping price ETB" data-shipping-etb name="shipping_price_etb" placeholder="Shipping ETB" value="${Number.isFinite(clothShippingPrice) && clothShippingPrice >= 0 ? String(clothShippingPrice) : ''}">
+                                        <button type="button" class="btn-secondary" onclick="updatePricing('${orderId}')">Set Price</button>
+                                    </div>
+                                    ` : ''}
+
+                                    ${!isProductAsIsOrder ? `
+                                    <div style="margin-top: 12px; border:1px solid rgba(0,0,0,0.08); border-radius:10px; padding:12px; background:#fafafa;">
+                                        <div style="font-weight:800; color:#0f2f21;">Negotiation</div>
+                                        <div style="margin-top:6px;">${negotiationHtml}</div>
+                                        <div style="margin-top:10px; display:grid; gap:10px;">
+                                            <div style="display:flex; align-items:center; gap:8px; background:#ece9df; border:1px solid rgba(0,0,0,0.08); border-radius:999px; padding:5px 7px; min-height:48px; width:100%; max-width:100%; box-sizing:border-box; overflow:hidden;">
+                                                <button type="button" data-negotiation-attach style="width:40px; height:40px; border:none; border-radius:999px; background:transparent; color:#463f32; display:inline-flex; align-items:center; justify-content:center; cursor:pointer;" aria-label="Attach image">
+                                                    <span class="material-symbols-outlined">add_circle</span>
+                                                </button>
+                                                <input type="text" class="form-control" data-negotiation-msg name="negotiation_message" placeholder="Write negotiation..." style="flex:1; min-width:0; width:1%; border:none; background:transparent; box-shadow:none; padding:0; color:#5d574a; font-size:0.95rem;">
+                                                <span data-negotiation-image-name style="max-width:36%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:0.82rem; color:#6e6658; display:none;"></span>
+                                                <button type="button" class="btn-secondary" onclick="sendNegotiation('${orderId}')" style="width:40px; min-width:40px; height:40px; min-height:40px; padding:0; border-radius:999px; display:inline-flex; align-items:center; justify-content:center; background:#d9d3a4; color:#5b5800; border:none;" aria-label="Send message">
+                                                    <span class="material-symbols-outlined">send</span>
+                                                </button>
+                                            </div>
+                                            <div data-negotiation-image-preview-wrap style="display:none; align-items:center; gap:8px; background:#fff; border:1px solid rgba(0,0,0,0.08); border-radius:10px; padding:8px;">
+                                                <img data-negotiation-image-preview alt="Selected image" style="width:42px; height:42px; border-radius:8px; object-fit:cover; border:1px solid rgba(0,0,0,0.12);">
+                                                <span data-negotiation-image-preview-name style="flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:0.82rem; color:#6e6658;"></span>
+                                                <button type="button" data-negotiation-clear-image style="border:none; background:transparent; color:#735c00; cursor:pointer; font-size:0.82rem;">Remove</button>
+                                            </div>
+                                            <input type="file" data-negotiation-image name="negotiation_image" accept="image/*" style="display:none;">
+                                        </div>
+                                    </div>
+                                    ` : `<div style="margin-top: 12px; color: var(--light-text);">Negotiation is not available for product-as-is orders.</div>`}
+                                </div>
+
+                                ${refImages.length ? `
+                                    <div style="border: 1px solid rgba(0,0,0,0.08); border-radius: 12px; padding: 12px;">
+                                        <strong>Reference Images</strong>
+                                        <div style="margin-top: 10px; display:flex; gap: 10px; flex-wrap:wrap;">
+                                            ${refImages.map((p) => {
+                                                const u = getImgUrl(p);
+                                                if (!u) return '';
+                                                return `<a href="${escapeHtml(u)}" target="_blank" rel="noopener noreferrer"><img src="${escapeHtml(u)}" alt="Reference" style="width: 120px; height: 120px; object-fit: cover; border-radius: 12px; border: 1px solid rgba(0,0,0,0.08);"></a>`;
+                                            }).join('')}
+                                        </div>
+                                    </div>
+                                ` : ''}
+
+                            </div>
+                        </details>
+
+                        <hr>
+                        <p><small>Order ID: ${escapeHtml(orderId)}</small></p>
+                    `;
+
+                    const detailsEl = div.querySelector('details');
+                    if (detailsEl) {
+                        if (expandedOrderIds.has(orderId)) {
+                            detailsEl.open = true;
+                        }
+                        detailsEl.addEventListener('toggle', () => {
+                            if (detailsEl.open) expandedOrderIds.add(orderId);
+                            else expandedOrderIds.delete(orderId);
+                        });
+                    }
+                    const attachBtn = div.querySelector('[data-negotiation-attach]');
+                    const imageInput = div.querySelector('[data-negotiation-image]');
+                    if (attachBtn && imageInput) {
+                        attachBtn.addEventListener('click', () => imageInput.click());
+                        imageInput.addEventListener('change', () => updateNegotiationImagePreview(div));
+                    }
+                    const clearBtn = div.querySelector('[data-negotiation-clear-image]');
+                    if (clearBtn && imageInput) {
+                        clearBtn.addEventListener('click', () => {
+                            imageInput.value = '';
+                            updateNegotiationImagePreview(div);
+                        });
+                    }
+                    container.appendChild(div);
+                });
+
+            } catch (err) {
+                console.error(err);
+                alert(err?.message || 'Failed to load orders');
+                if ((err?.message || '').toLowerCase().includes('token')) {
+                    localStorage.removeItem('token');
+                    localStorage.removeItem('user');
+                        window.location.href = '/auth/login';
+                }
+            }
+        }
+
+        async function updatePaymentStatus(orderId) {
+            const normalizedOrderId = String(orderId || '').trim();
+            if (!normalizedOrderId) return;
+            const host = document.querySelector(`.order-card[data-order-id="${CSS.escape(normalizedOrderId)}"]`);
+            const select = host ? host.querySelector('[data-payment-status]') : null;
+            const currentValue = select ? String(select.value || '').trim() : '';
+            const nextStatus = (!currentValue || currentValue === 'Pending') ? 'Confirmed' : currentValue;
+
+            if (select && select.value !== nextStatus) {
+                select.value = nextStatus;
+            }
+
+            try {
+                const res = await apiFetch(`/api/orders/${normalizedOrderId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ payment_status: nextStatus })
+                });
+                let data;
+                try {
+                    data = await res.json();
+                } catch (jsonErr) {
+                    // fallback for non-JSON error
+                    data = null;
+                }
+                if (!res.ok) throw new Error((data && data.msg) || 'Failed to update payment status');
+                if (nextStatus === 'Confirmed') {
+                    alert('Confirmed\nConfirm Payment status updated');
+                } else {
+                    alert('Payment status updated');
+                }
+                loadOrders();
+            } catch (err) {
+                console.error(err);
+                alert(err?.message || 'Error updating payment status');
+            }
+        }
+
+        async function updateSewingStatus(orderId) {
+            const normalizedOrderId = String(orderId || '').trim();
+            if (!normalizedOrderId) return;
+            const host = document.querySelector(`.order-card[data-order-id="${CSS.escape(normalizedOrderId)}"]`);
+            const select = host ? host.querySelector('[data-sewing-status]') : null;
+            const nextStatus = select ? select.value : 'Pending';
+
+            try {
+                const res = await apiFetch(`/api/orders/${normalizedOrderId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ sewing_status: nextStatus })
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data?.msg || 'Failed to update sewing status');
+                alert('Sewing status updated');
+                loadOrders();
+            } catch (err) {
+                console.error(err);
+                alert(err?.message || 'Error updating sewing status');
+            }
+        }
+
+        async function updatePricing(orderId) {
+            const normalizedOrderId = String(orderId || '').trim();
+            if (!normalizedOrderId) return;
+            const host = document.querySelector(`.order-card[data-order-id="${CSS.escape(normalizedOrderId)}"]`);
+            const priceInput = host ? host.querySelector('[data-price-etb]') : null;
+            const shippingInput = host ? host.querySelector('[data-shipping-etb]') : null;
+            const price = parseWholeNumberInputValue(priceInput ? priceInput.value : '');
+            const shipping = parseWholeNumberInputValue(shippingInput ? shippingInput.value : '');
+
+            if (priceInput) priceInput.value = Number.isFinite(price) && price >= 0 ? String(price) : '';
+            if (shippingInput) shippingInput.value = Number.isFinite(shipping) && shipping >= 0 ? String(shipping) : '';
+
+            if (!Number.isFinite(price) || price < 0) {
+                alert('Please enter a valid cloth price.');
+                return;
+            }
+            if (!Number.isFinite(shipping) || shipping < 0) {
+                alert('Please enter a valid shipping price.');
+                return;
+            }
+
+            try {
+                const res = await apiFetch(`/api/orders/${normalizedOrderId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        cloth_details: {
+                            post_price_etb: price,
+                            post_shipping_price_etb: shipping
+                        },
+                        price_update: true
+                    })
+                });
+                let data = null;
+                try {
+                    data = await res.json();
+                } catch (_) {
+                    // ignore
+                }
+                if (!res.ok) throw new Error((data && data.msg) || 'Failed to set price');
+                alert('Price updated and customer notified.');
+                loadOrders();
+            } catch (err) {
+                console.error(err);
+                alert(err?.message || 'Error setting price');
+            }
+        }
+
+        async function sendNegotiation(orderId) {
+            const normalizedOrderId = String(orderId || '').trim();
+            if (!normalizedOrderId) return;
+            const host = document.querySelector(`.order-card[data-order-id="${CSS.escape(normalizedOrderId)}"]`);
+            const input = host ? host.querySelector('[data-negotiation-msg]') : null;
+            const message = String(input ? input.value : '').trim();
+            const imageFile = host ? host.querySelector('[data-negotiation-image]')?.files?.[0] : null;
+            if (!message && !imageFile) {
+                alert('Please enter a message or choose an image first.');
+                return;
+            }
+
+            try {
+                const fd = new FormData();
+                fd.append('message', message);
+                if (imageFile) fd.append('image', imageFile);
+                const res = await apiFetch(`/api/orders/${normalizedOrderId}/negotiation`, {
+                    method: 'POST',
+                    body: fd
+                });
+                let data = null;
+                try { data = await res.json(); } catch (_) { /* ignore */ }
+                if (!res.ok) throw new Error((data && data.msg) || 'Failed to send message');
+                if (input) input.value = '';
+                const imageInput = host ? host.querySelector('[data-negotiation-image]') : null;
+                if (imageInput) imageInput.value = '';
+                if (host) updateNegotiationImagePreview(host);
+                loadOrders();
+            } catch (err) {
+                console.error(err);
+                alert(err?.message || 'Error sending message');
+            }
+        }
+
+        function updateNegotiationImagePreview(host) {
+            if (!host) return;
+            const imageInput = host.querySelector('[data-negotiation-image]');
+            const file = imageInput && imageInput.files ? imageInput.files[0] : null;
+            const nameEl = host.querySelector('[data-negotiation-image-name]');
+            const wrap = host.querySelector('[data-negotiation-image-preview-wrap]');
+            const img = host.querySelector('[data-negotiation-image-preview]');
+            const previewName = host.querySelector('[data-negotiation-image-preview-name]');
+
+            const fileName = file ? String(file.name || '').trim() : '';
+            if (!fileName) {
+                if (nameEl) {
+                    nameEl.textContent = '';
+                    nameEl.style.display = 'none';
+                }
+                if (wrap) wrap.style.display = 'none';
+                if (img && img.dataset.objectUrl) {
+                    try { URL.revokeObjectURL(img.dataset.objectUrl); } catch (_) {}
+                    delete img.dataset.objectUrl;
+                }
+                return;
+            }
+
+            if (nameEl) {
+                nameEl.textContent = fileName;
+                nameEl.style.display = 'inline-block';
+            }
+            if (previewName) previewName.textContent = fileName;
+            if (wrap) wrap.style.display = 'flex';
+            if (img) {
+                if (img.dataset.objectUrl) {
+                    try { URL.revokeObjectURL(img.dataset.objectUrl); } catch (_) {}
+                }
+                const obj = URL.createObjectURL(file);
+                img.src = obj;
+                img.dataset.objectUrl = obj;
+            }
+        }
+
+        // Expose handlers to inline onclick
+        window.updatePaymentStatus = updatePaymentStatus;
+        window.updateSewingStatus = updateSewingStatus;
+        window.updatePricing = updatePricing;
+        window.sendNegotiation = sendNegotiation;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            loadOrders();
+
+            // Safe background polling to auto-update confirmed Telebirr payments
+            setInterval(() => {
+                const activeEl = document.activeElement;
+                const isWriting = activeEl && ['INPUT', 'TEXTAREA', 'SELECT'].includes(activeEl.tagName);
+                if (!document.querySelector('.modal[style*="display: block"]') && !isWriting) {
+                    loadOrders();
+                }
+            }, 4000);
+        });
+    </script>
+</body>
+</html>
+

@@ -1,0 +1,767 @@
+﻿<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Customer Chat - Yeshi</title>
+  <script src="/js/admin-config.js"></script><script src="/js/admin-guard.js"></script>
+  <script>window.__yeshiWarnPatch=window.__yeshiWarnPatch||(()=>{const w=console.warn;console.warn=function(...a){if(String(a[0]||'').includes('cdn.tailwindcss.com should not be used in production'))return;return w.apply(console,a);};return true;})();</script>
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700&family=Inter:wght@400;500;600;700&family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+  <link rel="icon" type="image/png" href="/images/logo.png">
+  <style>
+    body { font-family: Inter, Manrope, sans-serif; }
+    .material-symbols-outlined { font-family: 'Material Symbols Outlined'; font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+    .nav-item-active { background: linear-gradient(90deg, #735c00 0%, #D4AF37 100%); color: #fff !important; font-weight: 700; }
+    .sidebar-item-active { background: #fff8e1; border-left: 4px solid #D4AF37; }
+    .chat-scrollbar::-webkit-scrollbar { width: 8px; background: #f4f3f3; }
+    .chat-scrollbar::-webkit-scrollbar-thumb { background: #e8e8e8; border-radius: 8px; }
+    .admin-chat-composer {
+      border-top: 1px solid #efe8d9;
+      background: rgba(255, 255, 255, 0.98);
+      box-shadow: 0 -6px 18px rgba(31, 27, 19, 0.05);
+      padding: 14px 24px;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+    .admin-chat-input {
+      flex: 1;
+      border: 1px solid rgba(126, 118, 103, 0.22);
+      border-radius: 12px;
+      padding: 10px 14px;
+      font-size: 14px;
+      background: #fffdf8;
+      color: #1f1b13;
+      outline: none;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+    .admin-chat-input:focus {
+      border-color: #D4AF37;
+      box-shadow: 0 0 0 2px rgba(212, 175, 55, 0.18);
+    }
+    .admin-chat-attach {
+      border: 1px solid #e9dcc0;
+      background: #fff8e1;
+      color: #735c00;
+      border-radius: 10px;
+      padding: 9px 12px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: background 0.2s ease, transform 0.2s ease;
+    }
+    .admin-chat-attach:hover {
+      background: #fef1c9;
+      transform: translateY(-1px);
+    }
+    .admin-chat-send {
+      border: none;
+      background: linear-gradient(120deg, #735c00 0%, #D4AF37 100%);
+      color: #fff;
+      border-radius: 10px;
+      padding: 10px 18px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      cursor: pointer;
+      box-shadow: 0 6px 14px rgba(115, 92, 0, 0.25);
+      transition: filter 0.2s ease, transform 0.2s ease;
+    }
+    .admin-chat-send:hover {
+      filter: brightness(1.02);
+      transform: translateY(-1px);
+    }
+    .admin-chat-send:disabled,
+    .admin-chat-attach:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+      filter: none;
+      box-shadow: none;
+    }
+    .admin-attachment-preview {
+      margin: 0 24px 8px;
+      border: 1px solid #efe8d9;
+      background: #fff;
+      border-radius: 10px;
+      padding: 8px 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .admin-attachment-preview img {
+      width: 42px;
+      height: 42px;
+      object-fit: cover;
+      border-radius: 8px;
+      border: 1px solid rgba(0, 0, 0, 0.12);
+    }
+    .admin-attachment-name {
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-size: 12px;
+      color: #5f5130;
+      font-weight: 600;
+    }
+    .admin-attachment-clear {
+      border: none;
+      background: transparent;
+      color: #735c00;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body class="h-full overflow-hidden flex" data-mode="connect">
+<!-- Sidebar -->
+<aside class="w-64 bg-white border-r border-cream-300 flex flex-col z-30">
+  <div class="h-16 flex items-center px-6 border-b border-cream-300">
+    <div class="flex items-center gap-3">
+      <div class="w-8 h-8 bg-black rounded-lg flex items-center justify-center text-gold-500">
+        <span class="material-symbols-outlined text-xl font-bold">account_balance</span>
+      </div>
+      <h1 class="text-sm font-bold tracking-tight text-gray-900">Administrative</h1>
+    </div>
+  </div>
+  <nav class="flex-1 py-6 space-y-1">
+    <a class="flex items-center gap-3 px-6 py-3 text-sm font-medium text-gray-500 hover:bg-cream-50 hover:text-gold-600 transition-colors" href="/admin/posts">
+      <span class="material-symbols-outlined text-xl">article</span>
+      <span>Manage Posts</span>
+    </a>
+    <a class="flex items-center gap-3 px-6 py-3 text-sm font-medium text-gray-500 hover:bg-cream-50 hover:text-gold-600 transition-colors" href="/admin/users">
+      <span class="material-symbols-outlined text-xl">group</span>
+      <span>User Management</span>
+    </a>
+    <a class="flex items-center gap-3 px-6 py-3 text-sm font-medium text-gray-500 hover:bg-cream-50 hover:text-gold-600 transition-colors" href="/admin/orders">
+      <span class="material-symbols-outlined text-xl">shopping_bag</span>
+      <span>All Customer Orders</span>
+    </a>
+    <a class="flex items-center gap-3 px-6 py-3 text-sm font-bold nav-item-active" href="/admin/chat">
+      <span class="material-symbols-outlined text-xl">chat_bubble</span>
+      <span>Customer Chats</span>
+    </a>
+    <a class="flex items-center gap-3 px-6 py-3 text-sm font-medium text-gray-500 hover:bg-cream-50 hover:text-gold-600 transition-colors" href="/admin/order-stats">
+      <span class="material-symbols-outlined text-xl">leaderboard</span>
+      <span>Order Statistics</span>
+    </a>
+    <a class="flex items-center gap-3 px-6 py-3 text-sm font-medium text-gray-500 hover:bg-cream-50 hover:text-gold-600 transition-colors" href="/admin/links">
+      <span class="material-symbols-outlined text-xl">link</span>
+      <span>Follow / Contact Links</span>
+    </a>
+  </nav>
+  <div class="p-4 border-t border-cream-300 space-y-1">
+    <button id="changePasswordLink" class="w-full flex items-center gap-3 px-2 py-2 text-xs font-semibold text-gray-500 hover:text-gold-600 transition-colors">
+      <span class="material-symbols-outlined text-lg">lock_reset</span>
+      <span>Change Password</span>
+    </button>
+    <button onclick="logout()" class="w-full flex items-center gap-3 px-2 py-2 text-xs font-semibold text-[#525454] hover:bg-red-50 rounded-lg transition-colors">
+      <span class="material-symbols-outlined text-lg">logout</span>
+      <span>Logout</span>
+    </button>
+  </div>
+</aside>
+<!-- Main Application Wrapper -->
+<div class="flex-1 flex flex-col min-w-0">
+  <!-- Top Navigation Header -->
+  <header class="h-16 border-b border-cream-300 bg-white px-6 flex items-center justify-between z-10">
+    <div class="flex items-center gap-3">
+      <h2 class="text-sm font-bold uppercase tracking-widest text-gold-600">Customer Chats</h2>
+    </div>
+    <div class="flex items-center gap-4">
+      <button class="p-2 text-gray-400 hover:text-gold-600 transition-colors">
+        <span class="material-symbols-outlined">notifications</span>
+      </button>
+    </div>
+  </header>
+  <div class="flex-1 flex overflow-hidden">
+    <!-- Customer List Sidebar -->
+    <aside class="w-80 border-r border-cream-300 bg-white flex flex-col">
+      <!-- Search & Filter -->
+      <div class="p-4 border-b border-cream-300">
+        <div class="relative">
+          <span class="material-symbols-outlined absolute left-3 top-2.5 text-gray-400 text-sm">search</span>
+          <input id="searchInput" class="w-full pl-9 pr-4 py-2.5 bg-cream-100 border-none rounded-xl text-sm focus:ring-1 focus:ring-gold-500 placeholder-gray-400" placeholder="Search clients..." type="text"/>
+        </div>
+      </div>
+      <!-- Contacts List -->
+      <nav class="flex-1 overflow-y-auto chat-scrollbar" id="contacts">
+        <p class="text-gray-400 text-sm p-4">Loading contacts...</p>
+      </nav>
+    </aside>
+    <!-- Main Chat Window -->
+    <main class="flex-1 flex min-w-0 flex-col bg-cream-50 relative">
+      <!-- Chat Header -->
+      <div class="h-20 bg-white border-b border-cream-300 px-8 flex items-center justify-between shadow-sm z-10">
+        <div class="flex items-center gap-4">
+          <div id="chatAvatar" class="w-12 h-12 rounded-full border-2 border-gold-100 p-0.5 bg-gold-100 flex items-center justify-center text-gold-700 font-bold text-lg"></div>
+          <div>
+            <h2 id="chatTitle" class="text-lg font-bold text-gray-900 leading-tight">No customer selected</h2>
+            <div id="chatStatus" class="flex items-center gap-2"></div>
+          </div>
+        </div>
+      </div>
+      <!-- Messages Area -->
+      <div class="flex-1 overflow-y-auto p-8 flex flex-col gap-8 chat-scrollbar" id="messages">
+        <p class="text-gray-400">Messages will appear here.</p>
+      </div>
+      <!-- Composer Area -->
+      <div id="replyPreviewBar" class="hidden px-8 pb-2">
+        <div class="flex items-center justify-between rounded-xl border-l-4 border-gold-400 bg-gold-50 px-3 py-2">
+          <p id="replyPreviewText" class="text-xs font-semibold text-gold-700"></p>
+          <button type="button" id="clearReplyBtn" class="text-[11px] font-bold text-gray-500 hover:text-gold-700">Cancel</button>
+        </div>
+      </div>
+      <div id="attachmentPreviewBar" class="admin-attachment-preview hidden">
+        <img id="attachmentPreviewThumb" alt="Selected attachment preview">
+        <span id="attachmentPreviewName" class="admin-attachment-name"></span>
+        <button type="button" id="clearAttachmentBtn" class="admin-attachment-clear">Remove</button>
+      </div>
+      <form id="composer" class="admin-chat-composer" enctype="multipart/form-data">
+        <input id="messageInput" type="text" class="admin-chat-input" placeholder="Type reply to customer..." autocomplete="off"/>
+        <input type="file" id="fileInput" class="hidden" accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt"/>
+        <button type="button" id="attachBtn" title="Attach file/image/video" class="admin-chat-attach" aria-label="Attach file">
+          <span class="material-symbols-outlined">attach_file</span>
+        </button>
+        <button type="submit" class="admin-chat-send">Send</button>
+      </form>
+    </main>
+  </div>
+</div>
+<script src="/js/auth.js?v=20260414"></script>
+<script src="/js/admin-common.js"></script>
+<script>
+(function () {
+    const token = localStorage.getItem('token');
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    const myId = String(user.id || user._id || '');
+    const role = String(user.role || localStorage.getItem('role') || '').toLowerCase();
+    const contactsEl = document.getElementById('contacts');
+    const messagesEl = document.getElementById('messages');
+    const chatTitle = document.getElementById('chatTitle');
+    const chatAvatar = document.getElementById('chatAvatar');
+    const composer = document.getElementById('composer');
+    const messageInput = document.getElementById('messageInput');
+    const replyPreviewBar = document.getElementById('replyPreviewBar');
+    const replyPreviewText = document.getElementById('replyPreviewText');
+    const clearReplyBtn = document.getElementById('clearReplyBtn');
+    const attachmentPreviewBar = document.getElementById('attachmentPreviewBar');
+    const attachmentPreviewThumb = document.getElementById('attachmentPreviewThumb');
+    const attachmentPreviewName = document.getElementById('attachmentPreviewName');
+    const clearAttachmentBtn = document.getElementById('clearAttachmentBtn');
+    const searchInput = document.getElementById('searchInput');
+    let selectedId = '';
+    let contactList = [];
+    let pollId = null;
+    let selectedAttachmentFile = null;
+    const initialParams = new URLSearchParams(window.location.search);
+    const initialSelectedUserId = String(initialParams.get('userId') || '').trim();
+    const initialHighlightedMessageId = String(initialParams.get('messageId') || '').trim();
+
+    function resolveId(value) {
+      if (!value || typeof value !== 'object') {
+        return String(value || '').trim();
+      }
+      return String(value._id || value.id || value.user_id || value.userId || value.firebaseUid || '').trim();
+    }
+
+    function getDeviceFingerprint() {
+        let fp = localStorage.getItem('device_fingerprint');
+        if (!fp) {
+            fp = '';
+            if (window.crypto && window.crypto.getRandomValues) {
+                const arr = new Uint8Array(32);
+                window.crypto.getRandomValues(arr);
+                fp = Array.from(arr).map(b => b.toString(16).padStart(2, '0')).join('');
+            } else {
+                fp = Math.random().toString(36).slice(2) + Date.now();
+            }
+            localStorage.setItem('device_fingerprint', fp);
+        }
+        return fp;
+    }
+    const deviceFingerprint = getDeviceFingerprint();
+
+    function withAuthToken(url) {
+      const u = String(url || '').trim();
+      if (!u) return '';
+      if (!u.startsWith('/api/uploads/')) return u;
+      if (!token) return u;
+      if (/[?&](token|auth)=/.test(u)) return u;
+      const sep = u.includes('?') ? '&' : '?';
+      return u + sep + 'token=' + encodeURIComponent(token);
+    }
+
+      function escapeHtml(value) {
+        return String(value || '')
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;');
+      }
+
+      function getImgUrl(path) {
+        const raw = String(path || '').trim();
+        if (!raw) return '';
+        if (raw.startsWith('data:') || raw.startsWith('blob:')) return raw;
+        if (raw.startsWith('http://') || raw.startsWith('https://')) return raw;
+        if (raw.startsWith('/api/uploads/')) return withAuthToken(raw);
+        return raw.startsWith('/') ? raw : ('/' + raw);
+      }
+
+      function getMessageDescriptor(rawMessage) {
+        const value = String(rawMessage || '').trim();
+        if (!value) return { kind: 'message', text: 'message' };
+
+        if (/^\[Image\]\([^)]+\)\s*$/i.test(value)) return { kind: 'image', text: 'image' };
+        if (/^\[Video\]\([^)]+\)\s*$/i.test(value)) return { kind: 'video', text: 'video' };
+        if (/^\[File\]\([^)]+\)\s*$/i.test(value)) return { kind: 'file', text: 'file' };
+
+        try {
+          const parsed = JSON.parse(value);
+          if (parsed && (parsed.type === 'product_context' || parsed.postId || parsed.title || parsed.image)) {
+            return { kind: 'product', text: 'product' };
+          }
+        } catch (_) {
+          // ignore parse errors
+        }
+
+        const cleaned = value.replace(/\[(Image|Video|File)\]\([^)]+\)/gi, '').trim();
+        if (!cleaned) return { kind: 'message', text: 'message' };
+        return {
+          kind: 'text',
+          text: cleaned.length > 58 ? cleaned.slice(0, 58) + '...' : cleaned
+        };
+      }
+
+      function getReplyLabel(rawMessage) {
+        const descriptor = getMessageDescriptor(rawMessage);
+        if (descriptor.kind === 'text') {
+          return 'Replying to: ' + descriptor.text;
+        }
+        return 'Replying to ' + descriptor.text;
+      }
+
+      function resolveReplySourceMessage(msg, list) {
+        if (!msg || !msg.reply_to) return '';
+
+        if (msg.reply_to.message) return String(msg.reply_to.message || '');
+
+        const replyId = String(
+          (msg.reply_to && (msg.reply_to._id || msg.reply_to.id)) || msg.reply_to || ''
+        );
+        if (!replyId) return '';
+
+        const target = Array.isArray(list)
+          ? list.find((item) => resolveId(item) === replyId)
+          : null;
+        return target && target.message ? String(target.message) : '';
+      }
+
+      function clearReplyTarget() {
+        if (!messageInput) return;
+        messageInput.removeAttribute('data-reply-to');
+        messageInput.placeholder = 'Type reply to customer...';
+        if (replyPreviewText) replyPreviewText.textContent = '';
+        if (replyPreviewBar) replyPreviewBar.classList.add('hidden');
+      }
+
+      function setReplyTarget(replyId, rawMessage) {
+        if (!messageInput || !replyId) return;
+        messageInput.setAttribute('data-reply-to', String(replyId));
+        messageInput.placeholder = 'Write your reply...';
+        if (replyPreviewText) replyPreviewText.textContent = getReplyLabel(rawMessage);
+        if (replyPreviewBar) replyPreviewBar.classList.remove('hidden');
+      }
+
+      if (clearReplyBtn) {
+        clearReplyBtn.addEventListener('click', clearReplyTarget);
+      }
+
+      function clearAttachmentSelection() {
+        selectedAttachmentFile = null;
+        if (fileInput) fileInput.value = '';
+        if (attachmentPreviewThumb && attachmentPreviewThumb.dataset.objectUrl) {
+          try { URL.revokeObjectURL(attachmentPreviewThumb.dataset.objectUrl); } catch (_) {}
+          delete attachmentPreviewThumb.dataset.objectUrl;
+        }
+        if (attachmentPreviewName) attachmentPreviewName.textContent = '';
+        if (attachmentPreviewBar) attachmentPreviewBar.classList.add('hidden');
+      }
+
+      function updateAttachmentPreview(file) {
+        if (!file) {
+          clearAttachmentSelection();
+          return;
+        }
+        selectedAttachmentFile = file;
+        if (attachmentPreviewName) attachmentPreviewName.textContent = String(file.name || 'attachment');
+        if (attachmentPreviewThumb) {
+          if (attachmentPreviewThumb.dataset.objectUrl) {
+            try { URL.revokeObjectURL(attachmentPreviewThumb.dataset.objectUrl); } catch (_) {}
+          }
+          if (String(file.type || '').startsWith('image/')) {
+            const obj = URL.createObjectURL(file);
+            attachmentPreviewThumb.src = obj;
+            attachmentPreviewThumb.dataset.objectUrl = obj;
+            attachmentPreviewThumb.style.display = 'block';
+          } else {
+            attachmentPreviewThumb.style.display = 'none';
+            if (attachmentPreviewThumb.dataset.objectUrl) delete attachmentPreviewThumb.dataset.objectUrl;
+          }
+        }
+        if (attachmentPreviewBar) attachmentPreviewBar.classList.remove('hidden');
+      }
+
+      if (clearAttachmentBtn) {
+        clearAttachmentBtn.addEventListener('click', clearAttachmentSelection);
+      }
+
+        if (!token || role !== 'admin') {
+          window.location.href = '/auth/login';
+        return;
+    }
+
+    async function api(path, options) {
+        const response = await fetch(path, Object.assign({}, options || {}, {
+            headers: Object.assign({}, (options && options.headers) || {}, {
+                'x-auth-token': token,
+                'x-device-fingerprint': deviceFingerprint
+            })
+        }));
+      if (!response.ok) {
+        const raw = await response.text();
+        let message = raw || 'Request failed';
+        try {
+          const parsed = raw ? JSON.parse(raw) : null;
+          if (parsed && parsed.msg) message = parsed.msg;
+        } catch (_) {
+          // keep response text as-is
+        }
+        throw new Error(message);
+      }
+        return response.json();
+    }
+
+    function getContactDisplayName(contact) {
+      return String(
+        contact.fullName ||
+        contact.name ||
+        contact.username ||
+        contact.email ||
+        'Customer'
+      ).trim();
+    }
+
+    function renderContacts(filter = '') {
+      let filtered = contactList;
+      if (filter) {
+        const q = filter.trim().toLowerCase();
+        filtered = contactList.filter(function (c) {
+          const name = getContactDisplayName(c).toLowerCase();
+          const role = String(c.role || '').toLowerCase();
+          const status = String(c.status || '').toLowerCase();
+          return name.includes(q) || role.includes(q) || status.includes(q);
+        });
+      }
+        if (!filtered.length) {
+            contactsEl.innerHTML = '<p class="text-gray-400 text-sm p-4">No customers found.</p>';
+            return;
+        }
+        contactsEl.innerHTML = filtered.map(function (c) {
+            const id = resolveId(c);
+            const activeClass = id === selectedId ? 'sidebar-item-active' : '';
+          const displayName = getContactDisplayName(c);
+          const initials = displayName.slice(0, 2).toUpperCase();
+          const profileImage = getImgUrl(c.profileImage || '');
+          const details = [c.phone, c.email].filter(Boolean).join(' ┬╖ ');
+            return `<button class="w-full flex items-center gap-4 p-4 ${activeClass} group transition-all duration-200 text-left" data-id="${id}">
+                <div class="relative">
+              ${profileImage
+                ? `<img src="${escapeHtml(profileImage)}" alt="${escapeHtml(displayName)}" class="w-12 h-12 rounded-full border border-gold-200 object-cover">`
+                : `<div class="w-12 h-12 rounded-full bg-gold-100 border border-gold-200 flex items-center justify-center text-gold-700 font-bold text-sm">${initials}</div>`}
+                </div>
+                <div class="flex-1 min-w-0">
+                    <div class="flex justify-between items-baseline mb-0.5">
+              <h3 class="text-sm font-semibold text-gray-900 truncate">${displayName}</h3>
+                        <span class="text-[10px] text-gray-400 font-medium">${c.lastActive || ''}</span>
+                    </div>
+                    <p class="text-xs text-gold-600 font-medium truncate">${c.role || 'Customer'}</p>
+              <p class="text-xs text-gray-400 truncate">${escapeHtml(details || c.lastMessage || '')}</p>
+                </div>
+            </button>`;
+        }).join('');
+        contactsEl.querySelectorAll('button[data-id]').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                selectedId = String(btn.getAttribute('data-id') || '');
+                renderContacts(searchInput.value);
+                loadMessages();
+            });
+        });
+    }
+
+    function renderMessages(messages) {
+        const list = Array.isArray(messages) ? messages : [];
+        if (!list.length) {
+            messagesEl.innerHTML = '<p class="text-gray-400">No messages yet.</p>';
+            return;
+        }
+        let html = '';
+        html += list.map(function (m) {
+            let isProductContext = false;
+            let productInfo = null;
+            let messageContent = String(m && m.message || '');
+            try {
+                if (messageContent.startsWith('{') && messageContent.endsWith('}')) {
+                    productInfo = JSON.parse(messageContent);
+                if (productInfo && (productInfo.type === 'product_context' || productInfo.postId || productInfo.title || productInfo.image)) {
+                  isProductContext = true;
+                }
+                }
+            } catch {}
+            const sender = String((m.sender_id && (m.sender_id._id || m.sender_id.id)) || m.sender_id || '');
+            const mine = sender === myId;
+            const messageId = resolveId(m);
+            // Avatar (admin = 'A', user = 'U')
+            const avatar = mine ? 'A' : 'U';
+            // Product context card
+            if (isProductContext) {
+              return `<div class="flex ${mine ? 'flex-row-reverse self-end' : ''} items-start gap-4 max-w-[80%]" data-message-id="${messageId}">
+  <div class="w-8 h-8 rounded-full bg-black flex items-center justify-center text-gold-500 text-[10px] font-bold mt-1">${avatar}</div>
+  <div class="bg-white p-4 rounded-2xl shadow-sm border border-cream-200">
+    <img src="${productInfo.image || '/images/logo.png'}" alt="${productInfo.title || 'Product'}" class="w-full max-w-xs rounded mb-2"/>
+    <div class="font-bold text-base mb-1">${productInfo.title || ''}</div>
+    <div class="text-gold-700 font-semibold mb-1">${productInfo.price ? 'Price: ' + productInfo.price : ''}</div>
+    <div class="text-sm text-gray-600 mb-1">${productInfo.category ? 'Category: ' + productInfo.category : ''}</div>
+    <div class="text-sm text-[#745B18] mb-2">${productInfo.shipping ? 'Shipping: ' + productInfo.shipping : ''}</div>
+    <div class="text-sm text-gray-700 mb-2">${productInfo.description || ''}</div>
+    ${productInfo.postId ? `<a href="/user/post.html?id=${productInfo.postId}" target="_blank" class="text-gold-700 underline text-sm">View Product</a>` : ''}
+  </div>
+</div>`;
+            }
+            // Handle image/video/file messages
+            let contentHtml = '';
+            const imageMatch = messageContent.match(/\[Image\]\(([^)]+)\)/);
+            const videoMatch = messageContent.match(/\[Video\]\(([^)]+)\)/);
+            const fileMatch = messageContent.match(/\[File\]\(([^)]+)\)/);
+            if (imageMatch) {
+              const imageUrl = withAuthToken(imageMatch[1]);
+                contentHtml = `<img src="${imageUrl}" alt="Sent image" class="max-w-[200px] max-h-[200px] rounded mt-2">`;
+                messageContent = messageContent.replace(/\[Image\]\([^)]+\)/, '').trim();
+            } else if (videoMatch) {
+              const videoUrl = withAuthToken(videoMatch[1]);
+                contentHtml = `<video controls class="max-w-[220px] max-h-[180px] rounded mt-2"><source src="${videoUrl}"></video>`;
+                messageContent = messageContent.replace(/\[Video\]\([^)]+\)/, '').trim();
+            } else if (fileMatch) {
+              const fileUrl = withAuthToken(fileMatch[1]);
+                contentHtml = `<a href="${fileUrl}" target="_blank" rel="noopener" class="block mt-2 text-gold-700">Download file</a>`;
+                messageContent = messageContent.replace(/\[File\]\([^)]+\)/, '').trim();
+            }
+            const textContent = escapeHtml(messageContent);
+            // Reply preview
+            let replyHtml = '';
+            if (m.reply_to) {
+              const sourceMessage = resolveReplySourceMessage(m, list);
+              const replyLabel = sourceMessage ? getReplyLabel(sourceMessage) : 'Replying to message';
+              replyHtml = `<div class="border-l-2 border-gold-300 pl-2 mb-1 text-xs text-gold-700">${escapeHtml(replyLabel)}</div>`;
+            }
+            // Reply button
+            let replyBtn = messageId ? `<button class="reply-btn text-gold-700 ml-2 text-xs underline" data-reply-id="${messageId}">Γå⌐∩╕Å Reply</button>` : '';
+            return `<div class="flex ${mine ? 'flex-row-reverse self-end' : ''} items-start gap-4 max-w-[80%]" data-message-id="${messageId}">
+  <div class="w-8 h-8 rounded-full bg-black flex items-center justify-center text-gold-500 text-[10px] font-bold mt-1">${avatar}</div>
+  <div class="bg-white p-4 rounded-2xl shadow-sm border border-cream-200">
+    ${replyHtml}${textContent ? `<div>${textContent}</div>` : ''}${contentHtml}<div class="mt-2 flex items-center gap-2 text-xs text-gray-400">${replyBtn}</div>
+  </div>
+</div>`;
+        }).join('');
+        messagesEl.innerHTML = html;
+        // Bind reply buttons
+        messagesEl.querySelectorAll('.reply-btn').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                const replyId = btn.getAttribute('data-reply-id');
+            const msg = list.find(m => resolveId(m) === String(replyId));
+                if (msg && messageInput) {
+                    messageInput.focus();
+              setReplyTarget(replyId, msg.message || '');
+                }
+            });
+        });
+        messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
+
+    async function loadContacts() {
+        contactList = await api('/api/workflow/chat/contacts');
+      contactList = (Array.isArray(contactList) ? contactList : []).map(function (contact) {
+        const id = resolveId(contact);
+        return id ? Object.assign({}, contact, { _id: id, id: id }) : contact;
+      });
+        contactList = contactList.filter(function (c) {
+            return String(c.role || '').toLowerCase() !== 'admin';
+        });
+        if (!selectedId && initialSelectedUserId) {
+          const existing = contactList.find(function (contact) { return resolveId(contact) === initialSelectedUserId; });
+          if (existing) selectedId = initialSelectedUserId;
+        }
+        if (!selectedId && contactList.length) {
+        selectedId = resolveId(contactList[0]);
+        }
+        renderContacts(searchInput.value);
+    }
+
+    async function loadMessages() {
+        if (!selectedId) {
+          chatTitle.textContent = 'No customer selected';
+          chatAvatar.textContent = '';
+          messagesEl.innerHTML = '<p class="text-gray-400">Messages will appear here.</p>';
+          return;
+        }
+        const selected = contactList.find(function (c) { return resolveId(c) === selectedId; });
+        const selectedName = selected ? getContactDisplayName(selected) : 'Customer';
+        chatTitle.textContent = selectedName;
+        const profileImage = getImgUrl(selected?.profileImage || '');
+        if (profileImage) {
+          chatAvatar.innerHTML = `<img src="${escapeHtml(profileImage)}" alt="${escapeHtml(selectedName)}" class="w-full h-full rounded-full object-cover">`;
+        } else {
+          chatAvatar.textContent = selectedName.slice(0, 2).toUpperCase();
+        }
+        const ageText = selected?.age != null && selected?.age !== '' ? String(selected.age) : 'ΓÇö';
+        const sexText = selected?.sex ? String(selected.sex) : 'ΓÇö';
+        const meta = [selected?.email, selected?.phone].filter(Boolean).join(' ┬╖ ');
+        const chatStatus = document.getElementById('chatStatus');
+        if (chatStatus) {
+          chatStatus.innerHTML = `<span class="text-xs text-gray-500">${escapeHtml(meta || 'No contact info')}</span><span class="text-xs text-gray-400">Age: ${escapeHtml(ageText)} ┬╖ Sex: ${escapeHtml(sexText)}</span>`;
+        }
+        const messages = await api('/api/workflow/chat/messages?other_user_id=' + encodeURIComponent(selectedId));
+        renderMessages((Array.isArray(messages) ? messages : []).map(function (message) {
+            const messageId = resolveId(message);
+            return messageId ? Object.assign({}, message, { _id: messageId, id: messageId }) : message;
+        }));
+        if (initialHighlightedMessageId) {
+          window.setTimeout(function () {
+            const target = messagesEl.querySelector('[data-message-id="' + initialHighlightedMessageId + '"]');
+            if (!target) return;
+            target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            target.style.boxShadow = '0 0 0 3px rgba(212, 175, 55, 0.75), 0 0 16px rgba(115, 92, 0, 0.28)';
+            target.style.borderRadius = '18px';
+            window.setTimeout(function () {
+              target.style.boxShadow = '';
+            }, 2000);
+          }, 120);
+        }
+    }
+
+    async function sendMessage(text) {
+        if (!selectedId) return;
+        const message = String(text || '').trim();
+        if (!message) return;
+      const selected = contactList.find(function (c) { return resolveId(c) === selectedId; });
+      const receiverId = resolveId(selected) || String(selectedId || '').trim();
+      if (!receiverId) throw new Error('Customer ID is missing');
+        let replyTo = messageInput.getAttribute('data-reply-to');
+      const payload = { receiver_id: receiverId, message: message };
+        if (replyTo) payload.reply_to = replyTo;
+        await api('/api/workflow/chat/messages', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        messageInput.value = '';
+        clearReplyTarget();
+        await loadMessages();
+    }
+
+    // File/image/video selection logic (preview first, send on submit)
+    const fileInput = document.getElementById('fileInput');
+    const attachBtn = document.getElementById('attachBtn');
+    if (attachBtn && fileInput) {
+        attachBtn.addEventListener('click', function() {
+            fileInput.click();
+        });
+        fileInput.addEventListener('change', async function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            updateAttachmentPreview(file);
+        });
+    }
+
+    async function sendComposedMessage(text, attachmentFile) {
+      if (!selectedId) return;
+      const trimmed = String(text || '').trim();
+      const file = attachmentFile || null;
+      if (!trimmed && !file) return;
+
+      let finalMessage = trimmed;
+      if (file) {
+        const formData = new FormData();
+        formData.append('file', file);
+        const uploadRes = await fetch('/api/workflow/chat/upload', {
+          method: 'POST',
+          headers: {
+            'x-auth-token': token,
+            'x-device-fingerprint': deviceFingerprint
+          },
+          body: formData
+        });
+        if (!uploadRes.ok) {
+          const raw = await uploadRes.text();
+          let message = raw || 'Upload failed';
+          try {
+            const parsed = raw ? JSON.parse(raw) : null;
+            if (parsed && parsed.msg) message = parsed.msg;
+          } catch (_) {
+            // keep server response text
+          }
+          throw new Error(message);
+        }
+        const uploadData = await uploadRes.json();
+        let tag = '[File]';
+        if (file.type.startsWith('image/')) tag = '[Image]';
+        else if (file.type.startsWith('video/')) tag = '[Video]';
+        const tagged = tag + '(' + uploadData.url + ')';
+        finalMessage = finalMessage ? (finalMessage + '\n' + tagged) : tagged;
+      }
+
+      await sendMessage(finalMessage);
+      clearAttachmentSelection();
+    }
+
+    composer.addEventListener('submit', function (e) {
+        e.preventDefault();
+      sendComposedMessage(messageInput.value, selectedAttachmentFile).catch(function (err) {
+        const msg = err && err.message ? err.message : 'Failed to send. Please retry.';
+        messagesEl.innerHTML += '<p class="text-gray-400 mt-2">' + escapeHtml(msg) + '</p>';
+        });
+    });
+
+    if (searchInput) {
+        searchInput.addEventListener('input', function(e) {
+            renderContacts(searchInput.value);
+        });
+    }
+
+    (async function init() {
+        try {
+            await loadContacts();
+            await loadMessages();
+        pollId = setInterval(async function () {
+          try {
+            await loadContacts();
+            await loadMessages();
+          } catch (_) {}
+        }, 5000);
+        } catch (_) {
+            contactsEl.innerHTML = '<p class="text-gray-400 text-sm p-4">Unable to load contacts.</p>';
+        }
+    })();
+
+    window.addEventListener('beforeunload', function () {
+        if (pollId) clearInterval(pollId);
+    });
+})();
+</script>
+</body>
+</html>
+

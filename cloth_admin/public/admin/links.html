@@ -1,0 +1,821 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <script src="/js/admin-config.js"></script><script src="/js/admin-guard.js"></script>
+    <script>window.__yeshiWarnPatch=window.__yeshiWarnPatch||(()=>{const w=console.warn;console.warn=function(...a){if(String(a[0]||'').includes('cdn.tailwindcss.com should not be used in production'))return;return w.apply(console,a);};return true;})();</script>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Follow / Contact Links - Yeshi Admin</title>
+    <link rel="icon" type="image/png" href="/images/logo.png">
+    <meta name="theme-color" content="#1E4B35">
+    <style>
+        .nav-item-active { background: linear-gradient(90deg, #735c00 0%, #D4AF37 100%); color: #fff !important; font-weight: 700; }
+    </style>
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="/css/admin-dashboard.css">
+</head>
+<body class="admin-page">
+    <div class="admin-shell">
+        <aside class="admin-sidebar w-64 bg-white border-r border-cream-300 flex flex-col z-30">
+            <div class="h-16 flex items-center px-6 border-b border-cream-300">
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 bg-black rounded-lg flex items-center justify-center text-gold-500">
+                        <span class="material-symbols-outlined text-xl font-bold">account_balance</span>
+                    </div>
+                    <h1 class="text-sm font-bold tracking-tight text-gray-900">Administrative</h1>
+                </div>
+            </div>
+            <nav class="flex-1 py-6 space-y-1">
+                <a class="flex items-center gap-3 px-6 py-3 text-sm font-medium text-gray-500 hover:bg-cream-50 hover:text-gold-600 transition-colors" href="/admin/posts">
+                    <span class="material-symbols-outlined text-xl">article</span>
+                    <span>Manage Posts</span>
+                </a>
+                <a class="flex items-center gap-3 px-6 py-3 text-sm font-medium text-gray-500 hover:bg-cream-50 hover:text-gold-600 transition-colors" href="/admin/users">
+                    <span class="material-symbols-outlined text-xl">group</span>
+                    <span>User Management</span>
+                </a>
+                <a class="flex items-center gap-3 px-6 py-3 text-sm font-medium text-gray-500 hover:bg-cream-50 hover:text-gold-600 transition-colors" href="/admin/orders">
+                    <span class="material-symbols-outlined text-xl">shopping_bag</span>
+                    <span>All Customer Orders</span>
+                </a>
+                <a class="flex items-center gap-3 px-6 py-3 text-sm font-medium text-gray-500 hover:bg-cream-50 hover:text-gold-600 transition-colors" href="/admin/chat">
+                    <span class="material-symbols-outlined text-xl">chat_bubble</span>
+                    <span>Customer Chats</span>
+                </a>
+                <a class="flex items-center gap-3 px-6 py-3 text-sm font-medium text-gray-500 hover:bg-cream-50 hover:text-gold-600 transition-colors" href="/admin/order-stats">
+                    <span class="material-symbols-outlined text-xl">leaderboard</span>
+                    <span>Order Statistics</span>
+                </a>
+                <a class="flex items-center gap-3 px-6 py-3 text-sm font-bold nav-item-active" href="/admin/links">
+                    <span class="material-symbols-outlined text-xl">link</span>
+                    <span>Follow / Contact Links</span>
+                </a>
+            </nav>
+            <div class="p-4 border-t border-cream-300 space-y-1">
+                <button id="changePasswordLink" class="w-full flex items-center gap-3 px-2 py-2 text-xs font-semibold text-gray-500 hover:text-gold-600 transition-colors" type="button">
+                    <span class="material-symbols-outlined text-lg">lock_reset</span>
+                    <span>Change Password</span>
+                </button>
+                <button onclick="logout()" class="w-full flex items-center gap-3 px-2 py-2 text-xs font-semibold text-[#525454] hover:bg-red-50 rounded-lg transition-colors" type="button">
+                    <span class="material-symbols-outlined text-lg">logout</span>
+                    <span>Logout</span>
+                </button>
+            </div>
+        </aside>
+        <div class="admin-content">
+            <main class="admin-content-scroll">
+                <div class="dashboard-wrap">
+                <section id="site-links" class="panel" style="display: block;">
+                    <h3>Follow / Contact Links</h3>
+                    <p style="color: var(--light-text); margin-bottom: 12px;">Update social links shown on the website footer and contact areas.</p>
+                    <form id="socialLinksForm">
+                        <div class="form-group">
+                            <label for="socialTikTok">TikTok</label>
+                            <input type="text" id="socialTikTok" class="form-control" placeholder="https://www.tiktok.com/@...">
+                        </div>
+                        <div class="form-group">
+                            <label for="socialTelegram">Telegram</label>
+                            <input type="text" id="socialTelegram" class="form-control" placeholder="https://t.me/...">
+                        </div>
+            <div class="form-group">
+                <label for="socialFacebook">Facebook</label>
+                <input type="text" id="socialFacebook" class="form-control" placeholder="https://facebook.com/...">
+            </div>
+            <div class="form-group">
+                <label for="socialInstagram">Instagram</label>
+                <input type="text" id="socialInstagram" class="form-control" placeholder="https://instagram.com/...">
+            </div>
+            <div class="form-group">
+                <label for="socialWhatsApp">WhatsApp Link</label>
+                <input type="text" id="socialWhatsApp" class="form-control" placeholder="https://wa.me/2519...">
+            </div>
+            <div class="form-group">
+                <label for="socialPhone">Phone</label>
+                <input type="text" id="socialPhone" class="form-control" placeholder="+251...">
+            </div>
+            <button type="submit" class="btn">Save Links</button>
+        </form>
+            </section>
+
+            <section class="panel" style="margin-top: 18px;">
+                <h3>Global Delivery Settings</h3>
+                <p style="color: var(--light-text); margin-bottom: 12px;">Set default delivery behavior for all products. Product-level settings can override this.</p>
+                <form id="deliverySettingsForm">
+                    <div class="form-group">
+                        <label for="deliveryDefaultMode">Default delivery mode</label>
+                        <select id="deliveryDefaultMode" class="form-control">
+                            <option value="ethiopia_only">Ethiopia only</option>
+                            <option value="all_countries">Enable worldwide delivery</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="deliveryDefaultCountry">Default country</label>
+                        <input type="text" id="deliveryDefaultCountry" class="form-control" value="Ethiopia">
+                    </div>
+                    <div class="form-group">
+                        <label for="deliveryDefaultCountryCode">Default country code</label>
+                        <input type="text" id="deliveryDefaultCountryCode" class="form-control" value="+251" placeholder="+251">
+                    </div>
+                    <div class="form-group">
+                        <label style="display:flex; align-items:center; gap:8px;">
+                            <input type="checkbox" id="deliveryAllowAllCountryCodes" checked>
+                            Allow all country codes for international orders
+                        </label>
+                    </div>
+                    <button type="submit" class="btn">Save Delivery Settings</button>
+                </form>
+            </section>
+
+            <section class="panel" style="margin-top: 18px;">
+        <div style="margin-bottom: 12px;">
+            <h3 style="margin:0;">Website Text</h3>
+            <div class="dashboard-subtitle">Edit login promo text and footer headings shown across the site.</div>
+        </div>
+        <form id="siteContentForm">
+            <div class="form-group">
+                <label for="contentSiteTitle">Site title</label>
+                <input type="text" id="contentSiteTitle" class="form-control" placeholder="Yeshi">
+            </div>
+
+            <div class="form-group">
+                <label for="contentHeaderLogoFile">Header logo (top icon)</label>
+                <input type="file" id="contentHeaderLogoFile" class="form-control" accept="image/*">
+                <div style="height:8px;"></div>
+                <img id="headerLogoPreview" alt="Header logo preview" style="max-height:60px; display:none; border-radius: 10px;">
+                <input type="hidden" id="contentHeaderLogoUrl">
+                <div style="height:10px;"></div>
+                <button type="button" class="btn" id="uploadHeaderLogoBtn">Upload Header Logo</button>
+            </div>
+
+            <div class="form-group">
+                <label for="contentFaviconFile">Tab icon (favicon)</label>
+                <input type="file" id="contentFaviconFile" class="form-control" accept="image/*">
+                <div style="height:8px;"></div>
+                <img id="faviconPreview" alt="Favicon preview" style="max-height:32px; display:none; border-radius: 8px;">
+                <input type="hidden" id="contentFaviconUrl">
+                <div style="height:10px;"></div>
+                <button type="button" class="btn" id="uploadFaviconBtn">Upload Favicon</button>
+            </div>
+
+            <div class="form-group">
+                <label for="contentAuthBadge">Login badge</label>
+                <input type="text" id="contentAuthBadge" class="form-control" placeholder="Secure login ┬╖ Fast checkout">
+            </div>
+            <div class="form-group">
+                <label for="contentAuthTitle">Login title</label>
+                <input type="text" id="contentAuthTitle" class="form-control" placeholder="Welcome back">
+            </div>
+            <div class="form-group">
+                <label for="contentAuthSubtitle">Login subtitle</label>
+                <input type="text" id="contentAuthSubtitle" class="form-control" placeholder="Order modern Ethiopian cultural dresses...">
+            </div>
+
+            <div class="form-group">
+                <label for="contentAuthFeature1Title">Login feature 1 title</label>
+                <input type="text" id="contentAuthFeature1Title" class="form-control" placeholder="New cultural designs">
+                <div style="height:8px;"></div>
+                <label for="contentAuthFeature1Text">Login feature 1 text</label>
+                <input type="text" id="contentAuthFeature1Text" class="form-control" placeholder="for wedding, holiday, and daily wear.">
+            </div>
+            <div class="form-group">
+                <label for="contentAuthFeature2Title">Login feature 2 title</label>
+                <input type="text" id="contentAuthFeature2Title" class="form-control" placeholder="Custom sizing">
+                <div style="height:8px;"></div>
+                <label for="contentAuthFeature2Text">Login feature 2 text</label>
+                <input type="text" id="contentAuthFeature2Text" class="form-control" placeholder="(standard or measurements) for the perfect fit.">
+            </div>
+            <div class="form-group">
+                <label for="contentAuthFeature3Title">Login feature 3 title</label>
+                <input type="text" id="contentAuthFeature3Title" class="form-control" placeholder="Easy order">
+                <div style="height:8px;"></div>
+                <label for="contentAuthFeature3Text">Login feature 3 text</label>
+                <input type="text" id="contentAuthFeature3Text" class="form-control" placeholder="with delivery choice and payment screenshot upload.">
+            </div>
+
+            <div class="form-group">
+                <label for="contentFooterBrand">Footer brand</label>
+                <input type="text" id="contentFooterBrand" class="form-control" placeholder="Yeshi | ßï¿ßê║">
+            </div>
+            <div class="form-group">
+                <label for="contentFooterTagline">Footer tagline</label>
+                <input type="text" id="contentFooterTagline" class="form-control" placeholder="Bringing elegance and culture to your wardrobe.">
+            </div>
+            <div class="form-group">
+                <label for="contentFooterContactHeader">Footer contact heading</label>
+                <input type="text" id="contentFooterContactHeader" class="form-control" placeholder="Contact">
+            </div>
+            <div class="form-group">
+                <label for="contentFooterFollowHeader">Footer follow heading</label>
+                <input type="text" id="contentFooterFollowHeader" class="form-control" placeholder="Follow Us">
+            </div>
+            <div class="form-group">
+                <label for="contentFooterLocation">Footer location</label>
+                <input type="text" id="contentFooterLocation" class="form-control" placeholder="Gondar, Ethiopia">
+            </div>
+
+            <div class="form-group">
+                <label for="contentFooterWhatsAppText">Footer WhatsApp text</label>
+                <input type="text" id="contentFooterWhatsAppText" class="form-control" placeholder="WhatsApp">
+            </div>
+            <div class="form-group">
+                <label for="contentFooterPhoneText">Footer phone text</label>
+                <input type="text" id="contentFooterPhoneText" class="form-control" placeholder="Call: +251 933 797 981">
+            </div>
+            <div class="form-group">
+                <label for="contentFooterTelegramText">Footer Telegram text</label>
+                <input type="text" id="contentFooterTelegramText" class="form-control" placeholder="Telegram Group">
+            </div>
+
+            <button type="submit" class="btn">Save Website Text</button>
+        </form>
+            </section>
+
+    <section class="panel" style="margin-top: 18px;">
+        <div style="margin-bottom: 12px;">
+            <h3 style="margin:0;">Device Blocking</h3>
+            <div class="dashboard-subtitle">Block devices from using the admin API.</div>
+        </div>
+
+        <div class="form-group">
+            <label for="currentDeviceFingerprint">Current device fingerprint</label>
+            <input type="text" id="currentDeviceFingerprint" class="form-control" readonly>
+        </div>
+
+        <div class="form-group">
+            <label for="deviceFingerprintInput">Device fingerprint or hash to block/unblock</label>
+            <input type="text" id="deviceFingerprintInput" class="form-control" placeholder="Paste fingerprint (or 64-char hash)">
+        </div>
+
+        <div style="display:flex; gap: 10px; flex-wrap:wrap;">
+            <button type="button" class="btn" id="blockDeviceBtn">Block Device</button>
+            <button type="button" class="btn-secondary" id="unblockDeviceBtn">Unblock Device</button>
+            <button type="button" class="btn-secondary" id="refreshBlockedDevicesBtn">Refresh List</button>
+        </div>
+
+        <div style="height:12px;"></div>
+        <div id="blockedDevicesList" style="overflow:auto; border: 1px solid rgba(0,0,0,0.08); border-radius: 12px; padding: 12px;">
+            Loading blocked devices...
+        </div>
+    </section>
+
+    <section class="panel" style="margin-top: 18px;">
+        <div style="margin-bottom: 12px;">
+            <h3 style="margin:0;">Database Backup</h3>
+            <div class="dashboard-subtitle">Download the full database as a ZIP, then import the same ZIP to restore into a new database.</div>
+        </div>
+
+        <div style="display:flex; gap: 10px; flex-wrap:wrap; align-items:center;">
+            <button type="button" class="btn" id="downloadUploadsBackupBtn">Download Database Backup (ZIP)</button>
+        </div>
+
+        <div style="height: 14px;"></div>
+
+        <div class="form-group">
+            <label for="uploadsBackupFile">Import database backup (ZIP)</label>
+            <input type="file" id="uploadsBackupFile" class="form-control" accept=".zip,application/zip">
+            <div style="height:10px;"></div>
+            <button type="button" class="btn-secondary" id="importUploadsBackupBtn">Import Backup</button>
+        </div>
+
+        <div class="form-group" style="margin-top: 12px;">
+            <label for="autoBackupFrequency">Auto backup frequency</label>
+            <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+                <select id="autoBackupFrequency" class="form-control" style="max-width:220px;">
+                    <option value="off">Off</option>
+                    <option value="daily">Daily</option>
+                    <option value="weekly">Weekly</option>
+                </select>
+                <button type="button" class="btn-secondary" id="saveAutoBackupBtn">Save Auto Backup</button>
+                <button type="button" class="btn-secondary" id="refreshBackupHistoryBtn">Refresh History</button>
+            </div>
+        </div>
+
+        <div style="margin-top: 10px; border: 1px solid rgba(0,0,0,0.08); border-radius: 12px; padding: 10px;">
+            <strong style="color: var(--accent-color);">Backup History</strong>
+            <div id="backupHistoryList" style="margin-top: 8px; color: var(--light-text);">No backups yet.</div>
+        </div>
+
+        <div id="uploadsBackupStatus" style="color: var(--light-text);"></div>
+    </section>
+                </div>
+            </main>
+        </div>
+    </div>
+
+<script src="/js/auth.js?v=20260414"></script>
+<script src="/js/admin-common.js"></script>
+<script>
+    const { ensureAdmin, apiFetch, getImgUrl } = window.AdminCommon;
+    const getDeviceFingerprintFn = window.AdminCommon && window.AdminCommon.getDeviceFingerprint;
+
+    function setPreview(imgEl, url) {
+        if (!imgEl) return;
+        const v = String(url || '').trim();
+        if (!v) {
+            imgEl.style.display = 'none';
+            imgEl.removeAttribute('src');
+            return;
+        }
+
+        if (v.startsWith('blob:') || v.startsWith('data:')) {
+            imgEl.src = v;
+        } else {
+            imgEl.src = getImgUrl(v);
+        }
+        imgEl.style.display = 'inline-block';
+    }
+
+    async function uploadBrandingFile(file, purpose) {
+        const fd = new FormData();
+        fd.append('file', file);
+        fd.append('purpose', purpose);
+
+        const res = await apiFetch('/api/uploads', {
+            method: 'POST',
+            body: fd
+        });
+        const data = await res.json();
+        if (!res.ok) {
+            throw new Error(data?.msg || 'Upload failed');
+        }
+        return data?.url || '';
+    }
+
+    async function saveContentPatch(patch) {
+        const res = await apiFetch('/api/settings/content', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ content: patch })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data?.msg || 'Failed to update content');
+        return data?.content || null;
+    }
+
+    async function loadBlockedDevices() {
+        if (!ensureAdmin()) return;
+        const container = document.getElementById('blockedDevicesList');
+        if (!container) return;
+
+        try {
+            const res = await apiFetch('/api/admin/devices/blocked');
+            const data = await res.json();
+            if (!res.ok) throw new Error(data?.msg || 'Failed to load');
+            const list = Array.isArray(data?.blocked) ? data.blocked : [];
+            if (list.length === 0) {
+                container.textContent = 'No blocked devices.';
+                return;
+            }
+
+            container.innerHTML = list.map((d) => {
+                const hash = String(d.deviceHash || '');
+                const reason = String(d.reason || '');
+                return `
+                    <div style="display:flex; gap: 10px; align-items:center; justify-content:space-between; border-top: 1px solid rgba(0,0,0,0.06); padding: 10px 0;">
+                        <div style="min-width:0;">
+                            <div style="font-weight:800; word-break: break-all;">${hash}</div>
+                            ${reason ? `<div style="color:#444;">${reason.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>` : ''}
+                        </div>
+                        <button class="btn-secondary" type="button" onclick="window.__unblockDeviceHash('${hash}')">Unblock</button>
+                    </div>
+                `;
+            }).join('');
+        } catch (err) {
+            console.error(err);
+            container.textContent = 'Failed to load blocked devices.';
+        }
+    }
+
+    document.getElementById('changePasswordLink')?.addEventListener('click', (e) => {
+        e.preventDefault();
+        document.getElementById('changePasswordModal').style.display = 'flex';
+    });
+    document.getElementById('cancelChangePassword')?.addEventListener('click', () => {
+        document.getElementById('changePasswordModal').style.display = 'none';
+    });
+    document.getElementById('changePasswordModal')?.addEventListener('click', (e) => {
+        if (e.target && e.target.id === 'changePasswordModal') {
+            document.getElementById('changePasswordModal').style.display = 'none';
+        }
+    });
+    document.getElementById('changePasswordForm')?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const currentPassword = document.getElementById('currentPass').value;
+        const newPassword = document.getElementById('newPass').value;
+        try {
+            const res = await apiFetch('/api/auth/admin/change-password', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ currentPassword, newPassword })
+            });
+            const data = await res.json();
+            alert(data.msg || (res.ok ? 'Password updated' : 'Failed to update password'));
+            if (res.ok) {
+                document.getElementById('changePasswordModal').style.display = 'none';
+                e.target.reset();
+            }
+        } catch (err) {
+            console.error(err);
+            alert('Error changing password');
+        }
+    });
+
+    async function loadSocialLinksAdmin() {
+        if (!ensureAdmin()) return;
+        try {
+            const res = await apiFetch('/api/settings/social');
+            const data = await res.json();
+            if (!res.ok) throw new Error(data?.msg || 'Failed to load links');
+            const social = data?.social || {};
+            document.getElementById('socialTikTok').value = social.tiktok || '';
+            document.getElementById('socialTelegram').value = social.telegram || '';
+            document.getElementById('socialFacebook').value = social.facebook || '';
+            document.getElementById('socialInstagram').value = social.instagram || '';
+            document.getElementById('socialWhatsApp').value = social.whatsapp || '';
+            document.getElementById('socialPhone').value = social.phone || '';
+        } catch (err) {
+            console.error(err);
+        }
+    }
+
+    async function loadSiteContentAdmin() {
+        if (!ensureAdmin()) return;
+        try {
+            const res = await apiFetch('/api/settings/content');
+            const data = await res.json();
+            if (!res.ok) throw new Error(data?.msg || 'Failed to load content');
+            const content = data?.content || {};
+
+            document.getElementById('contentSiteTitle').value = content.siteTitle || '';
+            document.getElementById('contentHeaderLogoUrl').value = content.headerLogoUrl || '';
+            document.getElementById('contentFaviconUrl').value = content.faviconUrl || '';
+            setPreview(document.getElementById('headerLogoPreview'), content.headerLogoUrl);
+            setPreview(document.getElementById('faviconPreview'), content.faviconUrl);
+
+            document.getElementById('contentAuthBadge').value = content.authBadge || '';
+            document.getElementById('contentAuthTitle').value = content.authTitle || '';
+            document.getElementById('contentAuthSubtitle').value = content.authSubtitle || '';
+            document.getElementById('contentAuthFeature1Title').value = content.authFeature1Title || '';
+            document.getElementById('contentAuthFeature1Text').value = content.authFeature1Text || '';
+            document.getElementById('contentAuthFeature2Title').value = content.authFeature2Title || '';
+            document.getElementById('contentAuthFeature2Text').value = content.authFeature2Text || '';
+            document.getElementById('contentAuthFeature3Title').value = content.authFeature3Title || '';
+            document.getElementById('contentAuthFeature3Text').value = content.authFeature3Text || '';
+            document.getElementById('contentFooterBrand').value = content.footerBrand || '';
+            document.getElementById('contentFooterTagline').value = content.footerTagline || '';
+            document.getElementById('contentFooterContactHeader').value = content.footerContactHeader || '';
+            document.getElementById('contentFooterFollowHeader').value = content.footerFollowHeader || '';
+            document.getElementById('contentFooterLocation').value = content.footerLocation || '';
+            document.getElementById('contentFooterWhatsAppText').value = content.footerWhatsAppText || '';
+            document.getElementById('contentFooterPhoneText').value = content.footerPhoneText || '';
+            document.getElementById('contentFooterTelegramText').value = content.footerTelegramText || '';
+        } catch (err) {
+            console.error(err);
+        }
+    }
+
+    async function loadDeliverySettingsAdmin() {
+        if (!ensureAdmin()) return;
+        try {
+            const res = await apiFetch('/api/settings/delivery');
+            const data = await res.json();
+            if (!res.ok) throw new Error(data?.msg || 'Failed to load delivery settings');
+            const delivery = data?.delivery || {};
+            document.getElementById('deliveryDefaultMode').value = delivery.default_mode || 'ethiopia_only';
+            document.getElementById('deliveryDefaultCountry').value = delivery.default_country || 'Ethiopia';
+            document.getElementById('deliveryDefaultCountryCode').value = delivery.default_country_code || '+251';
+            document.getElementById('deliveryAllowAllCountryCodes').checked = delivery.allow_all_country_codes !== false;
+        } catch (err) {
+            console.error(err);
+        }
+    }
+
+    document.getElementById('contentHeaderLogoFile')?.addEventListener('change', (e) => {
+        const f = e.target.files && e.target.files[0];
+        if (!f) return;
+        setPreview(document.getElementById('headerLogoPreview'), URL.createObjectURL(f));
+    });
+
+    document.getElementById('contentFaviconFile')?.addEventListener('change', (e) => {
+        const f = e.target.files && e.target.files[0];
+        if (!f) return;
+        setPreview(document.getElementById('faviconPreview'), URL.createObjectURL(f));
+    });
+
+    document.getElementById('uploadHeaderLogoBtn')?.addEventListener('click', async () => {
+        if (!ensureAdmin()) return;
+        const file = document.getElementById('contentHeaderLogoFile')?.files?.[0] || null;
+        if (!file) return alert('Please select a header logo file first');
+
+        try {
+            const url = await uploadBrandingFile(file, 'branding_header_logo');
+            document.getElementById('contentHeaderLogoUrl').value = url;
+            setPreview(document.getElementById('headerLogoPreview'), url);
+            await saveContentPatch({ headerLogoUrl: url });
+            alert('Header logo updated');
+        } catch (err) {
+            console.error(err);
+            alert(err?.message || 'Failed to upload header logo');
+        }
+    });
+
+    document.getElementById('uploadFaviconBtn')?.addEventListener('click', async () => {
+        if (!ensureAdmin()) return;
+        const file = document.getElementById('contentFaviconFile')?.files?.[0] || null;
+        if (!file) return alert('Please select a favicon file first');
+
+        try {
+            const url = await uploadBrandingFile(file, 'branding_favicon');
+            document.getElementById('contentFaviconUrl').value = url;
+            setPreview(document.getElementById('faviconPreview'), url);
+            await saveContentPatch({ faviconUrl: url });
+            alert('Favicon updated');
+        } catch (err) {
+            console.error(err);
+            alert(err?.message || 'Failed to upload favicon');
+        }
+    });
+
+    document.getElementById('socialLinksForm')?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        if (!ensureAdmin()) return;
+
+        const social = {
+            tiktok: document.getElementById('socialTikTok').value,
+            telegram: document.getElementById('socialTelegram').value,
+            facebook: document.getElementById('socialFacebook').value,
+            instagram: document.getElementById('socialInstagram').value,
+            whatsapp: document.getElementById('socialWhatsApp').value,
+            phone: document.getElementById('socialPhone').value
+        };
+
+        try {
+            const res = await apiFetch('/api/settings/social', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ social })
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data?.msg || 'Failed to update links');
+            alert('Links updated');
+        } catch (err) {
+            console.error(err);
+            alert(err?.message || 'Error updating links');
+        }
+    });
+
+    document.getElementById('siteContentForm')?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        if (!ensureAdmin()) return;
+
+        const headerLogoUrl = String(document.getElementById('contentHeaderLogoUrl').value || '').trim();
+        const faviconUrl = String(document.getElementById('contentFaviconUrl').value || '').trim();
+
+        const content = {
+            siteTitle: document.getElementById('contentSiteTitle').value,
+            headerLogoUrl,
+            faviconUrl,
+            authBadge: document.getElementById('contentAuthBadge').value,
+            authTitle: document.getElementById('contentAuthTitle').value,
+            authSubtitle: document.getElementById('contentAuthSubtitle').value,
+            authFeature1Title: document.getElementById('contentAuthFeature1Title').value,
+            authFeature1Text: document.getElementById('contentAuthFeature1Text').value,
+            authFeature2Title: document.getElementById('contentAuthFeature2Title').value,
+            authFeature2Text: document.getElementById('contentAuthFeature2Text').value,
+            authFeature3Title: document.getElementById('contentAuthFeature3Title').value,
+            authFeature3Text: document.getElementById('contentAuthFeature3Text').value,
+            footerBrand: document.getElementById('contentFooterBrand').value,
+            footerTagline: document.getElementById('contentFooterTagline').value,
+            footerContactHeader: document.getElementById('contentFooterContactHeader').value,
+            footerFollowHeader: document.getElementById('contentFooterFollowHeader').value,
+            footerLocation: document.getElementById('contentFooterLocation').value,
+            footerWhatsAppText: document.getElementById('contentFooterWhatsAppText').value,
+            footerPhoneText: document.getElementById('contentFooterPhoneText').value,
+            footerTelegramText: document.getElementById('contentFooterTelegramText').value
+        };
+
+        try {
+            await saveContentPatch(content);
+            alert('Website text updated');
+        } catch (err) {
+            console.error(err);
+            alert(err?.message || 'Error updating content');
+        }
+    });
+
+    document.getElementById('deliverySettingsForm')?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        if (!ensureAdmin()) return;
+
+        const delivery = {
+            default_mode: document.getElementById('deliveryDefaultMode').value,
+            default_country: document.getElementById('deliveryDefaultCountry').value,
+            default_country_code: document.getElementById('deliveryDefaultCountryCode').value,
+            allow_all_country_codes: document.getElementById('deliveryAllowAllCountryCodes').checked
+        };
+
+        try {
+            const res = await apiFetch('/api/settings/delivery', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ delivery })
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data?.msg || 'Failed to update delivery settings');
+            alert('Delivery settings updated');
+        } catch (err) {
+            console.error(err);
+            alert(err?.message || 'Error updating delivery settings');
+        }
+    });
+
+    async function blockDevice(value) {
+        const raw = String(value || '').trim();
+        if (!raw) return alert('Please enter a device fingerprint or hash');
+        try {
+            const res = await apiFetch('/api/admin/devices/block', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ deviceHash: raw })
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data?.msg || 'Failed to block');
+            alert('Device blocked');
+            loadBlockedDevices();
+        } catch (err) {
+            console.error(err);
+            alert(err?.message || 'Error blocking device');
+        }
+    }
+
+    async function unblockDevice(value) {
+        const raw = String(value || '').trim();
+        if (!raw) return alert('Please enter a device fingerprint or hash');
+        try {
+            const res = await apiFetch('/api/admin/devices/unblock', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ deviceHash: raw })
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data?.msg || 'Failed to unblock');
+            alert('Device unblocked');
+            loadBlockedDevices();
+        } catch (err) {
+            console.error(err);
+            alert(err?.message || 'Error unblocking device');
+        }
+    }
+
+    window.__unblockDeviceHash = (hash) => unblockDevice(hash);
+
+    document.getElementById('blockDeviceBtn')?.addEventListener('click', () => {
+        blockDevice(document.getElementById('deviceFingerprintInput').value);
+    });
+
+    document.getElementById('unblockDeviceBtn')?.addEventListener('click', () => {
+        unblockDevice(document.getElementById('deviceFingerprintInput').value);
+    });
+
+    document.getElementById('refreshBlockedDevicesBtn')?.addEventListener('click', () => {
+        loadBlockedDevices();
+    });
+
+    function downloadBlob(blob, filename) {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        a.style.display = 'none';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 15000);
+    }
+
+    function setBackupStatus(msg) {
+        const el = document.getElementById('uploadsBackupStatus');
+        if (el) el.textContent = String(msg || '');
+    }
+
+    function renderBackupHistory(backups) {
+        const el = document.getElementById('backupHistoryList');
+        if (!el) return;
+        const list = Array.isArray(backups) ? backups : [];
+        if (list.length === 0) {
+            el.textContent = 'No backups yet.';
+            return;
+        }
+        el.innerHTML = list.map((b) => {
+            const name = String(b.fileName || 'backup.zip');
+            const sizeKb = Math.round(Number(b.sizeBytes || 0) / 1024);
+            const created = b.createdAt ? new Date(b.createdAt).toLocaleString() : 'ΓÇö';
+            return `<div style="padding:6px 0; border-top:1px solid rgba(0,0,0,0.06);">${name} ΓÇó ${sizeKb} KB ΓÇó ${created}</div>`;
+        }).join('');
+    }
+
+    async function loadBackupHistory() {
+        if (!ensureAdmin()) return;
+        try {
+            const res = await apiFetch('/api/backup/history');
+            const data = await res.json();
+            if (!res.ok) throw new Error(data?.msg || 'Failed to load backup history');
+            const freq = String(data?.autoBackup?.frequency || 'off');
+            const freqEl = document.getElementById('autoBackupFrequency');
+            if (freqEl) freqEl.value = ['off', 'daily', 'weekly'].includes(freq) ? freq : 'off';
+            renderBackupHistory(data?.backups || []);
+        } catch (err) {
+            console.error(err);
+            renderBackupHistory([]);
+        }
+    }
+
+    document.getElementById('downloadUploadsBackupBtn')?.addEventListener('click', async () => {
+        if (!ensureAdmin()) return;
+        setBackupStatus('Preparing backup...');
+        try {
+            const res = await apiFetch('/api/backup/export');
+            if (!res.ok) {
+                const data = await res.json().catch(() => null);
+                throw new Error(data?.msg || 'Failed to export database backup');
+            }
+
+            const cd = res.headers.get('content-disposition') || '';
+            const match = cd.match(/filename\s*=\s*"?([^";]+)"?/i);
+            const filename = match ? match[1] : 'database-backup.zip';
+            const blob = await res.blob();
+            downloadBlob(blob, filename);
+            setBackupStatus('Backup downloaded.');
+        } catch (err) {
+            console.error(err);
+            setBackupStatus('');
+            alert(err?.message || 'Failed to download backup');
+        }
+    });
+
+    document.getElementById('importUploadsBackupBtn')?.addEventListener('click', async () => {
+        if (!ensureAdmin()) return;
+        const file = document.getElementById('uploadsBackupFile')?.files?.[0] || null;
+        if (!file) return alert('Please select a ZIP backup file');
+
+        setBackupStatus('Importing backup...');
+        try {
+            const fd = new FormData();
+            fd.append('backup', file);
+
+            const res = await apiFetch('/api/backup/import', {
+                method: 'POST',
+                body: fd
+            });
+
+            const data = await res.json().catch(() => null);
+            if (!res.ok) {
+                throw new Error(data?.msg || 'Failed to import backup');
+            }
+
+            setBackupStatus('Import complete.');
+            alert('Database backup imported successfully');
+        } catch (err) {
+            console.error(err);
+            setBackupStatus('');
+            alert(err?.message || 'Failed to import backup');
+        }
+    });
+
+    document.getElementById('saveAutoBackupBtn')?.addEventListener('click', async () => {
+        if (!ensureAdmin()) return;
+        const frequency = String(document.getElementById('autoBackupFrequency')?.value || 'off');
+        try {
+            const res = await apiFetch('/api/backup/auto-config', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ frequency })
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data?.msg || 'Failed to save auto backup config');
+            setBackupStatus(`Auto backup set to ${data?.autoBackup?.frequency || 'off'}.`);
+            loadBackupHistory();
+        } catch (err) {
+            console.error(err);
+            alert(err?.message || 'Failed to save auto backup config');
+        }
+    });
+
+    document.getElementById('refreshBackupHistoryBtn')?.addEventListener('click', () => {
+        loadBackupHistory();
+    });
+
+    document.addEventListener('DOMContentLoaded', () => {
+        document.getElementById('currentDeviceFingerprint').value = (getDeviceFingerprintFn ? getDeviceFingerprintFn() : '') || '';
+        loadSocialLinksAdmin();
+        loadSiteContentAdmin();
+        loadDeliverySettingsAdmin();
+        loadBlockedDevices();
+        loadBackupHistory();
+    });
+</script>
+</body>
+</html>
+
