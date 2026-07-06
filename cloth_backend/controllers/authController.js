@@ -487,6 +487,33 @@ exports.register = async (req, res) => {
 
         await user.save();
 
+        // Notify admins of new customer registration
+        try {
+            const Notification = require('../models/Notification');
+            const admins = await User.find({ role: 'admin', status: { $ne: 'banned' }, isBanned: { $ne: true } })
+                .select('_id')
+                .lean();
+            if (Array.isArray(admins) && admins.length > 0) {
+                await Notification.insertMany(
+                    admins.map((admin) => ({
+                        user_id: admin._id,
+                        type: 'system',
+                        reference_id: String(user._id || ''),
+                        title: 'New customer registration',
+                        body: `${user.fullName || 'A new user'} signed up. Email: ${user.email}`,
+                        destination: {
+                            path: '/admin/customers',
+                            query: { highlight: String(user._id || '') }
+                        },
+                        is_read: false,
+                        timestamp: new Date()
+                    }))
+                );
+            }
+        } catch (notifyErr) {
+            console.error('New customer notification failed:', notifyErr.message || notifyErr);
+        }
+
         issueJwt(res, user);
     } catch (err) {
         console.error(err.message);
@@ -593,9 +620,11 @@ exports.firebaseSession = async (req, res) => {
             return res.status(403).json({ msg: 'User is inactive' });
         }
 
+        let isNewUser = false;
         let user = await findUserForFirebaseSession(decoded.uid, normalizedEmail);
 
         if (!user) {
+            isNewUser = true;
             const displayName = String(userRecord.displayName || '').trim();
             const nameParts = splitFullNameParts(displayName);
             const createdAt = parseMaybeDate(userRecord?.metadata?.creationTime) || new Date();
@@ -625,6 +654,34 @@ exports.firebaseSession = async (req, res) => {
         applyFirebaseProfileToUser(user, userRecord, providerIds);
         applyReservedRoleRules(user, normalizedEmail);
         await user.save();
+
+        if (isNewUser && user.role === 'customer') {
+            try {
+                const Notification = require('../models/Notification');
+                const admins = await User.find({ role: 'admin', status: { $ne: 'banned' }, isBanned: { $ne: true } })
+                    .select('_id')
+                    .lean();
+                if (Array.isArray(admins) && admins.length > 0) {
+                    await Notification.insertMany(
+                        admins.map((admin) => ({
+                            user_id: admin._id,
+                            type: 'system',
+                            reference_id: String(user._id || ''),
+                            title: 'New customer registration',
+                            body: `${user.fullName || 'A new user'} signed up via Google. Email: ${user.email}`,
+                            destination: {
+                                path: '/admin/customers',
+                                query: { highlight: String(user._id || '') }
+                            },
+                            is_read: false,
+                            timestamp: new Date()
+                        }))
+                    );
+                }
+            } catch (notifyErr) {
+                console.error('New customer notification failed:', notifyErr.message || notifyErr);
+            }
+        }
 
         return issueJwt(res, user);
     } catch (err) {

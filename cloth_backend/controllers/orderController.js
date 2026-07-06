@@ -149,6 +149,14 @@ async function notifyAdminsAboutOrder(order) {
                 timestamp: new Date()
             }))
         );
+
+        // Send SMS only for important events to reduce SMS costs
+        try {
+            const { SmsEvents } = require('../services/smsService');
+            await SmsEvents.newOrder(order);
+        } catch (smsErr) {
+            console.error('SMS notification failed:', smsErr.message || smsErr);
+        }
     } catch (err) {
         // Do not block order creation if notification insertion fails.
         console.error('notifyAdminsAboutOrder error:', err.message || err);
@@ -202,6 +210,14 @@ async function notifyAdminsAboutPaymentProof(order) {
                 timestamp: new Date()
             }))
         );
+
+        // Send SMS notification
+        try {
+            const { SmsEvents } = require('../services/smsService');
+            await SmsEvents.paymentSubmitted(order);
+        } catch (smsErr) {
+            console.error('SMS notification failed:', smsErr.message || smsErr);
+        }
     } catch (err) {
         console.error('notifyAdminsAboutPaymentProof error:', err.message || err);
     }
@@ -1071,6 +1087,18 @@ exports.updateOrderPayment = async (req, res) => {
             `Your payment status is now ${order.payment_status}.`
         );
 
+        // Send SMS notifications
+        try {
+            const { SmsEvents } = require('../services/smsService');
+            if (order.payment_status === 'Confirmed') {
+                await SmsEvents.paymentApproved(order);
+            } else {
+                await SmsEvents.paymentRejected(order);
+            }
+        } catch (smsErr) {
+            console.error('SMS notification failed:', smsErr.message || smsErr);
+        }
+
         return res.json({ msg: 'Payment status updated', order });
     } catch (err) {
         console.error('updateOrderPayment error:', err?.message || err);
@@ -1113,6 +1141,16 @@ exports.updateOrderStatusStep = async (req, res) => {
             'Order status updated',
             `Your order status is now ${order.order_status}.`
         );
+
+        // Send SMS notifications
+        try {
+            if (nextStatus === 'delivery_started') {
+                const { SmsEvents } = require('../services/smsService');
+                await SmsEvents.orderShipped(order);
+            }
+        } catch (smsErr) {
+            console.error('SMS notification failed:', smsErr.message || smsErr);
+        }
 
         return res.json({ msg: 'Order status updated', order });
     } catch (err) {
@@ -1313,6 +1351,9 @@ exports.updateOrder = async (req, res) => {
             return res.status(404).json({ msg: 'Order not found' });
         }
 
+        const prevPaymentStatus = String(order.payment_status || '').toLowerCase();
+        const prevOrderStatus = String(order.order_status || '').toLowerCase();
+
         // Log incoming request body for debugging
         console.log(`[updateOrder] Incoming body:`, JSON.stringify(req.body));
 
@@ -1387,6 +1428,30 @@ exports.updateOrder = async (req, res) => {
         order.updated_at = Date.now();
 
         await order.save();
+
+        // Send SMS notifications if status changed
+        try {
+            const currentPaymentStatus = String(order.payment_status || '').toLowerCase();
+            const currentOrderStatus = String(order.order_status || '').toLowerCase();
+
+            if (currentPaymentStatus !== prevPaymentStatus) {
+                const { SmsEvents } = require('../services/smsService');
+                if (currentPaymentStatus === 'confirmed') {
+                    await SmsEvents.paymentApproved(order);
+                } else if (['rejected', 'failed'].includes(currentPaymentStatus)) {
+                    await SmsEvents.paymentRejected(order);
+                }
+            }
+
+            if (currentOrderStatus !== prevOrderStatus) {
+                const { SmsEvents } = require('../services/smsService');
+                if (currentOrderStatus === 'shipped' || order.sewing_status === 'shipped' || order.orderStatus === 'delivery_started') {
+                    await SmsEvents.orderShipped(order);
+                }
+            }
+        } catch (smsErr) {
+            console.error('SMS notification failed:', smsErr.message || smsErr);
+        }
 
         if (req.body.price_update) {
             const clothPrice = Number(order?.cloth_details?.post_price_etb);

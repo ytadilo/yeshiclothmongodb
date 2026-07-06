@@ -345,7 +345,7 @@ exports.chapaWebhook = async (req, res) => {
 
                 // Update associated order if exists
                 if (payment.order_id) {
-                    await Order.findByIdAndUpdate(
+                    const orderDoc = await Order.findByIdAndUpdate(
                         payment.order_id,
                         {
                             payment_info: {
@@ -363,6 +363,15 @@ exports.chapaWebhook = async (req, res) => {
                         order_id: payment.order_id,
                         tx_ref: tx_ref
                     });
+
+                    if (orderDoc) {
+                        try {
+                            const { SmsEvents } = require('../services/smsService');
+                            await SmsEvents.paymentApproved(orderDoc);
+                        } catch (smsErr) {
+                            logger.error('SMS notification failed on webhook', { error: smsErr.message });
+                        }
+                    }
                 }
             } else {
                 // Verification failed
