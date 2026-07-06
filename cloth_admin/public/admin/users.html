@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -28,27 +28,27 @@
                 </div>
             </div>
             <nav class="flex-1 py-6 space-y-1">
-                <a class="flex items-center gap-3 px-6 py-3 text-sm font-medium text-gray-500 hover:bg-cream-50 hover:text-gold-600 transition-colors" href="/admin/posts">
+                <a class="flex items-center gap-3 px-6 py-3 text-sm font-medium text-gray-500 hover:bg-cream-50 hover:text-gold-600 transition-colors" href="/admin/posts.html">
                     <span class="material-symbols-outlined text-xl">article</span>
                     <span>Manage Posts</span>
                 </a>
-                <a class="flex items-center gap-3 px-6 py-3 text-sm font-bold nav-item-active" href="/admin/users">
+                <a class="flex items-center gap-3 px-6 py-3 text-sm font-bold nav-item-active" href="/admin/users.html">
                     <span class="material-symbols-outlined text-xl">group</span>
                     <span>User Management</span>
                 </a>
-                <a class="flex items-center gap-3 px-6 py-3 text-sm font-medium text-gray-500 hover:bg-cream-50 hover:text-gold-600 transition-colors" href="/admin/orders">
+                <a class="flex items-center gap-3 px-6 py-3 text-sm font-medium text-gray-500 hover:bg-cream-50 hover:text-gold-600 transition-colors" href="/admin/orders.html">
                     <span class="material-symbols-outlined text-xl">shopping_bag</span>
                     <span>All Customer Orders</span>
                 </a>
-                <a class="flex items-center gap-3 px-6 py-3 text-sm font-medium text-gray-500 hover:bg-cream-50 hover:text-gold-600 transition-colors" href="/admin/chat">
+                <a class="flex items-center gap-3 px-6 py-3 text-sm font-medium text-gray-500 hover:bg-cream-50 hover:text-gold-600 transition-colors" href="/admin/chat.html">
                     <span class="material-symbols-outlined text-xl">chat_bubble</span>
                     <span>Customer Chats</span>
                 </a>
-                <a class="flex items-center gap-3 px-6 py-3 text-sm font-medium text-gray-500 hover:bg-cream-50 hover:text-gold-600 transition-colors" href="/admin/order-stats">
+                <a class="flex items-center gap-3 px-6 py-3 text-sm font-medium text-gray-500 hover:bg-cream-50 hover:text-gold-600 transition-colors" href="/admin/order-stats.html">
                     <span class="material-symbols-outlined text-xl">leaderboard</span>
                     <span>Order Statistics</span>
                 </a>
-                <a class="flex items-center gap-3 px-6 py-3 text-sm font-medium text-gray-500 hover:bg-cream-50 hover:text-gold-600 transition-colors" href="/admin/links">
+                <a class="flex items-center gap-3 px-6 py-3 text-sm font-medium text-gray-500 hover:bg-cream-50 hover:text-gold-600 transition-colors" href="/admin/links.html">
                     <span class="material-symbols-outlined text-xl">link</span>
                     <span>Follow / Contact Links</span>
                 </a>
@@ -242,8 +242,8 @@
                                     : `<div style="width:42px; height:42px; border-radius:999px; background:#f4f3f3; color:#745B18; display:flex; align-items:center; justify-content:center; font-weight:800; border:1px solid rgba(0,0,0,0.08);">${escapeHtml(String(u.fullName || 'U').slice(0,2).toUpperCase())}</div>`}
                                 <div style="min-width:0;">
                                     <div style="font-weight: 800; color: var(--accent-color);">${escapeHtml(u.fullName || 'User')}</div>
-                                    <div style="color:#666; font-size:12px;">Father: ${escapeHtml(u.fatherName || 'ΓÇö')}</div>
-                                    <div style="color:#666; font-size:12px;">Age: ${escapeHtml(String(u.age ?? 'ΓÇö'))} ┬╖ Sex: ${escapeHtml(String(u.sex || 'ΓÇö'))}</div>
+                                    <div style="color:#666; font-size:12px;">Father: ${escapeHtml(u.fatherName || 'G��')}</div>
+                                    <div style="color:#666; font-size:12px;">Age: ${escapeHtml(String(u.age ?? 'G��'))} -+ Sex: ${escapeHtml(String(u.sex || 'G��'))}</div>
                                 </div>
                             </div>
                         </td>
@@ -290,7 +290,7 @@
             listEl.textContent = 'Loading devices...';
             const user = (__allUsers || []).find((u) => resolveUserId(u) === String(userId));
             if (subtitleEl) {
-                subtitleEl.textContent = user ? `${user.fullName || 'User'} ┬╖ ${user.email || ''}` : '';
+                subtitleEl.textContent = user ? `${user.fullName || 'User'} -+ ${user.email || ''}` : '';
             }
 
             try {
@@ -383,10 +383,10 @@
                                     <div style="font-weight:800; color: var(--accent-color);">${userName}</div>
                                     <div class="order-card__status" style="background: rgba(0,0,0,0.06); color: ${badgeColor};">${badgeText}</div>
                                 </div>
-                                <div style="color:#444; font-size: 12px; margin-bottom: 4px;">${userEmail}${userPhone ? ` ┬╖ ${userPhone}` : ''}${userRole ? ` ┬╖ ${userRole}` : ''}${userStatus ? ` ┬╖ ${userStatus}` : ''}</div>
+                                <div style="color:#444; font-size: 12px; margin-bottom: 4px;">${userEmail}${userPhone ? ` -+ ${userPhone}` : ''}${userRole ? ` -+ ${userRole}` : ''}${userStatus ? ` -+ ${userStatus}` : ''}</div>
                                 <div style="font-weight:800; word-break: break-all; margin-bottom: 4px;">${hash}</div>
                                 ${ua ? `<div style="color:#666; font-size: 12px; word-break: break-word; margin-bottom: 4px;">${ua}</div>` : ''}
-                                <div style="color:#666; font-size: 12px;">${firstSeen ? `First seen: ${escapeHtml(firstSeen)}` : ''}${firstSeen && lastSeen ? ' ┬╖ ' : ''}${lastSeen ? `Last seen: ${escapeHtml(lastSeen)}` : ''}</div>
+                                <div style="color:#666; font-size: 12px;">${firstSeen ? `First seen: ${escapeHtml(firstSeen)}` : ''}${firstSeen && lastSeen ? ' -+ ' : ''}${lastSeen ? `Last seen: ${escapeHtml(lastSeen)}` : ''}</div>
                             </div>
                             <div style="display:flex; gap: 8px; align-items:center; flex-wrap:wrap; justify-content:flex-end;">
                                 ${blockedDevice

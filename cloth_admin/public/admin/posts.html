@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -43,27 +43,27 @@
                 </div>
             </div>
             <nav class="flex-1 py-6 space-y-1">
-                <a class="flex items-center gap-3 px-6 py-3 text-sm font-bold nav-item-active" href="/admin/posts">
+                <a class="flex items-center gap-3 px-6 py-3 text-sm font-bold nav-item-active" href="/admin/posts.html">
                     <span class="material-symbols-outlined text-xl">article</span>
                     <span>Manage Posts</span>
                 </a>
-                <a class="flex items-center gap-3 px-6 py-3 text-sm font-medium text-gray-500 hover:bg-cream-50 hover:text-gold-600 transition-colors" href="/admin/users">
+                <a class="flex items-center gap-3 px-6 py-3 text-sm font-medium text-gray-500 hover:bg-cream-50 hover:text-gold-600 transition-colors" href="/admin/users.html">
                     <span class="material-symbols-outlined text-xl">group</span>
                     <span>User Management</span>
                 </a>
-                <a class="flex items-center gap-3 px-6 py-3 text-sm font-medium text-gray-500 hover:bg-cream-50 hover:text-gold-600 transition-colors" href="/admin/orders">
+                <a class="flex items-center gap-3 px-6 py-3 text-sm font-medium text-gray-500 hover:bg-cream-50 hover:text-gold-600 transition-colors" href="/admin/orders.html">
                     <span class="material-symbols-outlined text-xl">shopping_bag</span>
                     <span>All Customer Orders</span>
                 </a>
-                <a class="flex items-center gap-3 px-6 py-3 text-sm font-medium text-gray-500 hover:bg-cream-50 hover:text-gold-600 transition-colors" href="/admin/chat">
+                <a class="flex items-center gap-3 px-6 py-3 text-sm font-medium text-gray-500 hover:bg-cream-50 hover:text-gold-600 transition-colors" href="/admin/chat.html">
                     <span class="material-symbols-outlined text-xl">chat_bubble</span>
                     <span>Customer Chats</span>
                 </a>
-                <a class="flex items-center gap-3 px-6 py-3 text-sm font-medium text-gray-500 hover:bg-cream-50 hover:text-gold-600 transition-colors" href="/admin/order-stats">
+                <a class="flex items-center gap-3 px-6 py-3 text-sm font-medium text-gray-500 hover:bg-cream-50 hover:text-gold-600 transition-colors" href="/admin/order-stats.html">
                     <span class="material-symbols-outlined text-xl">leaderboard</span>
                     <span>Order Statistics</span>
                 </a>
-                <a class="flex items-center gap-3 px-6 py-3 text-sm font-medium text-gray-500 hover:bg-cream-50 hover:text-gold-600 transition-colors" href="/admin/links">
+                <a class="flex items-center gap-3 px-6 py-3 text-sm font-medium text-gray-500 hover:bg-cream-50 hover:text-gold-600 transition-colors" href="/admin/links.html">
                     <span class="material-symbols-outlined text-xl">link</span>
                     <span>Follow / Contact Links</span>
                 </a>
@@ -422,7 +422,7 @@
 
         function formatPostCategoryLabel(post) {
             const categories = getCategoryList(post);
-            return categories.length ? categories.join(', ') : 'ΓÇö';
+            return categories.length ? categories.join(', ') : 'G��';
         }
 
         function getCheckedValues(selector) {
@@ -542,7 +542,7 @@
                                     <div class="order-card__status">${escapeHtml(formatPostCategoryLabel(post))}</div>
                                 </div>
                             </div>
-                            <p style="color: var(--light-text); font-size: 0.9rem;">${escapeHtml((post.description || '').slice(0, 120))}${post.description && post.description.length > 120 ? 'ΓÇª' : ''}</p>
+                            <p style="color: var(--light-text); font-size: 0.9rem;">${escapeHtml((post.description || '').slice(0, 120))}${post.description && post.description.length > 120 ? 'GǪ' : ''}</p>
                             <p style="margin-top: 8px; color: var(--accent-color); font-weight: 700;">
                                 ${post.oldPriceETB ? `<span style="text-decoration: line-through; color:#888; margin-right:8px;">${escapeHtml(Number(post.oldPriceETB).toLocaleString())} ETB</span>` : ''}
                                 <span>${post.priceETB ? `${escapeHtml(Number(post.priceETB).toLocaleString())} ETB` : 'No price'}</span>
@@ -561,7 +561,7 @@
                                 ${post.unlimited_stock ? 'Stock: Unlimited' : `Stock: ${escapeHtml(String(Number(post.stock_quantity || 0)))} left`}
                             </p>
                             <p style="margin-top: 4px; color: var(--light-text); font-size: 0.9rem;">
-                                Ordered: ${escapeHtml(String(Number(post.orderCount || 0)))} ┬╖ Visibility: ${post.orderCountVisible === false ? 'Hidden' : 'Visible'}
+                                Ordered: ${escapeHtml(String(Number(post.orderCount || 0)))} -+ Visibility: ${post.orderCountVisible === false ? 'Hidden' : 'Visible'}
                             </p>
                             <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top: 10px;">
                                 <button class="btn" type="button" onclick="openEditPost('${escapeHtml(postId)}')">Edit</button>

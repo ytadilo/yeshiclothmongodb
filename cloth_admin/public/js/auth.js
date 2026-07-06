@@ -1,4 +1,4 @@
-﻿(() => {
+(() => {
 if (window.__yeshiAuthRuntimeInitialized) {
     return;
 }
@@ -340,7 +340,7 @@ function getCurrentStoredRole() {
 function redirectAfterAuth(user) {
     const role = String(user && user.role || getCurrentStoredRole() || '').trim();
     if (role === 'admin') {
-        window.location.replace('/admin/dashboard');
+        window.location.replace('/admin/dashboard.html');
         return;
     }
     window.location.replace(getSafeNextDestination());

@@ -1,4 +1,4 @@
-﻿(function () {
+(function () {
     function safeParseJson(value) {
         try {
             return value ? JSON.parse(value) : null;
@@ -391,27 +391,27 @@
             const combined = `${type} ${title} ${body}`;
 
             if (combined.includes('message') || combined.includes('chat')) {
-                return '/admin/chat';
+                return '/admin/chat.html';
             }
 
             if (combined.includes('order') || combined.includes('payment') || combined.includes('delivery') || combined.includes('shipped')) {
                 const suffix = reference ? `?highlight=${encodeURIComponent(reference)}` : '';
-                return '/admin/orders' + suffix;
+                return '/admin/orders.html' + suffix;
             }
 
             if (combined.includes('post') || combined.includes('comment')) {
-                return '/admin/posts';
+                return '/admin/posts.html';
             }
 
             if (combined.includes('user') || combined.includes('account') || combined.includes('approval') || combined.includes('job')) {
-                return '/admin/users';
+                return '/admin/users.html';
             }
 
             if (combined.includes('stat')) {
-                return '/admin/order-stats';
+                return '/admin/order-stats.html';
             }
 
-            return '/admin/orders';
+            return '/admin/orders.html';
         }
 
         function formatNotificationBody(rawBody) {

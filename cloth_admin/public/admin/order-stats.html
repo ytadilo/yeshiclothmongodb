@@ -1,4 +1,4 @@
-ï»¿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -28,27 +28,27 @@
                 </div>
             </div>
             <nav class="flex-1 py-6 space-y-1">
-                <a class="flex items-center gap-3 px-6 py-3 text-sm font-medium text-gray-500 hover:bg-cream-50 hover:text-gold-600 transition-colors" href="/admin/posts">
+                <a class="flex items-center gap-3 px-6 py-3 text-sm font-medium text-gray-500 hover:bg-cream-50 hover:text-gold-600 transition-colors" href="/admin/posts.html">
                     <span class="material-symbols-outlined text-xl">article</span>
                     <span>Manage Posts</span>
                 </a>
-                <a class="flex items-center gap-3 px-6 py-3 text-sm font-medium text-gray-500 hover:bg-cream-50 hover:text-gold-600 transition-colors" href="/admin/users">
+                <a class="flex items-center gap-3 px-6 py-3 text-sm font-medium text-gray-500 hover:bg-cream-50 hover:text-gold-600 transition-colors" href="/admin/users.html">
                     <span class="material-symbols-outlined text-xl">group</span>
                     <span>User Management</span>
                 </a>
-                <a class="flex items-center gap-3 px-6 py-3 text-sm font-medium text-gray-500 hover:bg-cream-50 hover:text-gold-600 transition-colors" href="/admin/orders">
+                <a class="flex items-center gap-3 px-6 py-3 text-sm font-medium text-gray-500 hover:bg-cream-50 hover:text-gold-600 transition-colors" href="/admin/orders.html">
                     <span class="material-symbols-outlined text-xl">shopping_bag</span>
                     <span>All Customer Orders</span>
                 </a>
-                <a class="flex items-center gap-3 px-6 py-3 text-sm font-medium text-gray-500 hover:bg-cream-50 hover:text-gold-600 transition-colors" href="/admin/chat">
+                <a class="flex items-center gap-3 px-6 py-3 text-sm font-medium text-gray-500 hover:bg-cream-50 hover:text-gold-600 transition-colors" href="/admin/chat.html">
                     <span class="material-symbols-outlined text-xl">chat_bubble</span>
                     <span>Customer Chats</span>
                 </a>
-                <a class="flex items-center gap-3 px-6 py-3 text-sm font-bold nav-item-active" href="/admin/order-stats">
+                <a class="flex items-center gap-3 px-6 py-3 text-sm font-bold nav-item-active" href="/admin/order-stats.html">
                     <span class="material-symbols-outlined text-xl">leaderboard</span>
                     <span>Order Statistics</span>
                 </a>
-                <a class="flex items-center gap-3 px-6 py-3 text-sm font-medium text-gray-500 hover:bg-cream-50 hover:text-gold-600 transition-colors" href="/admin/links">
+                <a class="flex items-center gap-3 px-6 py-3 text-sm font-medium text-gray-500 hover:bg-cream-50 hover:text-gold-600 transition-colors" href="/admin/links.html">
                     <span class="material-symbols-outlined text-xl">link</span>
                     <span>Follow / Contact Links</span>
                 </a>
@@ -239,7 +239,7 @@
             return `
                 <div style="display:flex; flex-direction:column; gap: 8px;">
                     ${items.map((it) => {
-                        const label = (it && it._id) ? String(it._id) : 'Î“Ã‡Ã¶';
+                        const label = (it && it._id) ? String(it._id) : 'GÇö';
                         const count = (it && typeof it.count === 'number') ? it.count : 0;
                         return `
                             <div style="display:flex; justify-content:space-between; gap: 10px; border-bottom: 1px solid rgba(0,0,0,0.06); padding-bottom: 6px;">
@@ -299,9 +299,9 @@
                         <tbody>
                             ${rows.map((row) => `
                                 <tr>
-                                    <td style="padding:8px; border-bottom:1px solid rgba(0,0,0,0.06);">${row.country ? `${escapeHtml(String(row.country._id || 'unknown'))} (${Number(row.country.count || 0)})` : 'Î“Ã‡Ã¶'}</td>
-                                    <td style="padding:8px; border-bottom:1px solid rgba(0,0,0,0.06);">${row.region ? `${escapeHtml(String(row.region._id || 'unknown'))} (${Number(row.region.count || 0)})` : 'Î“Ã‡Ã¶'}</td>
-                                    <td style="padding:8px; border-bottom:1px solid rgba(0,0,0,0.06);">${row.city ? `${escapeHtml(String(row.city._id || 'unknown'))} (${Number(row.city.count || 0)})` : 'Î“Ã‡Ã¶'}</td>
+                                    <td style="padding:8px; border-bottom:1px solid rgba(0,0,0,0.06);">${row.country ? `${escapeHtml(String(row.country._id || 'unknown'))} (${Number(row.country.count || 0)})` : 'GÇö'}</td>
+                                    <td style="padding:8px; border-bottom:1px solid rgba(0,0,0,0.06);">${row.region ? `${escapeHtml(String(row.region._id || 'unknown'))} (${Number(row.region.count || 0)})` : 'GÇö'}</td>
+                                    <td style="padding:8px; border-bottom:1px solid rgba(0,0,0,0.06);">${row.city ? `${escapeHtml(String(row.city._id || 'unknown'))} (${Number(row.city.count || 0)})` : 'GÇö'}</td>
                                 </tr>
                             `).join('')}
                         </tbody>
@@ -326,7 +326,7 @@
                 if (!res.ok) throw new Error(data?.msg || 'Failed to load order statistics');
 
                 if (cardsEl) {
-                    const lastOrderAt = data.lastOrderAt ? new Date(data.lastOrderAt).toLocaleString() : 'Î“Ã‡Ã¶';
+                    const lastOrderAt = data.lastOrderAt ? new Date(data.lastOrderAt).toLocaleString() : 'GÇö';
                     const totalOrders = typeof data.totalOrders === 'number' ? data.totalOrders : 0;
                     const payments = (data.breakdown && Array.isArray(data.breakdown.byPaymentStatus)) ? data.breakdown.byPaymentStatus : [];
                     const confirmedPayments = (payments.find((x) => x && x._id === 'Confirmed')?.count) || 0;

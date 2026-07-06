@@ -1,4 +1,4 @@
-ï»¿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -28,27 +28,27 @@
                 </div>
             </div>
             <nav class="flex-1 py-6 space-y-1">
-                <a class="flex items-center gap-3 px-6 py-3 text-sm font-medium text-gray-500 hover:bg-cream-50 hover:text-gold-600 transition-colors" href="/admin/posts">
+                <a class="flex items-center gap-3 px-6 py-3 text-sm font-medium text-gray-500 hover:bg-cream-50 hover:text-gold-600 transition-colors" href="/admin/posts.html">
                     <span class="material-symbols-outlined text-xl">article</span>
                     <span>Manage Posts</span>
                 </a>
-                <a class="flex items-center gap-3 px-6 py-3 text-sm font-medium text-gray-500 hover:bg-cream-50 hover:text-gold-600 transition-colors" href="/admin/users">
+                <a class="flex items-center gap-3 px-6 py-3 text-sm font-medium text-gray-500 hover:bg-cream-50 hover:text-gold-600 transition-colors" href="/admin/users.html">
                     <span class="material-symbols-outlined text-xl">group</span>
                     <span>User Management</span>
                 </a>
-                <a class="flex items-center gap-3 px-6 py-3 text-sm font-medium text-gray-500 hover:bg-cream-50 hover:text-gold-600 transition-colors" href="/admin/orders">
+                <a class="flex items-center gap-3 px-6 py-3 text-sm font-medium text-gray-500 hover:bg-cream-50 hover:text-gold-600 transition-colors" href="/admin/orders.html">
                     <span class="material-symbols-outlined text-xl">shopping_bag</span>
                     <span>All Customer Orders</span>
                 </a>
-                <a class="flex items-center gap-3 px-6 py-3 text-sm font-medium text-gray-500 hover:bg-cream-50 hover:text-gold-600 transition-colors" href="/admin/chat">
+                <a class="flex items-center gap-3 px-6 py-3 text-sm font-medium text-gray-500 hover:bg-cream-50 hover:text-gold-600 transition-colors" href="/admin/chat.html">
                     <span class="material-symbols-outlined text-xl">chat_bubble</span>
                     <span>Customer Chats</span>
                 </a>
-                <a class="flex items-center gap-3 px-6 py-3 text-sm font-medium text-gray-500 hover:bg-cream-50 hover:text-gold-600 transition-colors" href="/admin/order-stats">
+                <a class="flex items-center gap-3 px-6 py-3 text-sm font-medium text-gray-500 hover:bg-cream-50 hover:text-gold-600 transition-colors" href="/admin/order-stats.html">
                     <span class="material-symbols-outlined text-xl">leaderboard</span>
                     <span>Order Statistics</span>
                 </a>
-                <a class="flex items-center gap-3 px-6 py-3 text-sm font-bold nav-item-active" href="/admin/links">
+                <a class="flex items-center gap-3 px-6 py-3 text-sm font-bold nav-item-active" href="/admin/links.html">
                     <span class="material-symbols-outlined text-xl">link</span>
                     <span>Follow / Contact Links</span>
                 </a>
@@ -161,7 +161,7 @@
 
             <div class="form-group">
                 <label for="contentAuthBadge">Login badge</label>
-                <input type="text" id="contentAuthBadge" class="form-control" placeholder="Secure login â”¬â•– Fast checkout">
+                <input type="text" id="contentAuthBadge" class="form-control" placeholder="Secure login -+ Fast checkout">
             </div>
             <div class="form-group">
                 <label for="contentAuthTitle">Login title</label>
@@ -196,7 +196,7 @@
 
             <div class="form-group">
                 <label for="contentFooterBrand">Footer brand</label>
-                <input type="text" id="contentFooterBrand" class="form-control" placeholder="Yeshi | ÃŸÃ¯Â¿ÃŸÃªâ•‘">
+                <input type="text" id="contentFooterBrand" class="form-control" placeholder="Yeshi | ßï¿ßê¦">
             </div>
             <div class="form-group">
                 <label for="contentFooterTagline">Footer tagline</label>
@@ -711,8 +711,8 @@
         el.innerHTML = list.map((b) => {
             const name = String(b.fileName || 'backup.zip');
             const sizeKb = Math.round(Number(b.sizeBytes || 0) / 1024);
-            const created = b.createdAt ? new Date(b.createdAt).toLocaleString() : 'Î“Ã‡Ã¶';
-            return `<div style="padding:6px 0; border-top:1px solid rgba(0,0,0,0.06);">${name} Î“Ã‡Ã³ ${sizeKb} KB Î“Ã‡Ã³ ${created}</div>`;
+            const created = b.createdAt ? new Date(b.createdAt).toLocaleString() : 'GÇö';
+            return `<div style="padding:6px 0; border-top:1px solid rgba(0,0,0,0.06);">${name} GÇó ${sizeKb} KB GÇó ${created}</div>`;
         }).join('');
     }
 

@@ -1,9 +1,9 @@
 ﻿(function () {
     var publicPaths = {
-        '/admin/login': true,
-        '/admin/forgot-password': true,
-        '/admin/verify-otp': true,
-        '/admin/reset-password': true
+        '/admin/login.html': true,
+        '/admin/forgot-password.html': true,
+        '/admin/verify-otp.html': true,
+        '/admin/reset-password.html': true
     };
 
     var path = String(window.location.pathname || '').replace(/\/+$/, '') || '/';

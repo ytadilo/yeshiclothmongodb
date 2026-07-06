@@ -1,4 +1,4 @@
-ï»¿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -29,27 +29,27 @@
                 </div>
             </div>
             <nav class="flex-1 py-6 space-y-1">
-                <a class="flex items-center gap-3 px-6 py-3 text-sm font-medium text-gray-500 hover:bg-cream-50 hover:text-gold-600 transition-colors" href="/admin/posts">
+                <a class="flex items-center gap-3 px-6 py-3 text-sm font-medium text-gray-500 hover:bg-cream-50 hover:text-gold-600 transition-colors" href="/admin/posts.html">
                     <span class="material-symbols-outlined text-xl">article</span>
                     <span>Manage Posts</span>
                 </a>
-                <a class="flex items-center gap-3 px-6 py-3 text-sm font-medium text-gray-500 hover:bg-cream-50 hover:text-gold-600 transition-colors" href="/admin/users">
+                <a class="flex items-center gap-3 px-6 py-3 text-sm font-medium text-gray-500 hover:bg-cream-50 hover:text-gold-600 transition-colors" href="/admin/users.html">
                     <span class="material-symbols-outlined text-xl">group</span>
                     <span>User Management</span>
                 </a>
-                <a class="flex items-center gap-3 px-6 py-3 text-sm font-medium text-gray-500 hover:bg-cream-50 hover:text-gold-600 transition-colors" href="/admin/orders">
+                <a class="flex items-center gap-3 px-6 py-3 text-sm font-medium text-gray-500 hover:bg-cream-50 hover:text-gold-600 transition-colors" href="/admin/orders.html">
                     <span class="material-symbols-outlined text-xl">shopping_bag</span>
                     <span>All Customer Orders</span>
                 </a>
-                <a class="flex items-center gap-3 px-6 py-3 text-sm font-medium text-gray-500 hover:bg-cream-50 hover:text-gold-600 transition-colors" href="/admin/chat">
+                <a class="flex items-center gap-3 px-6 py-3 text-sm font-medium text-gray-500 hover:bg-cream-50 hover:text-gold-600 transition-colors" href="/admin/chat.html">
                     <span class="material-symbols-outlined text-xl">chat_bubble</span>
                     <span>Customer Chats</span>
                 </a>
-                <a class="flex items-center gap-3 px-6 py-3 text-sm font-medium text-gray-500 hover:bg-cream-50 hover:text-gold-600 transition-colors" href="/admin/order-stats">
+                <a class="flex items-center gap-3 px-6 py-3 text-sm font-medium text-gray-500 hover:bg-cream-50 hover:text-gold-600 transition-colors" href="/admin/order-stats.html">
                     <span class="material-symbols-outlined text-xl">leaderboard</span>
                     <span>Order Statistics</span>
                 </a>
-                <a class="flex items-center gap-3 px-6 py-3 text-sm font-medium text-gray-500 hover:bg-cream-50 hover:text-gold-600 transition-colors" href="/admin/links">
+                <a class="flex items-center gap-3 px-6 py-3 text-sm font-medium text-gray-500 hover:bg-cream-50 hover:text-gold-600 transition-colors" href="/admin/links.html">
                     <span class="material-symbols-outlined text-xl">link</span>
                     <span>Follow / Contact Links</span>
                 </a>
@@ -662,7 +662,7 @@
                                     <div class="order-card__status">${escapeHtml(post.category)}</div>
                                 </div>
                             </div>
-                            <p style="color: var(--light-text); font-size: 0.9rem;">${escapeHtml((post.description || '').slice(0, 120))}${post.description && post.description.length > 120 ? 'Î“Ã‡Âª' : ''}</p>
+                            <p style="color: var(--light-text); font-size: 0.9rem;">${escapeHtml((post.description || '').slice(0, 120))}${post.description && post.description.length > 120 ? 'GÇª' : ''}</p>
                             <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top: 10px;">
                                 <button class="btn" type="button" onclick="openEditPost('${escapeHtml(post._id)}')">Edit</button>
                                 <button class="btn-secondary" type="button" onclick="deletePostAdmin('${escapeHtml(post._id)}')">Delete</button>
@@ -1002,39 +1002,39 @@
                         'Unknown customer';
 
                     const status = order?.order_status || order?.status || 'Received';
-                    const category = cloth?.category || order?.category || 'Î“Ã‡Ã¶';
-                    const phone = customer.phone || order?.phone || 'Î“Ã‡Ã¶';
+                    const category = cloth?.category || order?.category || 'GÇö';
+                    const phone = customer.phone || order?.phone || 'GÇö';
 
-                    const fatherName = customer.father_name || customer.fatherName || 'Î“Ã‡Ã¶';
-                    const region = customer.region || 'Î“Ã‡Ã¶';
-                    const city = customer.city || 'Î“Ã‡Ã¶';
-                    const address = customer.address || 'Î“Ã‡Ã¶';
+                    const fatherName = customer.father_name || customer.fatherName || 'GÇö';
+                    const region = customer.region || 'GÇö';
+                    const city = customer.city || 'GÇö';
+                    const address = customer.address || 'GÇö';
 
-                    const designType = cloth.design_type || cloth.designType || 'Î“Ã‡Ã¶';
-                    const color = cloth.color || 'Î“Ã‡Ã¶';
-                    const eventType = cloth.event_type || cloth.eventType || 'Î“Ã‡Ã¶';
+                    const designType = cloth.design_type || cloth.designType || 'GÇö';
+                    const color = cloth.color || 'GÇö';
+                    const eventType = cloth.event_type || cloth.eventType || 'GÇö';
                     const deadline = cloth.deadline_date || cloth.deadlineDate || null;
                     const clothPrice = Number(cloth.post_price_etb ?? cloth.postPriceEtb);
                     const clothShippingPrice = Number(cloth.post_shipping_price_etb ?? cloth.postShippingPriceEtb);
                     const clothFreeShipping = Boolean(cloth.post_free_shipping ?? cloth.postFreeShipping);
 
-                    const measurementType = meas.type || 'Î“Ã‡Ã¶';
-                    const size = meas.size || 'Î“Ã‡Ã¶';
-                    const height = meas.height ?? 'Î“Ã‡Ã¶';
-                    const shoulder = meas.shoulder ?? 'Î“Ã‡Ã¶';
-                    const chest = meas.chest ?? 'Î“Ã‡Ã¶';
-                    const waist = meas.waist ?? 'Î“Ã‡Ã¶';
-                    const hip = meas.hip ?? 'Î“Ã‡Ã¶';
-                    const length = meas.length ?? 'Î“Ã‡Ã¶';
-                    const sleeve = meas.sleeve ?? 'Î“Ã‡Ã¶';
+                    const measurementType = meas.type || 'GÇö';
+                    const size = meas.size || 'GÇö';
+                    const height = meas.height ?? 'GÇö';
+                    const shoulder = meas.shoulder ?? 'GÇö';
+                    const chest = meas.chest ?? 'GÇö';
+                    const waist = meas.waist ?? 'GÇö';
+                    const hip = meas.hip ?? 'GÇö';
+                    const length = meas.length ?? 'GÇö';
+                    const sleeve = meas.sleeve ?? 'GÇö';
 
-                    const deliveryMethod = order?.delivery_method || order?.deliveryMethod || 'Î“Ã‡Ã¶';
+                    const deliveryMethod = order?.delivery_method || order?.deliveryMethod || 'GÇö';
                     const paymentStatus = order?.payment_status || order?.paymentStatus || paymentInfo?.status || 'Pending';
                     const screenshotUrl = getOrderPaymentScreenshot(order);
                     const createdAt = fmtDate(order?.created_at || order?.createdAt);
 
                     const addressParts = [customer.city, customer.address].filter(Boolean);
-                    const addressText = addressParts.length ? addressParts.join(', ') : 'Î“Ã‡Ã¶';
+                    const addressText = addressParts.length ? addressParts.join(', ') : 'GÇö';
 
                     const div = document.createElement('div');
                     div.className = 'order-card';
@@ -1044,7 +1044,7 @@
                         <div class="order-card__header">
                             <div>
                                 <h4 class="order-card__name">${fullName}</h4>
-                                <div class="order-card__status">${esc(status)} â”¬â•– Payment: ${esc(paymentStatus)}</div>
+                                <div class="order-card__status">${esc(status)} -+ Payment: ${esc(paymentStatus)}</div>
                                 <div style="color: var(--light-text); font-size: 0.9rem; margin-top: 4px;">${createdAt ? `Ordered: ${esc(createdAt)}` : ''}</div>
                             </div>
                             <select aria-label="Update status" onchange="updateStatus('${order._id}', this.value)">
@@ -1087,9 +1087,9 @@
                                         <div><span style="color:var(--light-text);">Design type:</span> ${esc(designType)}</div>
                                         <div><span style="color:var(--light-text);">Color:</span> ${esc(color)}</div>
                                         <div><span style="color:var(--light-text);">Event type:</span> ${esc(eventType)}</div>
-                                        <div><span style="color:var(--light-text);">Deadline:</span> ${deadline ? esc(new Date(deadline).toLocaleDateString()) : 'Î“Ã‡Ã¶'}</div>
-                                        <div><span style="color:var(--light-text);">Price:</span> ${Number.isFinite(clothPrice) && clothPrice > 0 ? esc(clothPrice.toLocaleString()) + ' ETB' : 'Î“Ã‡Ã¶'}</div>
-                                        <div><span style="color:var(--light-text);">Shipping:</span> ${clothFreeShipping ? 'Free shipping' : (Number.isFinite(clothShippingPrice) && clothShippingPrice >= 0 ? esc(clothShippingPrice.toLocaleString()) + ' ETB' : 'Î“Ã‡Ã¶')}</div>
+                                        <div><span style="color:var(--light-text);">Deadline:</span> ${deadline ? esc(new Date(deadline).toLocaleDateString()) : 'GÇö'}</div>
+                                        <div><span style="color:var(--light-text);">Price:</span> ${Number.isFinite(clothPrice) && clothPrice > 0 ? esc(clothPrice.toLocaleString()) + ' ETB' : 'GÇö'}</div>
+                                        <div><span style="color:var(--light-text);">Shipping:</span> ${clothFreeShipping ? 'Free shipping' : (Number.isFinite(clothShippingPrice) && clothShippingPrice >= 0 ? esc(clothShippingPrice.toLocaleString()) + ' ETB' : 'GÇö')}</div>
                                     </div>
                                 </div>
 
@@ -1222,7 +1222,7 @@
             return `
                 <div style="display:flex; flex-direction:column; gap: 8px;">
                     ${items.map((it) => {
-                        const label = (it && it._id) ? String(it._id) : 'Î“Ã‡Ã¶';
+                        const label = (it && it._id) ? String(it._id) : 'GÇö';
                         const count = (it && typeof it.count === 'number') ? it.count : 0;
                         return `
                             <div style="display:flex; justify-content:space-between; gap: 10px; border-bottom: 1px solid rgba(0,0,0,0.06); padding-bottom: 6px;">
@@ -1252,7 +1252,7 @@
                 if (!res.ok) throw new Error(data?.msg || 'Failed to load order statistics');
 
                 if (cardsEl) {
-                    const lastOrderAt = data.lastOrderAt ? new Date(data.lastOrderAt).toLocaleString() : 'Î“Ã‡Ã¶';
+                    const lastOrderAt = data.lastOrderAt ? new Date(data.lastOrderAt).toLocaleString() : 'GÇö';
                     cardsEl.innerHTML = `
                         <div class="order-card__status" style="background: rgba(0,0,0,0.06); color: #111;">Total Orders: <strong>${data.totalOrders ?? 0}</strong></div>
                         <div class="order-card__status" style="background: rgba(30,75,53,0.10); color: var(--accent-color);">Today: <strong>${data.ordersToday ?? 0}</strong></div>
