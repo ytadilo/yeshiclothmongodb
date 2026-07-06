@@ -32,8 +32,7 @@
 
     function redirectToLogin() {
         clearStoredSession();
-        var next = encodeURIComponent(window.location.pathname + window.location.search + window.location.hash);
-        window.location.replace('/auth/login?next=' + next);
+        window.location.replace('/login');
     }
 
     var token = '';
