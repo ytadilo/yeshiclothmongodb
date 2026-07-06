@@ -32,7 +32,7 @@
 
     function redirectToLogin() {
         clearStoredSession();
-        window.location.replace('/login');
+        window.location.replace('/');
     }
 
     var token = '';
@@ -45,7 +45,11 @@
     var headers = {};
     if (token) headers['x-auth-token'] = token;
 
-    fetch('/api/auth/me', {
+    var BACKEND_BASE = (typeof window.__ADMIN_API_BASE === 'string' && window.__ADMIN_API_BASE)
+        ? window.__ADMIN_API_BASE
+        : 'https://myclothefullstackhaile.onrender.com';
+
+    fetch(BACKEND_BASE + '/api/auth/me', {
         method: 'GET',
         credentials: 'same-origin',
         headers: headers

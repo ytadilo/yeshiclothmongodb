@@ -1,5 +1,15 @@
 {
   "rewrites": [
-    { "source": "/(.*)", "destination": "/index.html" }
+    { "source": "/admin/dashboard", "destination": "/admin/dashboard.html" },
+    { "source": "/admin/orders",    "destination": "/admin/orders.html" },
+    { "source": "/admin/posts",     "destination": "/admin/posts.html" },
+    { "source": "/admin/users",     "destination": "/admin/users.html" },
+    { "source": "/admin/chat",      "destination": "/admin/chat.html" },
+    { "source": "/admin/order-stats","destination": "/admin/order-stats.html" },
+    { "source": "/admin/links",     "destination": "/admin/links.html" },
+    { "source": "/admin/login",     "destination": "/admin/login.html" },
+    { "source": "/admin/forgot-password","destination": "/admin/forgot-password.html" },
+    { "source": "/admin/reset-password", "destination": "/admin/reset-password.html" },
+    { "source": "/admin/verify-otp","destination": "/admin/verify-otp.html" }
   ]
 }

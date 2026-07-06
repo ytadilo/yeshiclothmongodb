@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Login - Yeshi Clothe</title>
+    <link rel="icon" type="image/png" href="/images/logo.png">
+    <meta name="theme-color" content="#1E4B35">
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="/css/auth.css">
+    <script src="/js/admin-config.js"></script>
+</head>
+<body class="auth-page">
+    <main class="auth-shell" role="main">
+        <!-- Branding panel -->
+        <section class="auth-brand" aria-label="Yeshi Clothe admin">
+            <div class="auth-logo">
+                <img src="/images/logo.png" alt="Yeshi Clothe" onerror="this.style.display='none'">
+                <span>Yeshi Clothe</span>
+            </div>
+            <div class="auth-badge">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg>
+                Admin Portal
+            </div>
+            <h1 class="auth-title">Manage your store with confidence</h1>
+            <p class="auth-subtitle">Access orders, products, customers, analytics and settings from one place.</p>
+            <div class="auth-feature-list">
+                <div class="auth-feature">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+                    <span>Real-time order management &amp; payment approval</span>
+                </div>
+                <div class="auth-feature">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+                    <span>Product &amp; post publishing with full media support</span>
+                </div>
+                <div class="auth-feature">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+                    <span>Customer &amp; device management with analytics</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Login panel -->
+        <section class="auth-panel" aria-label="Login form">
+            <div class="auth-panel-logo">
+                <img src="/images/logo.png" alt="Yeshi Clothe" onerror="this.style.display='none'">
+            </div>
+            <h2>Admin Login</h2>
+            <p>Use your email and password to continue.</p>
+
+            <form id="adminLoginForm" class="auth-form" novalidate>
+                <div class="form-group">
+                    <label for="adminEmail">Email</label>
+                    <input type="email" id="adminEmail" class="form-control" autocomplete="email" inputmode="email" placeholder="hailetadilo@gmail.com" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="adminPassword">Password</label>
+                    <div class="password-row">
+                        <input type="password" id="adminPassword" class="form-control" autocomplete="current-password" required>
+                        <button type="button" class="password-toggle" id="toggleAdminPassword">Show</button>
+                    </div>
+                </div>
+
+                <div class="form-status" id="adminLoginStatus" aria-live="polite"></div>
+
+                <div class="auth-actions">
+                    <button type="submit" class="btn" id="adminLoginBtn">Login</button>
+                </div>
+            </form>
+
+            <div style="margin-top: 12px; text-align: center;">
+                <a class="secondary" href="/admin/forgot-password" style="font-size: 0.875rem; color: var(--accent-color);">Forgot password?</a>
+            </div>
+
+            <div class="auth-hint">Restricted to authorised admin account only.</div>
+        </section>
+    </main>
+
+    <script>
+    (function () {
+        // Redirect to dashboard if already logged in
+        var token = localStorage.getItem('token');
+        var user;
+        try { user = JSON.parse(localStorage.getItem('user') || 'null'); } catch (_) { user = null; }
+        if (token && user && String(user.role || '').toLowerCase() === 'admin') {
+            window.location.replace('/admin/dashboard');
+            return;
+        }
+
+        var form      = document.getElementById('adminLoginForm');
+        var emailInput = document.getElementById('adminEmail');
+        var passInput  = document.getElementById('adminPassword');
+        var submitBtn  = document.getElementById('adminLoginBtn');
+        var statusEl   = document.getElementById('adminLoginStatus');
+        var toggleBtn  = document.getElementById('toggleAdminPassword');
+
+        function setStatus(type, msg) {
+            statusEl.textContent = msg;
+            statusEl.className = 'form-status' + (type ? ' ' + type : '');
+        }
+
+        toggleBtn.addEventListener('click', function () {
+            var isText = passInput.type === 'text';
+            passInput.type = isText ? 'password' : 'text';
+            toggleBtn.textContent = isText ? 'Show' : 'Hide';
+        });
+
+        function getFingerprint() {
+            try {
+                var p = {
+                    ua: navigator.userAgent || '',
+                    lang: navigator.language || '',
+                    langs: Array.isArray(navigator.languages) ? navigator.languages : [],
+                    plat: navigator.platform || '',
+                    hc: navigator.hardwareConcurrency || 0,
+                    dm: navigator.deviceMemory || 0,
+                    scr: { w: screen.width || 0, h: screen.height || 0, d: screen.colorDepth || 0 },
+                    tz: Intl.DateTimeFormat().resolvedOptions().timeZone || '',
+                    tzOff: new Date().getTimezoneOffset()
+                };
+                return btoa(unescape(encodeURIComponent(JSON.stringify(p))));
+            } catch (_) { return ''; }
+        }
+
+        form.addEventListener('submit', async function (e) {
+            e.preventDefault();
+            setStatus('', '');
+
+            var email = String(emailInput.value || '').trim().toLowerCase();
+            var pass  = String(passInput.value || '');
+
+            if (!email) { setStatus('error', 'Email is required.'); emailInput.focus(); return; }
+            if (!pass)  { setStatus('error', 'Password is required.'); passInput.focus(); return; }
+
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Logging in...';
+
+            try {
+                var fp = getFingerprint();
+                var headers = { 'Content-Type': 'application/json' };
+                if (fp) headers['x-device-fingerprint'] = fp;
+
+                var BASE = (typeof window.__ADMIN_API_BASE === 'string')
+                    ? window.__ADMIN_API_BASE
+                    : 'https://myclothefullstackhaile.onrender.com';
+
+                var res = await fetch(BASE + '/api/auth/login', {
+                    method: 'POST',
+                    headers: headers,
+                    body: JSON.stringify({ email: email, password: pass })
+                });
+
+                var data = await res.json();
+
+                if (!res.ok) {
+                    throw new Error(data.msg || 'Invalid credentials');
+                }
+
+                if (!data.token || !data.user) {
+                    throw new Error('Incomplete response from server');
+                }
+
+                if (String(data.user.role || '').toLowerCase() !== 'admin') {
+                    throw new Error('Access denied — admin account required.');
+                }
+
+                localStorage.setItem('token', data.token);
+                localStorage.setItem('user', JSON.stringify(data.user));
+                localStorage.setItem('role', data.user.role || 'admin');
+                localStorage.setItem('loginTime', String(Date.now()));
+
+                setStatus('success', 'Login successful. Redirecting...');
+                window.location.replace('/admin/dashboard');
+            } catch (err) {
+                setStatus('error', err.message || 'Login failed. Please try again.');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Login';
+            }
+        });
+    })();
+    </script>
+</body>
+</html>

@@ -1,39 +1,43 @@
 /**
- * admin-config.js
- * Loaded first on every admin page.
- * Patches fetch so all /api/* and /auth/* calls go to the Render backend,
- * regardless of the domain this admin is deployed on.
+ * admin-config.js — MUST be the first script on every admin page.
+ *
+ * When the admin site is deployed on a different domain from the backend
+ * (e.g. yeshiclothe.app.aletcloud.com vs myclothefullstackhaile.onrender.com),
+ * every fetch() call with a relative /api/* or /auth/* path would go to the
+ * wrong origin. This shim patches window.fetch so those relative paths are
+ * automatically prefixed with the backend base URL.
  */
 (function () {
     var BACKEND = 'https://myclothefullstackhaile.onrender.com';
 
-    var _fetch = window.fetch.bind(window);
+    // Expose for inline scripts that build URLs manually
+    window.__ADMIN_API_BASE = BACKEND;
+
+    var _nativeFetch = window.fetch.bind(window);
 
     window.fetch = function (input, init) {
-        var url = String(input instanceof Request ? input.url : input || '');
+        var url = typeof input === 'string'
+            ? input
+            : (input instanceof Request ? input.url : String(input || ''));
 
-        // Only rewrite relative API paths — leave absolute URLs untouched
-        if (
-            url.startsWith('/api/') ||
-            url.startsWith('/auth/') ||
-            url === '/api/auth/me'
-        ) {
-            url = BACKEND + url;
+        // Only rewrite relative paths that start with /api/ or /auth/
+        if (url.charAt(0) === '/' && (url.indexOf('/api/') === 0 || url.indexOf('/auth/') === 0)) {
+            var fullUrl = BACKEND + url;
             if (input instanceof Request) {
-                input = new Request(url, input);
+                // Rebuild Request with new URL
+                input = new Request(fullUrl, input);
             } else {
-                input = url;
+                input = fullUrl;
             }
         }
 
-        // Attach CORS credentials header for cross-origin requests
         var options = init ? Object.assign({}, init) : {};
-        options.credentials = options.credentials || 'include';
-        options.headers = Object.assign({}, options.headers || {});
+        // credentials:'include' sends the cookie if any; 'omit' avoids CORS preflight issues
+        // We use 'omit' since the admin uses x-auth-token header, not cookies
+        if (!options.credentials) {
+            options.credentials = 'omit';
+        }
 
-        return _fetch(input, options);
+        return _nativeFetch(input, options);
     };
-
-    // Expose backend base URL for any inline scripts that build URLs manually
-    window.__ADMIN_API_BASE = BACKEND;
 })();
