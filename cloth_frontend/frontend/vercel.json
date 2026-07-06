@@ -13,16 +13,6 @@
   ],
   "redirects": [
     {
-      "source": "/admin",
-      "destination": "/admin/orders",
-      "permanent": false
-    },
-    {
-      "source": "/admin/",
-      "destination": "/admin/orders",
-      "permanent": false
-    },
-    {
       "source": "/user/order.html",
       "destination": "/order",
       "permanent": true
@@ -166,10 +156,6 @@
     {
       "source": "/api/:path*",
       "destination": "https://myclothefullstackhaile.onrender.com/api/:path*"
-    },
-    {
-      "source": "/admin/:path*",
-      "destination": "https://myclothefullstackhaile.onrender.com/admin/:path*"
     },
     {
       "source": "/payment-result",
