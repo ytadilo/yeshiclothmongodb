@@ -341,6 +341,10 @@
             }
         });
 
+        // Handle Google redirect result on every page load.
+        // Must be called after getAuth() and before any other auth operations.
+        handleRedirectResult().catch(() => {});
+
         try {
             window.dispatchEvent(new CustomEvent('yeshi:firebase-auth-ready'));
         } catch (_) {
@@ -580,14 +584,41 @@
             const provider = new state.authModule.GoogleAuthProvider();
             provider.setCustomParameters({ prompt: 'select_account' });
 
-            await state.authModule.signInWithPopup(state.auth, provider);
-            return ensureAppSession({
-                force: true,
-                forceIdTokenRefresh: true,
-                skipReload: true
-            });
-        } finally {
+            // Use redirect instead of popup — popup fails when Cross-Origin-Opener-Policy
+            // is set on the page (Firebase popup.closed check gets blocked by COOP).
+            // signInWithRedirect navigates away and back, fully bypassing COOP issues.
+            await state.authModule.signInWithRedirect(state.auth, provider);
+            // The page will redirect away — code below never runs during redirect.
+            // The result is handled on page load via getRedirectResult() in handleRedirectResult().
+            return null;
+        } catch (error) {
             state.manualAction = false;
+            throw error;
+        }
+        // Note: manualAction stays true intentionally — the page redirects away.
+    }
+
+    // Call this on every page load to handle the Google redirect result.
+    async function handleRedirectResult() {
+        await whenReady();
+        try {
+            const result = await state.authModule.getRedirectResult(state.auth);
+            if (!result || !result.user) return null; // No pending redirect
+
+            state.manualAction = true;
+            try {
+                return await ensureAppSession({
+                    force: true,
+                    forceIdTokenRefresh: true,
+                    skipReload: true
+                });
+            } finally {
+                state.manualAction = false;
+            }
+        } catch (error) {
+            // If the error is from the redirect (e.g. user denied), surface it
+            if (error && error.code) throw error;
+            return null;
         }
     }
 
@@ -766,6 +797,7 @@
         registerWithEmail,
         loginWithEmail,
         loginWithGoogle,
+        handleRedirectResult,
         sendPasswordReset,
         updateEmailAddress,
         signOutUser,

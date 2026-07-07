@@ -543,21 +543,23 @@ function initLoginForm() {
 
     const googleButton = bindGoogleButton(googleContainer, async () => {
         setFormStatus(form, '', '');
-        setButtonLoading(submitButton, true, 'Waiting...');
+        setButtonLoading(submitButton, true, 'Redirecting to Google...');
         if (googleButton) googleButton.disabled = true;
 
         try {
             const bridge = await getFirebaseBridge();
-            const session = await bridge.loginWithGoogle();
-            redirectAfterAuth(session && session.user);
+            // loginWithGoogle now uses signInWithRedirect — page will navigate away.
+            // No result is returned here; result is handled on page load via handleRedirectResult.
+            await bridge.loginWithGoogle();
+            // If we get here (redirect not triggered), fall back to waiting
         } catch (error) {
             const bridge = window.YeshiFirebaseAuth;
             setFormStatus(form, 'error', bridge ? bridge.getFriendlyError(error) : (error && error.message) || 'Google login failed');
-        } finally {
             setButtonLoading(submitButton, false);
             if (googleButton) googleButton.disabled = false;
             updateSubmitState(form, validate);
         }
+        // Note: don't re-enable buttons — page is redirecting away to Google.
     });
 
     const flash = consumeAuthFlash();
@@ -701,21 +703,21 @@ function initSignupForm() {
 
     const googleButton = bindGoogleButton(googleContainer, async () => {
         setFormStatus(form, '', '');
-        setButtonLoading(submitButton, true, 'Waiting...');
+        setButtonLoading(submitButton, true, 'Redirecting to Google...');
         if (googleButton) googleButton.disabled = true;
 
         try {
             const bridge = await getFirebaseBridge();
-            const session = await bridge.loginWithGoogle();
-            redirectAfterAuth(session && session.user);
+            // loginWithGoogle now uses signInWithRedirect — page will navigate away.
+            await bridge.loginWithGoogle();
         } catch (error) {
             const bridge = window.YeshiFirebaseAuth;
             setFormStatus(form, 'error', bridge ? bridge.getFriendlyError(error) : (error && error.message) || 'Google signup failed');
-        } finally {
             setButtonLoading(submitButton, false);
             if (googleButton) googleButton.disabled = false;
             updateSubmitState(form, validate);
         }
+        // Note: don't re-enable buttons — page is redirecting away to Google.
     });
 
     updateSubmitState(form, validate);
@@ -810,6 +812,37 @@ document.addEventListener('DOMContentLoaded', async function () {
     initLoginForm();
     initSignupForm();
     initForgotPasswordForm();
+
+    // Handle Google redirect result first — this fires after Google redirects back
+    try {
+        const bridge = await getFirebaseBridge();
+        const session = await bridge.handleRedirectResult();
+        if (session && session.user) {
+            // Redirect result came back — session is now set, redirect to destination
+            const enrichedUser = await flushPendingSignupProfile(session.user);
+            redirectAfterAuth(enrichedUser || session.user);
+            return; // Don't run redirectIfAlreadyLoggedIn — we already redirected
+        }
+    } catch (redirectError) {
+        // Redirect flow failed (e.g. user denied, or error from Google)
+        const bridge = window.YeshiFirebaseAuth;
+        const msg = bridge ? bridge.getFriendlyError(redirectError) : (redirectError && redirectError.message) || 'Google sign-in failed';
+        // Show the error on whichever form is present
+        const loginForm = document.getElementById('loginForm');
+        const signupForm = document.getElementById('signupForm');
+        const targetForm = loginForm || signupForm;
+        if (targetForm) {
+            let statusEl = targetForm.querySelector('.form-status');
+            if (!statusEl) {
+                statusEl = document.createElement('div');
+                statusEl.className = 'form-status error';
+                targetForm.appendChild(statusEl);
+            }
+            statusEl.textContent = msg;
+            statusEl.className = 'form-status error';
+        }
+    }
+
     await redirectIfAlreadyLoggedIn();
 });
 })();
