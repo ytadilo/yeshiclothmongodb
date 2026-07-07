@@ -825,77 +825,49 @@ window.logout = logout;
     initSignupForm();
     initForgotPasswordForm();
 
-    // Handle Google redirect result — fires after Google redirects back.
-    // Strategy: use a short polling window on localStorage.token since
-    // onAuthStateChanged + ensureAppSession in firebase-auth.js sets the
-    // token asynchronously after getRedirectResult resolves.
+    // ── Google Redirect Result Handler ────────────────────────────────────
+    // After signInWithRedirect, Google redirects back to this page.
+    // handleRedirectResult() calls getRedirectResult() exactly once,
+    // sets manualAction=true to block onAuthStateChanged interference,
+    // then syncs the session with the backend.
     try {
         const bridge = await getFirebaseBridge();
 
-        // First try getRedirectResult directly
+        console.log('[YeshiAuth] DOMContentLoaded: calling handleRedirectResult...');
         const session = await bridge.handleRedirectResult();
 
-        if (session && (session.user || session.token || session.ok)) {
-            // Got a redirect result — handle navigation
-            const targetUser = session.user || safeParseJson(localStorage.getItem('user'));
+        if (session && (session.ok || session.token || session.user)) {
+            console.log('[YeshiAuth] DOMContentLoaded: redirect result received, redirecting...');
+
+            // Restore saved ?next= from before the redirect
             let savedNext = null;
             try { savedNext = sessionStorage.getItem('yeshi_google_next'); } catch (_) {}
             if (savedNext) {
                 try { sessionStorage.removeItem('yeshi_google_next'); } catch (_) {}
             }
-            const role = String(targetUser && targetUser.role || getCurrentStoredRole() || '').trim();
+
+            // Enrich user profile if pending signup data exists
+            const sessionUser = session.user || safeParseJson(localStorage.getItem('user'));
+            await flushPendingSignupProfile(sessionUser).catch(() => null);
+            const finalUser = safeParseJson(localStorage.getItem('user')) || sessionUser;
+
+            const role = String(finalUser && finalUser.role || getCurrentStoredRole() || '').trim();
+            console.log('[YeshiAuth] DOMContentLoaded: user role =', role);
+
             if (role === 'admin') {
                 window.location.replace('/admin/dashboard.html');
             } else {
                 window.location.replace(savedNext ? normalizeNextDestination(savedNext) : '/');
             }
-            return;
+            return; // Stop — navigation in progress
         }
 
-        // Fallback: wait briefly for onAuthStateChanged + ensureAppSession to fire
-        // (this catches cases where getRedirectResult was consumed by the bridge's
-        // internal onAuthStateChanged listener before handleRedirectResult ran)
-        const token = await new Promise((resolve) => {
-            let attempts = 0;
-            const check = () => {
-                const t = localStorage.getItem('token');
-                if (t) return resolve(t);
-                if (++attempts >= 20) return resolve(null); // 2 second timeout
-                setTimeout(check, 100);
-            };
-            // Only poll if there are signs of a pending redirect (Firebase hint set)
-            const hasHint = !!(localStorage.getItem('yeshi_firebase_uid'));
-            if (hasHint && !localStorage.getItem('token')) {
-                check();
-            } else {
-                resolve(localStorage.getItem('token'));
-            }
-        });
-
-        if (token) {
-            const storedUser = safeParseJson(localStorage.getItem('user'));
-            const loginForm = document.getElementById('loginForm');
-            const signupForm = document.getElementById('signupForm');
-            // Only auto-redirect if we're on an auth page (not a general page load)
-            if (loginForm || signupForm) {
-                let savedNext = null;
-                try { savedNext = sessionStorage.getItem('yeshi_google_next'); } catch (_) {}
-                if (savedNext) {
-                    try { sessionStorage.removeItem('yeshi_google_next'); } catch (_) {}
-                }
-                const role = String(storedUser && storedUser.role || getCurrentStoredRole() || '').trim();
-                if (role === 'admin') {
-                    window.location.replace('/admin/dashboard.html');
-                } else {
-                    window.location.replace(savedNext ? normalizeNextDestination(savedNext) : '/');
-                }
-                return;
-            }
-        }
+        console.log('[YeshiAuth] DOMContentLoaded: no redirect result, checking existing session...');
     } catch (redirectError) {
-        // Redirect flow failed (e.g. user denied access)
+        // Redirect flow errored (e.g. user denied, or auth/cancelled)
         const bridge = window.YeshiFirebaseAuth;
         const msg = bridge ? bridge.getFriendlyError(redirectError) : (redirectError && redirectError.message) || 'Google sign-in failed';
+        console.warn('[YeshiAuth] DOMContentLoaded redirect error:', msg);
         const loginForm = document.getElementById('loginForm');
         const signupForm = document.getElementById('signupForm');
         const targetForm = loginForm || signupForm;
@@ -903,7 +875,7 @@ window.logout = logout;
             let statusEl = targetForm.querySelector('.form-status');
             if (!statusEl) {
                 statusEl = document.createElement('div');
-                statusEl.className = 'form-status error';
+                statusEl.className = 'form-status';
                 targetForm.appendChild(statusEl);
             }
             statusEl.textContent = msg;
@@ -911,6 +883,8 @@ window.logout = logout;
         }
     }
 
+    // ── Existing Session Check ────────────────────────────────────────────
+    // If user already has a valid session, redirect away from auth pages
     await redirectIfAlreadyLoggedIn();
 });
 })();

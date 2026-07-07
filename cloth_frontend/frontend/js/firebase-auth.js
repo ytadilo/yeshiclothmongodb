@@ -343,7 +343,10 @@
 
         // Handle Google redirect result on every page load.
         // Must be called after getAuth() and before any other auth operations.
-        handleRedirectResult().catch(() => {});
+        // NOTE: This is intentionally NOT called here — auth.js is the single
+        // caller of handleRedirectResult() to avoid consuming the result twice.
+        // The onAuthStateChanged listener below will fire when the redirect
+        // result is processed, and auth.js will pick it up via handleRedirectResult().
 
         try {
             window.dispatchEvent(new CustomEvent('yeshi:firebase-auth-ready'));
@@ -599,24 +602,40 @@
     }
 
     // Call this on every page load to handle the Google redirect result.
+    // IMPORTANT: Must be called once and only once per page load, before any
+    // other auth operations. Sets manualAction=true for the entire duration
+    // so onAuthStateChanged does not race with getRedirectResult.
     async function handleRedirectResult() {
         await whenReady();
+
+        // Block onAuthStateChanged from interfering while we check for redirect
+        state.manualAction = true;
         try {
             const result = await state.authModule.getRedirectResult(state.auth);
-            if (!result || !result.user) return null; // No pending redirect
+            if (!result || !result.user) {
+                // No pending redirect — release the block
+                state.manualAction = false;
+                return null;
+            }
 
-            state.manualAction = true;
+            console.log('[YeshiAuth] handleRedirectResult: Google redirect completed for', result.user.email);
+
+            // We have a result — sync session with backend
             try {
-                return await ensureAppSession({
+                const session = await ensureAppSession({
                     force: true,
                     forceIdTokenRefresh: true,
                     skipReload: true
                 });
+                console.log('[YeshiAuth] handleRedirectResult: session synced, role=', session && session.user && session.user.role);
+                return session;
             } finally {
                 state.manualAction = false;
             }
         } catch (error) {
-            // If the error is from the redirect (e.g. user denied), surface it
+            state.manualAction = false;
+            console.warn('[YeshiAuth] handleRedirectResult error:', error && error.code, error && error.message);
+            // Surface errors with a code (e.g. user cancelled)
             if (error && error.code) throw error;
             return null;
         }
