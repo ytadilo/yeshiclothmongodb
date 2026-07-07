@@ -547,6 +547,12 @@ function initLoginForm() {
         if (googleButton) googleButton.disabled = true;
 
         try {
+            // Save the ?next= destination before navigating away so it survives the OAuth redirect
+            const rawNext = new URLSearchParams(window.location.search).get('next');
+            if (rawNext) {
+                try { sessionStorage.setItem('yeshi_google_next', rawNext); } catch (_) {}
+            }
+
             const bridge = await getFirebaseBridge();
             // loginWithGoogle now uses signInWithRedirect — page will navigate away.
             // No result is returned here; result is handled on page load via handleRedirectResult.
@@ -707,6 +713,12 @@ function initSignupForm() {
         if (googleButton) googleButton.disabled = true;
 
         try {
+            // Save the ?next= destination before navigating away
+            const rawNext = new URLSearchParams(window.location.search).get('next');
+            if (rawNext) {
+                try { sessionStorage.setItem('yeshi_google_next', rawNext); } catch (_) {}
+            }
+
             const bridge = await getFirebaseBridge();
             // loginWithGoogle now uses signInWithRedirect — page will navigate away.
             await bridge.loginWithGoogle();
@@ -817,10 +829,27 @@ document.addEventListener('DOMContentLoaded', async function () {
     try {
         const bridge = await getFirebaseBridge();
         const session = await bridge.handleRedirectResult();
-        if (session && session.user) {
+        if (session && (session.user || session.token)) {
             // Redirect result came back — session is now set, redirect to destination
             const enrichedUser = await flushPendingSignupProfile(session.user);
-            redirectAfterAuth(enrichedUser || session.user);
+            const targetUser = enrichedUser || session.user || safeParseJson(localStorage.getItem('user'));
+
+            // Restore the ?next= destination that was saved before the redirect
+            let savedNext = null;
+            try { savedNext = sessionStorage.getItem('yeshi_google_next'); } catch (_) {}
+            if (savedNext) {
+                try { sessionStorage.removeItem('yeshi_google_next'); } catch (_) {}
+            }
+
+            const role = String(targetUser && targetUser.role || getCurrentStoredRole() || '').trim();
+            if (role === 'admin') {
+                window.location.replace('/admin/dashboard.html');
+            } else if (savedNext) {
+                window.location.replace(normalizeNextDestination(savedNext));
+            } else {
+                // Default: go to home page for customers
+                window.location.replace('/');
+            }
             return; // Don't run redirectIfAlreadyLoggedIn — we already redirected
         }
     } catch (redirectError) {
