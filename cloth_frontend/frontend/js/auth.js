@@ -1,4 +1,4 @@
-(() => {
+﻿(() => {
 if (window.__yeshiAuthRuntimeInitialized) {
     return;
 }
@@ -543,29 +543,21 @@ function initLoginForm() {
 
     const googleButton = bindGoogleButton(googleContainer, async () => {
         setFormStatus(form, '', '');
-        setButtonLoading(submitButton, true, 'Redirecting to Google...');
+        setButtonLoading(submitButton, true, 'Waiting...');
         if (googleButton) googleButton.disabled = true;
 
         try {
-            // Save the ?next= destination before navigating away so it survives the OAuth redirect
-            const rawNext = new URLSearchParams(window.location.search).get('next');
-            if (rawNext) {
-                try { sessionStorage.setItem('yeshi_google_next', rawNext); } catch (_) {}
-            }
-
             const bridge = await getFirebaseBridge();
-            // loginWithGoogle now uses signInWithRedirect — page will navigate away.
-            // No result is returned here; result is handled on page load via handleRedirectResult.
-            await bridge.loginWithGoogle();
-            // If we get here (redirect not triggered), fall back to waiting
+            const session = await bridge.loginWithGoogle();
+            redirectAfterAuth(session && session.user);
         } catch (error) {
             const bridge = window.YeshiFirebaseAuth;
             setFormStatus(form, 'error', bridge ? bridge.getFriendlyError(error) : (error && error.message) || 'Google login failed');
+        } finally {
             setButtonLoading(submitButton, false);
             if (googleButton) googleButton.disabled = false;
             updateSubmitState(form, validate);
         }
-        // Note: don't re-enable buttons — page is redirecting away to Google.
     });
 
     const flash = consumeAuthFlash();
@@ -709,27 +701,21 @@ function initSignupForm() {
 
     const googleButton = bindGoogleButton(googleContainer, async () => {
         setFormStatus(form, '', '');
-        setButtonLoading(submitButton, true, 'Redirecting to Google...');
+        setButtonLoading(submitButton, true, 'Waiting...');
         if (googleButton) googleButton.disabled = true;
 
         try {
-            // Save the ?next= destination before navigating away
-            const rawNext = new URLSearchParams(window.location.search).get('next');
-            if (rawNext) {
-                try { sessionStorage.setItem('yeshi_google_next', rawNext); } catch (_) {}
-            }
-
             const bridge = await getFirebaseBridge();
-            // loginWithGoogle now uses signInWithRedirect — page will navigate away.
-            await bridge.loginWithGoogle();
+            const session = await bridge.loginWithGoogle();
+            redirectAfterAuth(session && session.user);
         } catch (error) {
             const bridge = window.YeshiFirebaseAuth;
             setFormStatus(form, 'error', bridge ? bridge.getFriendlyError(error) : (error && error.message) || 'Google signup failed');
+        } finally {
             setButtonLoading(submitButton, false);
             if (googleButton) googleButton.disabled = false;
             updateSubmitState(form, validate);
         }
-        // Note: don't re-enable buttons — page is redirecting away to Google.
     });
 
     updateSubmitState(form, validate);
@@ -819,72 +805,11 @@ async function logout() {
 
 window.logout = logout;
 
-    document.addEventListener('DOMContentLoaded', async function () {
+document.addEventListener('DOMContentLoaded', async function () {
     preserveNextAcrossAuthLinks();
     initLoginForm();
     initSignupForm();
     initForgotPasswordForm();
-
-    // ── Google Redirect Result Handler ────────────────────────────────────
-    // After signInWithRedirect, Google redirects back to this page.
-    // handleRedirectResult() calls getRedirectResult() exactly once,
-    // sets manualAction=true to block onAuthStateChanged interference,
-    // then syncs the session with the backend.
-    try {
-        const bridge = await getFirebaseBridge();
-
-        console.log('[YeshiAuth] DOMContentLoaded: calling handleRedirectResult...');
-        const session = await bridge.handleRedirectResult();
-
-        if (session && (session.ok || session.token || session.user)) {
-            console.log('[YeshiAuth] DOMContentLoaded: redirect result received, redirecting...');
-
-            // Restore saved ?next= from before the redirect
-            let savedNext = null;
-            try { savedNext = sessionStorage.getItem('yeshi_google_next'); } catch (_) {}
-            if (savedNext) {
-                try { sessionStorage.removeItem('yeshi_google_next'); } catch (_) {}
-            }
-
-            // Enrich user profile if pending signup data exists
-            const sessionUser = session.user || safeParseJson(localStorage.getItem('user'));
-            await flushPendingSignupProfile(sessionUser).catch(() => null);
-            const finalUser = safeParseJson(localStorage.getItem('user')) || sessionUser;
-
-            const role = String(finalUser && finalUser.role || getCurrentStoredRole() || '').trim();
-            console.log('[YeshiAuth] DOMContentLoaded: user role =', role);
-
-            if (role === 'admin') {
-                window.location.replace('/admin/dashboard.html');
-            } else {
-                window.location.replace(savedNext ? normalizeNextDestination(savedNext) : '/');
-            }
-            return; // Stop — navigation in progress
-        }
-
-        console.log('[YeshiAuth] DOMContentLoaded: no redirect result, checking existing session...');
-    } catch (redirectError) {
-        // Redirect flow errored (e.g. user denied, or auth/cancelled)
-        const bridge = window.YeshiFirebaseAuth;
-        const msg = bridge ? bridge.getFriendlyError(redirectError) : (redirectError && redirectError.message) || 'Google sign-in failed';
-        console.warn('[YeshiAuth] DOMContentLoaded redirect error:', msg);
-        const loginForm = document.getElementById('loginForm');
-        const signupForm = document.getElementById('signupForm');
-        const targetForm = loginForm || signupForm;
-        if (targetForm) {
-            let statusEl = targetForm.querySelector('.form-status');
-            if (!statusEl) {
-                statusEl = document.createElement('div');
-                statusEl.className = 'form-status';
-                targetForm.appendChild(statusEl);
-            }
-            statusEl.textContent = msg;
-            statusEl.className = 'form-status error';
-        }
-    }
-
-    // ── Existing Session Check ────────────────────────────────────────────
-    // If user already has a valid session, redirect away from auth pages
     await redirectIfAlreadyLoggedIn();
 });
 })();

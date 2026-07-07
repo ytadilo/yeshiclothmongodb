@@ -1,4 +1,4 @@
-(function (window) {
+﻿(function (window) {
     const FIREBASE_APP_URL = 'https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js';
     const FIREBASE_AUTH_URL = 'https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js';
     const FIREBASE_UID_KEY = 'yeshi_firebase_uid';
@@ -341,13 +341,6 @@
             }
         });
 
-        // Handle Google redirect result on every page load.
-        // Must be called after getAuth() and before any other auth operations.
-        // NOTE: This is intentionally NOT called here — auth.js is the single
-        // caller of handleRedirectResult() to avoid consuming the result twice.
-        // The onAuthStateChanged listener below will fire when the redirect
-        // result is processed, and auth.js will pick it up via handleRedirectResult().
-
         try {
             window.dispatchEvent(new CustomEvent('yeshi:firebase-auth-ready'));
         } catch (_) {
@@ -587,57 +580,14 @@
             const provider = new state.authModule.GoogleAuthProvider();
             provider.setCustomParameters({ prompt: 'select_account' });
 
-            // Use redirect instead of popup — popup fails when Cross-Origin-Opener-Policy
-            // is set on the page (Firebase popup.closed check gets blocked by COOP).
-            // signInWithRedirect navigates away and back, fully bypassing COOP issues.
-            await state.authModule.signInWithRedirect(state.auth, provider);
-            // The page will redirect away — code below never runs during redirect.
-            // The result is handled on page load via getRedirectResult() in handleRedirectResult().
-            return null;
-        } catch (error) {
+            await state.authModule.signInWithPopup(state.auth, provider);
+            return ensureAppSession({
+                force: true,
+                forceIdTokenRefresh: true,
+                skipReload: true
+            });
+        } finally {
             state.manualAction = false;
-            throw error;
-        }
-        // Note: manualAction stays true intentionally — the page redirects away.
-    }
-
-    // Call this on every page load to handle the Google redirect result.
-    // IMPORTANT: Must be called once and only once per page load, before any
-    // other auth operations. Sets manualAction=true for the entire duration
-    // so onAuthStateChanged does not race with getRedirectResult.
-    async function handleRedirectResult() {
-        await whenReady();
-
-        // Block onAuthStateChanged from interfering while we check for redirect
-        state.manualAction = true;
-        try {
-            const result = await state.authModule.getRedirectResult(state.auth);
-            if (!result || !result.user) {
-                // No pending redirect — release the block
-                state.manualAction = false;
-                return null;
-            }
-
-            console.log('[YeshiAuth] handleRedirectResult: Google redirect completed for', result.user.email);
-
-            // We have a result — sync session with backend
-            try {
-                const session = await ensureAppSession({
-                    force: true,
-                    forceIdTokenRefresh: true,
-                    skipReload: true
-                });
-                console.log('[YeshiAuth] handleRedirectResult: session synced, role=', session && session.user && session.user.role);
-                return session;
-            } finally {
-                state.manualAction = false;
-            }
-        } catch (error) {
-            state.manualAction = false;
-            console.warn('[YeshiAuth] handleRedirectResult error:', error && error.code, error && error.message);
-            // Surface errors with a code (e.g. user cancelled)
-            if (error && error.code) throw error;
-            return null;
         }
     }
 
@@ -816,7 +766,6 @@
         registerWithEmail,
         loginWithEmail,
         loginWithGoogle,
-        handleRedirectResult,
         sendPasswordReset,
         updateEmailAddress,
         signOutUser,
