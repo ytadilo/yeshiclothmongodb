@@ -21,7 +21,7 @@ function extractMessage(error) {
 class ChapaService {
     constructor() {
         this.secretKey = process.env.CHAPA_SECRET_KEY || '';
-        this.baseReturnUrl = process.env.BASE_URL || 'https://myclothefullstackhaile.onrender.com';
+        this.baseReturnUrl = process.env.BASE_URL || 'https://myclothe.app.aletcloud.com';
         this.callbackUrl = process.env.CALLBACK_URL ||
             `${this.baseReturnUrl}/api/payments/chapa/webhook`;
         this.returnUrl = process.env.RETURN_URL ||

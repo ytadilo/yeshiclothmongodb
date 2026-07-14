@@ -1,7 +1,7 @@
 # Chapa Payment — Quick Testing Guide
 
 **Frontend:** https://www.yeshiclothe.com.et  
-**Backend:** https://myclothefullstackhaile.onrender.com
+**Backend:** https://myclothe.app.aletcloud.com
 
 ---
 
@@ -207,7 +207,7 @@ Look for:
 ## Production Checklist
 
 - [ ] Live Chapa keys set on Render dashboard
-- [ ] `CALLBACK_URL` = `https://myclothefullstackhaile.onrender.com/api/payments/chapa/webhook`
+- [ ] `CALLBACK_URL` = `https://myclothe.app.aletcloud.com/api/payments/chapa/webhook`
 - [ ] `RETURN_URL` = `https://www.yeshiclothe.com.et/payment-result`
 - [ ] `NODE_ENV=production` (enables strict webhook signature enforcement)
 - [ ] `CORS_ORIGINS` includes `https://www.yeshiclothe.com.et`
@@ -230,5 +230,5 @@ Look for:
 ## Reference
 
 - Chapa API docs: https://chapa.co/docs/
-- Backend health: https://myclothefullstackhaile.onrender.com/api/health
+- Backend health: https://myclothe.app.aletcloud.com/api/health
 - Implementation guide: `CHAPA_INTEGRATION.md`

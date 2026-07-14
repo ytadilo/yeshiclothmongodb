@@ -1,7 +1,7 @@
 # Chapa Payment Integration — Implementation Guide
 
 **Frontend:** https://www.yeshiclothe.com.et  
-**Backend (API):** https://myclothefullstackhaile.onrender.com  
+**Backend (API):** https://myclothe.app.aletcloud.com  
 **Last Updated:** June 2026 | **Version:** 1.2.0
 
 ---
@@ -42,7 +42,7 @@ Frontend (HTML + JS)
   payment-checkout.html → POST /api/payments/initialize
         │
         ▼
-Backend (Render → myclothefullstackhaile.onrender.com)
+Backend (Render → myclothe.app.aletcloud.com)
   paymentController.js → chapaService.js
         │
         ▼
@@ -84,8 +84,8 @@ CHAPA_PUBLIC_KEY=pk_live_xxxxxxxxxxxxxxxxxxxx
 CHAPA_BASE_URL=https://api.chapa.co/v1
 
 # URLs
-BASE_URL=https://myclothefullstackhaile.onrender.com
-CALLBACK_URL=https://myclothefullstackhaile.onrender.com/api/payments/chapa/webhook
+BASE_URL=https://myclothe.app.aletcloud.com
+CALLBACK_URL=https://myclothe.app.aletcloud.com/api/payments/chapa/webhook
 RETURN_URL=https://www.yeshiclothe.com.et/payment-result
 ```
 
@@ -100,8 +100,8 @@ RETURN_URL=https://www.yeshiclothe.com.et/payment-result
 | `CHAPA_SECRET_KEY` | ✅ | `sk_live_...` — never expose to frontend |
 | `CHAPA_PUBLIC_KEY` | ✅ | `pk_live_...` |
 | `CHAPA_BASE_URL` | optional | `https://api.chapa.co/v1` |
-| `BASE_URL` | ✅ | `https://myclothefullstackhaile.onrender.com` |
-| `CALLBACK_URL` | ✅ | `https://myclothefullstackhaile.onrender.com/api/payments/chapa/webhook` |
+| `BASE_URL` | ✅ | `https://myclothe.app.aletcloud.com` |
+| `CALLBACK_URL` | ✅ | `https://myclothe.app.aletcloud.com/api/payments/chapa/webhook` |
 | `RETURN_URL` | ✅ | `https://www.yeshiclothe.com.et/payment-result` |
 
 > ℹ️ If `CALLBACK_URL` or `RETURN_URL` are not set, the service falls back to the production defaults above automatically.
@@ -110,7 +110,7 @@ RETURN_URL=https://www.yeshiclothe.com.et/payment-result
 
 ## API Endpoints
 
-Base URL: `https://myclothefullstackhaile.onrender.com`
+Base URL: `https://myclothe.app.aletcloud.com`
 
 ### POST `/api/payments/initialize`
 **Auth:** Required (JWT)
@@ -269,9 +269,9 @@ curl -X POST http://localhost:5000/api/payments/chapa/webhook \
 ```
 CHAPA_SECRET_KEY=sk_live_xxxxxxxxxx
 CHAPA_PUBLIC_KEY=pk_live_xxxxxxxxxx
-CALLBACK_URL=https://myclothefullstackhaile.onrender.com/api/payments/chapa/webhook
+CALLBACK_URL=https://myclothe.app.aletcloud.com/api/payments/chapa/webhook
 RETURN_URL=https://www.yeshiclothe.com.et/payment-result
-BASE_URL=https://myclothefullstackhaile.onrender.com
+BASE_URL=https://myclothe.app.aletcloud.com
 NODE_ENV=production
 ```
 
@@ -279,10 +279,10 @@ NODE_ENV=production
 
 ```bash
 # Health check
-curl https://myclothefullstackhaile.onrender.com/api/health
+curl https://myclothe.app.aletcloud.com/api/health
 
 # Check payment endpoint is alive
-curl -X POST https://myclothefullstackhaile.onrender.com/api/payments/initialize \
+curl -X POST https://myclothe.app.aletcloud.com/api/payments/initialize \
   -H "Content-Type: application/json" \
   -d '{"amount":10}' 
 # Expects: 401 (no auth) or 400 (missing fields) — not 404
