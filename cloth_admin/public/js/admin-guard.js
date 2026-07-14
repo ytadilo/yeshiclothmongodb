@@ -34,7 +34,7 @@
 
     // ── No token → redirect to login immediately ────────────────────────────
     if (!token) {
-        window.location.replace('/login');
+        window.location.replace('/');
         return;
     }
 
