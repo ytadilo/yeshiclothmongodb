@@ -1,4 +1,12 @@
 {
+  "headers": [
+    {
+      "source": "/js/:file*.js",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
+      ]
+    }
+  ],
   "rewrites": [
     { "source": "/api/:path*",      "destination": "https://myclothe.app.aletcloud.com/api/:path*" },
     { "source": "/login",           "destination": "/login.html" },
