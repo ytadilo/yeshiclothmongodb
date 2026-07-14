@@ -42,8 +42,41 @@
         token = '';
     }
 
+    // Fast-path: if token + admin role already stored, show page immediately
+    // and verify in background (avoids CORS delay blocking the UI)
+    var storedRole = '';
+    var storedUser = null;
+    try {
+        storedRole = String(localStorage.getItem('role') || '').toLowerCase();
+        storedUser = JSON.parse(localStorage.getItem('user') || 'null');
+    } catch (_) {}
+
+    if (token && storedRole === 'admin' && storedUser && !storedUser.isBanned) {
+        clearPending();
+        // Still verify in background — redirect if token is invalid
+        var headers = { 'x-auth-token': token };
+        var BACKEND_BASE = (typeof window.__ADMIN_API_BASE === 'string' && window.__ADMIN_API_BASE) ? window.__ADMIN_API_BASE : '';
+        fetch(BACKEND_BASE + '/api/auth/me', { method: 'GET', credentials: 'omit', headers: headers })
+            .then(function (r) { return r.ok ? r.json() : Promise.reject(r.status); })
+            .then(function (payload) {
+                var user = payload && payload.user;
+                var role = String(user && user.role || '').toLowerCase();
+                if (!user || role !== 'admin' || user.isBanned) redirectToLogin();
+                else {
+                    window.__YESHI_ADMIN_SESSION = { ready: true, ok: true, role: role, user: user };
+                }
+            })
+            .catch(function () {
+                // Background verify failed — keep page visible, session may still be valid
+                window.__YESHI_ADMIN_SESSION = { ready: true, ok: true, role: storedRole, user: storedUser };
+            });
+        return;
+    }
+
+    if (!token) { redirectToLogin(); return; }
+
     var headers = {};
-    if (token) headers['x-auth-token'] = token;
+    headers['x-auth-token'] = token;
 
     var BACKEND_BASE = (typeof window.__ADMIN_API_BASE === 'string' && window.__ADMIN_API_BASE)
         ? window.__ADMIN_API_BASE
@@ -51,7 +84,7 @@
 
     fetch(BACKEND_BASE + '/api/auth/me', {
         method: 'GET',
-        credentials: 'same-origin',
+        credentials: 'omit',
         headers: headers
     })
         .then(function (response) {
