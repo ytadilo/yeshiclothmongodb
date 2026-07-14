@@ -2,9 +2,9 @@
  * admin-config.js — MUST be the first script on every admin page.
  *
  * Patches window.fetch so all relative /api/* and /auth/* paths are
- * prefixed with the Render backend URL. This makes the old admin HTML
+ * prefixed with the backend URL. This makes the old admin HTML
  * pages work correctly when hosted on a different domain (aletcloud)
- * from the backend (onrender.com).
+ * from the backend (myclothe.app.aletcloud.com).
  *
  * Compatible with firebase-auth.js which also wraps fetch — both can
  * coexist because each wrapper calls the previous fetch (chain).
@@ -13,7 +13,7 @@
     if (window.__ADMIN_CONFIG_PATCHED__) return;
     window.__ADMIN_CONFIG_PATCHED__ = true;
 
-    var BACKEND = 'https://myclothefullstackhaile.onrender.com';
+    var BACKEND = 'https://myclothe.app.aletcloud.com';
     window.__ADMIN_API_BASE = BACKEND;
 
     var _prev = window.fetch.bind(window);
