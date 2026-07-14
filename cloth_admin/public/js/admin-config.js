@@ -1,21 +1,34 @@
 /**
  * admin-config.js — MUST be the first script on every admin page.
  *
- * Patches window.fetch so all relative /api/* and /auth/* paths are
- * prefixed with the backend URL. This makes the old admin HTML
- * pages work correctly when hosted on a different domain (aletcloud)
- * from the backend (myclothe.app.aletcloud.com).
+ * 1. Inlines the Firebase config so firebase-auth.js never needs to
+ *    call /api/auth/firebase/config — eliminates the CORS / invalid-api-key
+ *    error when the admin site is hosted on a different domain.
  *
- * Compatible with firebase-auth.js which also wraps fetch — both can
- * coexist because each wrapper calls the previous fetch (chain).
+ * 2. Patches window.fetch so all relative /api/* paths are prefixed
+ *    with the backend URL (myclothe.app.aletcloud.com).
  */
 (function () {
     if (window.__ADMIN_CONFIG_PATCHED__) return;
     window.__ADMIN_CONFIG_PATCHED__ = true;
 
+    // ── Inline Firebase config ───────────────────────────────────────────────
+    // firebase-auth.js reads window.YESHI_FIREBASE_CONFIG first and skips the
+    // /api/auth/firebase/config network request entirely when this is set.
+    window.YESHI_FIREBASE_CONFIG = {
+        apiKey:            'AIzaSyBheqF3CLn3hhv2pzXmLdTt0D54236BP04',
+        authDomain:        'clotheyeshi.firebaseapp.com',
+        projectId:         'clotheyeshi',
+        storageBucket:     'clotheyeshi.firebasestorage.app',
+        messagingSenderId: '342924950227',
+        appId:             ''   // optional — only needed for Analytics
+    };
+
+    // ── Backend base URL ─────────────────────────────────────────────────────
     var BACKEND = 'https://myclothe.app.aletcloud.com';
     window.__ADMIN_API_BASE = BACKEND;
 
+    // ── Fetch patch ──────────────────────────────────────────────────────────
     var _prev = window.fetch.bind(window);
 
     window.fetch = function adminConfigFetch(input, init) {
@@ -23,7 +36,7 @@
             ? input
             : (input instanceof Request ? input.url : String(input || ''));
 
-        // Rewrite only relative paths starting with /api/ or /auth/
+        // Rewrite relative /api/* and /auth/* paths to the backend domain
         if (url.length > 1 && url.charAt(0) === '/' &&
             (url.indexOf('/api/') === 0 || url.indexOf('/auth/') === 0)) {
 
@@ -32,7 +45,7 @@
         }
 
         var opts = init ? Object.assign({}, init) : {};
-        // Use 'omit' — the admin sends auth via x-auth-token header, not cookies
+        // Use 'omit' — admin authenticates via x-auth-token header, not cookies
         if (!opts.credentials) opts.credentials = 'omit';
 
         return _prev(input, opts);
