@@ -114,7 +114,7 @@
         var storedUser;
         try { storedUser = JSON.parse(localStorage.getItem('user') || 'null'); } catch (_) { storedUser = null; }
         if (token && storedUser && String(storedUser.role || '').toLowerCase() === 'admin') {
-            window.location.replace('/admin/dashboard');
+            window.location.replace('/admin/dashboard.html');
             return;
         }
 
@@ -195,7 +195,7 @@
 
                 persistSession(data.token, data.user);
                 setStatus('success', 'Login successful. Redirecting...');
-                window.location.replace('/admin/dashboard');
+                window.location.replace('/admin/dashboard.html');
             } catch (err) {
                 setStatus('error', err.message || 'Login failed. Please try again.');
             } finally {
@@ -233,7 +233,7 @@
                     throw new Error('Access denied — admin account required.');
 
                 setStatus('success', 'Login successful. Redirecting...');
-                window.location.replace('/admin/dashboard');
+                window.location.replace('/admin/dashboard.html');
             } catch (err) {
                 setStatus('error', err.message || 'Google sign-in failed. Please try again.');
             } finally {

@@ -106,7 +106,7 @@
         const serverRole = String(serverSession && serverSession.role || '').toLowerCase();
         if (!token || blocked || serverDenied || (serverSession && serverSession.ok && serverRole !== 'admin')) {
             const next = encodeURIComponent(window.location.pathname + window.location.search);
-            window.location.replace('/auth/login?next=' + next);
+            window.location.replace('/?next=' + next);
             return false;
         }
         return true;

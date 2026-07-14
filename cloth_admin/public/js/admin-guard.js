@@ -12,7 +12,7 @@
 (function () {
     // Pages that don't require auth
     var PUBLIC = {
-        '/admin/login.html': true,
+        '/admin/index.html': true,
         '/admin/forgot-password.html': true,
         '/admin/verify-otp.html': true,
         '/admin/reset-password.html': true
@@ -68,7 +68,7 @@
                 localStorage.removeItem('user');
                 localStorage.removeItem('loginTime');
             } catch (_) {}
-            window.location.replace('/login');
+            window.location.replace('/');
             return;
         }
 
