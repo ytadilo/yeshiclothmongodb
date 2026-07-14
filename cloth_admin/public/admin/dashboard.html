@@ -939,7 +939,7 @@
             const role = user?.role || localStorage.getItem('role');
 
               if (!token || role !== 'admin') {
-                  window.location.href = '/auth/login';
+                  window.location.href = '/';
                 return;
             }
 
@@ -1172,7 +1172,7 @@
                 if ((err?.message || '').toLowerCase().includes('token')) {
                     localStorage.removeItem('token');
                     localStorage.removeItem('user');
-                    window.location.href = '/auth/login';
+                    window.location.href = '/';
                 }
             }
         }

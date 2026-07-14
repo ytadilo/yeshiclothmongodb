@@ -5,17 +5,15 @@
  *   1. If a valid admin token exists in localStorage → show the page immediately.
  *   2. Verify in the background — only redirect on explicit 401/403 (bad token).
  *   3. Network failures (CORS, timeout, offline) never cause a redirect.
- *   4. If no token at all → redirect to /login.
+ *   4. If no token at all → redirect to /
  *
  * This eliminates the "login loop" caused by CORS errors on /api/auth/me.
  */
 (function () {
     // Pages that don't require auth
     var PUBLIC = {
-        '/admin/index.html': true,
-        '/admin/forgot-password.html': true,
-        '/admin/verify-otp.html': true,
-        '/admin/reset-password.html': true
+        '/admin/login.html': true,
+        '/admin/forgot-password.html': true
     };
 
     var pathname = String(window.location.pathname || '').replace(/\/+$/, '') || '/';

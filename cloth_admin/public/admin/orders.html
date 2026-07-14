@@ -331,9 +331,9 @@
                 const qty = Number(pack.quantity || 1);
                 const header = `
                     <div style="margin-bottom:8px; display:grid; grid-template-columns:1fr 1fr; gap:8px 14px; color:#333;">
-                        <div><span style="color:var(--light-text);">Rule:</span> ${escapeHtml(String(pack.rule || 'GÇö'))}</div>
+                        <div><span style="color:var(--light-text);">Rule:</span> ${escapeHtml(String(pack.rule || 'Gï¿½ï¿½'))}</div>
                         <div><span style="color:var(--light-text);">Quantity:</span> ${escapeHtml(String(Number.isFinite(qty) ? qty : 1))}</div>
-                        <div><span style="color:var(--light-text);">Mode:</span> ${escapeHtml(String(pack.mode || 'GÇö'))}</div>
+                        <div><span style="color:var(--light-text);">Mode:</span> ${escapeHtml(String(pack.mode || 'Gï¿½ï¿½'))}</div>
                         <div><span style="color:var(--light-text);">Total measurements:</span> ${escapeHtml(String(pack.entries.length))}</div>
                     </div>
                 `;
@@ -341,7 +341,7 @@
                 const entriesHtml = pack.entries.map((entry) => {
                     const productIndex = Number(entry?.productIndex || 1);
                     const label = String(entry?.label || 'Measurement');
-                    const personName = String(entry?.personName || 'GÇö');
+                    const personName = String(entry?.personName || 'Gï¿½ï¿½');
                     const fieldDefs = Array.isArray(entry?.measurementFields) && entry.measurementFields.length
                         ? entry.measurementFields
                         : Object.keys(entry?.measurementDetails || {}).map((key) => ({ key, label: key }));
@@ -349,7 +349,7 @@
                         ? entry.measurementDetails
                         : {};
                     const detailLines = fieldDefs
-                        .map((field) => `<div style="font-size:0.88rem;"><span style="color:var(--light-text);">${escapeHtml(String(field.label || field.key))}:</span> ${escapeHtml(String(detailObj[field.key] || 'GÇö'))}</div>`)
+                        .map((field) => `<div style="font-size:0.88rem;"><span style="color:var(--light-text);">${escapeHtml(String(field.label || field.key))}:</span> ${escapeHtml(String(detailObj[field.key] || 'Gï¿½ï¿½'))}</div>`)
                         .join('');
                     const notes = String(entry?.notes || '').trim();
                     return `
@@ -365,14 +365,14 @@
                 return header + entriesHtml;
             }
 
-            const size = measurements?.size || 'GÇö';
-            const height = measurements?.height ?? 'GÇö';
-            const shoulder = measurements?.shoulder ?? 'GÇö';
-            const chest = measurements?.chest ?? 'GÇö';
-            const waist = measurements?.waist ?? 'GÇö';
-            const hip = measurements?.hip ?? 'GÇö';
-            const length = measurements?.length ?? 'GÇö';
-            const sleeve = measurements?.sleeve ?? 'GÇö';
+            const size = measurements?.size || 'Gï¿½ï¿½';
+            const height = measurements?.height ?? 'Gï¿½ï¿½';
+            const shoulder = measurements?.shoulder ?? 'Gï¿½ï¿½';
+            const chest = measurements?.chest ?? 'Gï¿½ï¿½';
+            const waist = measurements?.waist ?? 'Gï¿½ï¿½';
+            const hip = measurements?.hip ?? 'Gï¿½ï¿½';
+            const length = measurements?.length ?? 'Gï¿½ï¿½';
+            const sleeve = measurements?.sleeve ?? 'Gï¿½ï¿½';
 
             return `
                 <div style="margin-top: 8px; color:#333; display:grid; grid-template-columns: 1fr 1fr; gap: 8px 14px;">
@@ -455,32 +455,32 @@
                     const status = order?.order_status || order?.status || 'Received';
                     const category = (Array.isArray(cloth?.categories) && cloth.categories.length
                         ? cloth.categories.map((row) => String(row || '').trim()).filter(Boolean).join(', ')
-                        : (cloth?.category || order?.category || 'GÇö'));
-                    const phone = userProfile.phone || customer.phone || order?.phone || 'GÇö';
-                    const email = userProfile.email || 'GÇö';
-                    const age = userProfile.age ?? 'GÇö';
-                    const sex = userProfile.sex || 'GÇö';
+                        : (cloth?.category || order?.category || 'Gï¿½ï¿½'));
+                    const phone = userProfile.phone || customer.phone || order?.phone || 'Gï¿½ï¿½';
+                    const email = userProfile.email || 'Gï¿½ï¿½';
+                    const age = userProfile.age ?? 'Gï¿½ï¿½';
+                    const sex = userProfile.sex || 'Gï¿½ï¿½';
                     const profileImage = getImgUrl(userProfile.profileImage || '');
 
-                    const fatherName = customer.father_name || customer.fatherName || 'GÇö';
+                    const fatherName = customer.father_name || customer.fatherName || 'Gï¿½ï¿½';
                     const country = customer.country || customerAddress.country || 'Ethiopia';
-                    const region = customer.region || customerAddress.region || 'GÇö';
+                    const region = customer.region || customerAddress.region || 'Gï¿½ï¿½';
                     const regionCustom = customer.region_custom || customerAddress.region_custom || '';
-                    const city = customer.city || customerAddress.city || 'GÇö';
-                    const zipCode = customer.zip_code || customerAddress.zip_code || 'GÇö';
-                    const subCity = customerAddress.sub_city || 'GÇö';
-                    const woreda = customerAddress.woreda || 'GÇö';
-                    const landmark = customerAddress.landmark || 'GÇö';
-                    const specificAddress = customerAddress.specific_address || (typeof customer.address === 'string' ? customer.address : 'GÇö');
+                    const city = customer.city || customerAddress.city || 'Gï¿½ï¿½';
+                    const zipCode = customer.zip_code || customerAddress.zip_code || 'Gï¿½ï¿½';
+                    const subCity = customerAddress.sub_city || 'Gï¿½ï¿½';
+                    const woreda = customerAddress.woreda || 'Gï¿½ï¿½';
+                    const landmark = customerAddress.landmark || 'Gï¿½ï¿½';
+                    const specificAddress = customerAddress.specific_address || (typeof customer.address === 'string' ? customer.address : 'Gï¿½ï¿½');
                     const deviceLocation = order?.device_location || {};
                     const deviceLocationText = Number.isFinite(Number(deviceLocation.latitude)) && Number.isFinite(Number(deviceLocation.longitude))
-                        ? `${Number(deviceLocation.latitude).toFixed(5)}, ${Number(deviceLocation.longitude).toFixed(5)}${Number.isFinite(Number(deviceLocation.accuracy)) ? ` (-¦${Math.round(Number(deviceLocation.accuracy))}m)` : ''}`
+                        ? `${Number(deviceLocation.latitude).toFixed(5)}, ${Number(deviceLocation.longitude).toFixed(5)}${Number.isFinite(Number(deviceLocation.accuracy)) ? ` (-ï¿½${Math.round(Number(deviceLocation.accuracy))}m)` : ''}`
                         : (deviceLocation.label || deviceLocation.status || 'Unavailable');
                     const deviceMapUrl = String(deviceLocation.map_url || '').trim();
 
-                    const designType = cloth.design_type || cloth.designType || 'GÇö';
-                    const color = cloth.color || 'GÇö';
-                    const eventType = cloth.event_type || cloth.eventType || 'GÇö';
+                    const designType = cloth.design_type || cloth.designType || 'Gï¿½ï¿½';
+                    const color = cloth.color || 'Gï¿½ï¿½';
+                    const eventType = cloth.event_type || cloth.eventType || 'Gï¿½ï¿½';
                     const deadline = cloth.deadline_date || cloth.deadlineDate || null;
                     const hasSelectedPostData = Boolean(order?.post_id || cloth.post_title || cloth.postTitle || cloth.post_image || cloth.postImage);
                     const isProductAsIsOrder =
@@ -488,7 +488,7 @@
                         || Boolean(order?.post_id || order?.productId);
                     const clothTitle = hasSelectedPostData
                         ? (cloth.post_title || cloth.postTitle || category)
-                        : (category || designType || 'GÇö');
+                        : (category || designType || 'Gï¿½ï¿½');
                     const itemLabel = buildItemLabel(cloth, category);
                     const clothImage = getImgUrl(cloth.post_image || cloth.postImage || '');
                     const clothDescription = cloth.post_description || cloth.postDescription || '';
@@ -496,11 +496,11 @@
                     const clothShippingPrice = Number(cloth.post_shipping_price_etb ?? cloth.postShippingPriceEtb);
                     const clothFreeShipping = Boolean(cloth.post_free_shipping ?? cloth.postFreeShipping);
 
-                    const measurementType = meas.type || 'GÇö';
+                    const measurementType = meas.type || 'Gï¿½ï¿½';
                     const measurementDetailsHtml = renderMeasurementDetailsHtml(meas);
 
-                    const deliveryMethod = order?.delivery_method || order?.deliveryMethod || 'GÇö';
-                    const paymentMethod = paymentInfo?.method || order?.payment_method || 'GÇö';
+                    const deliveryMethod = order?.delivery_method || order?.deliveryMethod || 'Gï¿½ï¿½';
+                    const paymentMethod = paymentInfo?.method || order?.payment_method || 'Gï¿½ï¿½';
                     const paymentStatus = order?.payment_status || order?.paymentStatus || paymentInfo?.status || 'Pending';
                     const paymentSubmittedAt = fmtDate(paymentInfo?.paid_at);
                     const effectiveStatus = deriveFlowStatus(paymentStatus, sewingStatus, status);
@@ -519,20 +519,20 @@
 
                     const finalRegion = region === 'Other' && regionCustom ? regionCustom : region;
                     const locationBits = [
-                        `Country: ${country || 'GÇö'}`,
-                        `Region: ${finalRegion || 'GÇö'}`,
-                        `City: ${city || 'GÇö'}`,
-                        `ZIP: ${zipCode || 'GÇö'}`
+                        `Country: ${country || 'Gï¿½ï¿½'}`,
+                        `Region: ${finalRegion || 'Gï¿½ï¿½'}`,
+                        `City: ${city || 'Gï¿½ï¿½'}`,
+                        `ZIP: ${zipCode || 'Gï¿½ï¿½'}`
                     ];
-                    if (subCity && subCity !== 'GÇö') locationBits.push(`Sub-city: ${subCity}`);
-                    if (woreda && woreda !== 'GÇö') locationBits.push(`Woreda: ${woreda}`);
-                    if (landmark && landmark !== 'GÇö') locationBits.push(`Landmark: ${landmark}`);
+                    if (subCity && subCity !== 'Gï¿½ï¿½') locationBits.push(`Sub-city: ${subCity}`);
+                    if (woreda && woreda !== 'Gï¿½ï¿½') locationBits.push(`Woreda: ${woreda}`);
+                    if (landmark && landmark !== 'Gï¿½ï¿½') locationBits.push(`Landmark: ${landmark}`);
 
                     const specificAddressNorm = String(specificAddress || '').toLowerCase();
                     const duplicateSummary = [country, finalRegion, city, zipCode]
-                        .filter((v) => v && v !== 'GÇö')
+                        .filter((v) => v && v !== 'Gï¿½ï¿½')
                         .every((v) => specificAddressNorm.includes(String(v).toLowerCase()));
-                    if (specificAddress && specificAddress !== 'GÇö' && !duplicateSummary) {
+                    if (specificAddress && specificAddress !== 'Gï¿½ï¿½' && !duplicateSummary) {
                         locationBits.push(`Address Detail: ${specificAddress}`);
                     }
 
@@ -555,7 +555,7 @@
                                 <h4 class="order-card__name">${escapeHtml(fullName)}</h4>
                                 <div class="order-card__status">${escapeHtml(effectiveStatus)} -+ Sewing: ${escapeHtml(sewingStatus)} -+ Payment: ${escapeHtml(paymentStatus)}</div>
                                 <div style="color: var(--light-text); font-size: 0.9rem; margin-top: 4px;">${createdAt ? `Ordered: ${escapeHtml(createdAt)}` : ''}</div>
-                                <div style="color: var(--light-text); font-size: 0.84rem; margin-top: 2px;">${paymentSubmittedAt ? `Payment submitted: ${escapeHtml(paymentSubmittedAt)}` : 'Payment submitted: GÇö'}</div>
+                                <div style="color: var(--light-text); font-size: 0.84rem; margin-top: 2px;">${paymentSubmittedAt ? `Payment submitted: ${escapeHtml(paymentSubmittedAt)}` : 'Payment submitted: Gï¿½ï¿½'}</div>
                                 </div>
                             </div>
                         </div>
@@ -568,7 +568,7 @@
                                     <div style="font-weight:800; color:#1a1c1c;">${escapeHtml(clothTitle || 'Selected cloth')}</div>
                                     <div style="margin-top:3px; color:#666;">Category: ${escapeHtml(category)}</div>
                                     <div style="margin-top:3px; color:#ba1a1a; font-weight:700;">Product Price (per 1): ${Number.isFinite(clothPrice) && clothPrice > 0 ? `${escapeHtml(clothPrice.toLocaleString())} ETB` : 'Price on request'}</div>
-                                    <div style="margin-top:2px; color:#745B18; font-weight:700;">Shipping (per 1): ${clothFreeShipping ? 'Free shipping' : (Number.isFinite(clothShippingPrice) && clothShippingPrice >= 0 ? `${escapeHtml(clothShippingPrice.toLocaleString())} ETB` : 'Shipping: GÇö')}</div>
+                                    <div style="margin-top:2px; color:#745B18; font-weight:700;">Shipping (per 1): ${clothFreeShipping ? 'Free shipping' : (Number.isFinite(clothShippingPrice) && clothShippingPrice >= 0 ? `${escapeHtml(clothShippingPrice.toLocaleString())} ETB` : 'Shipping: Gï¿½ï¿½')}</div>
                                     <div style="margin-top:2px; color:#0f2f21; font-weight:800;">Total payable: ${escapeHtml(payableTotal.toLocaleString())} ETB</div>
                                 </div>
                             </div>
@@ -597,7 +597,7 @@
                                         <div><span style="color:var(--light-text);">Landmark:</span> ${escapeHtml(landmark)}</div>
                                         <div><span style="color:var(--light-text);">Specific address:</span> ${escapeHtml(specificAddress)}</div>
                                         <div><span style="color:var(--light-text);">Device location:</span> ${escapeHtml(deviceLocationText)}</div>
-                                        <div><span style="color:var(--light-text);">Timezone:</span> ${escapeHtml(String(deviceLocation.timezone || 'GÇö'))}</div>
+                                        <div><span style="color:var(--light-text);">Timezone:</span> ${escapeHtml(String(deviceLocation.timezone || 'Gï¿½ï¿½'))}</div>
                                     </div>
                                     ${deviceMapUrl ? `<div style="margin-top:8px;"><a href="${escapeHtml(deviceMapUrl)}" target="_blank" rel="noopener noreferrer" style="color:#745B18; text-decoration:underline;">Open device location in map</a></div>` : ''}
                                 </div>
@@ -612,14 +612,14 @@
                                         </div>
                                     ` : ''}
                                     <div style="margin-top: 8px; color:#333; display:grid; grid-template-columns: 1fr 1fr; gap: 8px 14px;">
-                                        <div><span style="color:var(--light-text);">Title:</span> ${escapeHtml(clothTitle || 'GÇö')}</div>
+                                        <div><span style="color:var(--light-text);">Title:</span> ${escapeHtml(clothTitle || 'Gï¿½ï¿½')}</div>
                                         <div><span style="color:var(--light-text);">Category:</span> ${escapeHtml(category)}</div>
                                         <div><span style="color:var(--light-text);">Design type:</span> ${escapeHtml(designType)}</div>
                                         <div><span style="color:var(--light-text);">Color:</span> ${escapeHtml(color)}</div>
                                         <div><span style="color:var(--light-text);">Event type:</span> ${escapeHtml(eventType)}</div>
-                                        <div><span style="color:var(--light-text);">Deadline:</span> ${deadline ? escapeHtml(new Date(deadline).toLocaleDateString()) : 'GÇö'}</div>
-                                        <div><span style="color:var(--light-text);">Product price (per 1):</span> ${Number.isFinite(clothPrice) && clothPrice > 0 ? escapeHtml(clothPrice.toLocaleString()) + ' ETB' : 'GÇö'}</div>
-                                        <div><span style="color:var(--light-text);">Shipping (per 1):</span> ${clothFreeShipping ? 'Free shipping' : (Number.isFinite(clothShippingPrice) && clothShippingPrice >= 0 ? escapeHtml(clothShippingPrice.toLocaleString()) + ' ETB' : 'GÇö')}</div>
+                                        <div><span style="color:var(--light-text);">Deadline:</span> ${deadline ? escapeHtml(new Date(deadline).toLocaleDateString()) : 'Gï¿½ï¿½'}</div>
+                                        <div><span style="color:var(--light-text);">Product price (per 1):</span> ${Number.isFinite(clothPrice) && clothPrice > 0 ? escapeHtml(clothPrice.toLocaleString()) + ' ETB' : 'Gï¿½ï¿½'}</div>
+                                        <div><span style="color:var(--light-text);">Shipping (per 1):</span> ${clothFreeShipping ? 'Free shipping' : (Number.isFinite(clothShippingPrice) && clothShippingPrice >= 0 ? escapeHtml(clothShippingPrice.toLocaleString()) + ' ETB' : 'Gï¿½ï¿½')}</div>
                                         <div><span style="color:var(--light-text);">Total payable:</span> ${escapeHtml(payableTotal.toLocaleString())} ETB</div>
                                     </div>
                                     ${clothDescription ? `<p style="margin-top:10px; color:#444;"><span style="color:var(--light-text);">Description:</span> ${escapeHtml(clothDescription)}</p>` : ''}
@@ -637,11 +637,11 @@
                                         <div><span style="color:var(--light-text);">Delivery method:</span> ${escapeHtml(deliveryMethod)}</div>
                                         <div><span style="color:var(--light-text);">Payment method:</span> ${escapeHtml(paymentMethod)}</div>
                                         <div><span style="color:var(--light-text);">Payment status:</span> ${escapeHtml(paymentStatus)}</div>
-                                        <div><span style="color:var(--light-text);">Payment date:</span> ${paymentSubmittedAt ? escapeHtml(paymentSubmittedAt) : 'GÇö'}</div>
-                                        <div><span style="color:var(--light-text);">Payment comment:</span> ${paymentComment ? escapeHtml(paymentComment) : 'GÇö'}</div>
+                                        <div><span style="color:var(--light-text);">Payment date:</span> ${paymentSubmittedAt ? escapeHtml(paymentSubmittedAt) : 'Gï¿½ï¿½'}</div>
+                                        <div><span style="color:var(--light-text);">Payment comment:</span> ${paymentComment ? escapeHtml(paymentComment) : 'Gï¿½ï¿½'}</div>
                                         <div><span style="color:var(--light-text);">Sewing status:</span> ${escapeHtml(sewingStatus)}</div>
-                                        <div><span style="color:var(--light-text);">Customer proposed cloth price:</span> ${Number.isFinite(proposedPrice) && proposedPrice > 0 ? escapeHtml(proposedPrice.toLocaleString()) + ' ETB' : 'GÇö'}</div>
-                                        <div><span style="color:var(--light-text);">Submitted date:</span> ${createdAt ? escapeHtml(createdAt) : 'GÇö'}</div>
+                                        <div><span style="color:var(--light-text);">Customer proposed cloth price:</span> ${Number.isFinite(proposedPrice) && proposedPrice > 0 ? escapeHtml(proposedPrice.toLocaleString()) + ' ETB' : 'Gï¿½ï¿½'}</div>
+                                        <div><span style="color:var(--light-text);">Submitted date:</span> ${createdAt ? escapeHtml(createdAt) : 'Gï¿½ï¿½'}</div>
                                         <div><span style="color:var(--light-text);">Ordered quantity:</span> ${escapeHtml(String(orderedQty))}</div>
                                     </div>
 
@@ -690,9 +690,9 @@
                                         <div style="margin-top:10px; display:grid; grid-template-columns:repeat(auto-fit, minmax(160px, 1fr)); gap:8px 12px; font-size:0.9rem; color:#1a1c1c;">
                                             <div><span style="color:var(--light-text);">Method:</span> ${escapeHtml(paymentMethod)}</div>
                                             <div><span style="color:var(--light-text);">Status:</span> ${escapeHtml(paymentStatus)}</div>
-                                            <div><span style="color:var(--light-text);">Submitted:</span> ${paymentSubmittedAt ? escapeHtml(paymentSubmittedAt) : 'GÇö'}</div>
+                                            <div><span style="color:var(--light-text);">Submitted:</span> ${paymentSubmittedAt ? escapeHtml(paymentSubmittedAt) : 'Gï¿½ï¿½'}</div>
                                         </div>
-                                        <div style="margin-top:8px; font-size:0.9rem; color:#1a1c1c;"><span style="color:var(--light-text);">Comment:</span> ${paymentComment ? escapeHtml(paymentComment) : 'GÇö'}</div>
+                                        <div style="margin-top:8px; font-size:0.9rem; color:#1a1c1c;"><span style="color:var(--light-text);">Comment:</span> ${paymentComment ? escapeHtml(paymentComment) : 'Gï¿½ï¿½'}</div>
 
                                         ${renderPaymentProofPreviewHtml(screenshotUrl, screenshotMimeType)}
                                     </div>
@@ -783,7 +783,7 @@
                 if ((err?.message || '').toLowerCase().includes('token')) {
                     localStorage.removeItem('token');
                     localStorage.removeItem('user');
-                        window.location.href = '/auth/login';
+                        window.location.href = '/';
                 }
             }
         }

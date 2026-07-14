@@ -93,7 +93,7 @@ function preserveNextAcrossAuthLinks() {
     if (!rawNext) return;
     const encoded = encodeURIComponent(rawNext);
 
-    document.querySelectorAll('a[href="/auth/register"], a[href="/auth/login"]').forEach((link) => {
+    document.querySelectorAll('a[href="/auth/register"], a[href="/auth/index"]').forEach((link) => {
         const href = link.getAttribute('href') || '';
         if (!href || href.includes('next=')) return;
         link.setAttribute('href', `${href}?next=${encoded}`);
@@ -209,7 +209,7 @@ async function loginWithBackendCredentials(email, password) {
         headers['x-device-fingerprint'] = fingerprint;
     }
 
-    const response = await fetch('/api/auth/login', {
+    const response = await fetch('/api/auth/index', {
         method: 'POST',
         headers,
         body: JSON.stringify({
@@ -774,7 +774,7 @@ async function logout() {
     const storedRole = (storedUser && storedUser.role) || localStorage.getItem('role');
 
     if (window.YeshiAuth && typeof window.YeshiAuth.performLogout === 'function') {
-        await window.YeshiAuth.performLogout('/auth/login');
+        await window.YeshiAuth.performLogout('/');
         return;
     }
 
