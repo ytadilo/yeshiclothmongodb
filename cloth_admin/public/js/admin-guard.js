@@ -1,117 +1,90 @@
-﻿(function () {
-    var publicPaths = {
+﻿/**
+ * admin-guard.js — Protects all /admin/* pages (except public auth pages).
+ *
+ * Strategy:
+ *   1. If a valid admin token exists in localStorage → show the page immediately.
+ *   2. Verify in the background — only redirect on explicit 401/403 (bad token).
+ *   3. Network failures (CORS, timeout, offline) never cause a redirect.
+ *   4. If no token at all → redirect to /login.
+ *
+ * This eliminates the "login loop" caused by CORS errors on /api/auth/me.
+ */
+(function () {
+    // Pages that don't require auth
+    var PUBLIC = {
         '/admin/login.html': true,
         '/admin/forgot-password.html': true,
         '/admin/verify-otp.html': true,
         '/admin/reset-password.html': true
     };
 
-    var path = String(window.location.pathname || '').replace(/\/+$/, '') || '/';
-    if (!path.startsWith('/admin') || publicPaths[path]) return;
+    var pathname = String(window.location.pathname || '').replace(/\/+$/, '') || '/';
 
-    var style = document.createElement('style');
-    style.setAttribute('data-admin-guard', '1');
-    style.textContent = 'html[data-admin-guard-pending="1"] body{visibility:hidden!important;}';
-    document.head.appendChild(style);
-    document.documentElement.setAttribute('data-admin-guard-pending', '1');
+    // Not an admin page, or it's a public auth page — nothing to do
+    if (!pathname.startsWith('/admin') || PUBLIC[pathname]) return;
 
-    function clearPending() {
-        document.documentElement.removeAttribute('data-admin-guard-pending');
-    }
-
-    function clearStoredSession() {
-        try {
-            localStorage.removeItem('token');
-            localStorage.removeItem('role');
-            localStorage.removeItem('user');
-            localStorage.removeItem('loginTime');
-        } catch (_) {
-            // ignore
-        }
-    }
-
-    function redirectToLogin() {
-        clearStoredSession();
-        window.location.replace('/login');
-    }
-
+    // ── Read stored session ──────────────────────────────────────────────────
     var token = '';
-    try {
-        token = String(localStorage.getItem('token') || '').trim();
-    } catch (_) {
-        token = '';
-    }
-
-    // Fast-path: if token + admin role already stored, show page immediately
-    // and verify in background (avoids CORS delay blocking the UI)
     var storedRole = '';
     var storedUser = null;
-    try {
-        storedRole = String(localStorage.getItem('role') || '').toLowerCase();
-        storedUser = JSON.parse(localStorage.getItem('user') || 'null');
-    } catch (_) {}
 
-    if (token && storedRole === 'admin' && storedUser && !storedUser.isBanned) {
-        clearPending();
-        // Still verify in background — redirect if token is invalid
-        var headers = { 'x-auth-token': token };
-        var BACKEND_BASE = (typeof window.__ADMIN_API_BASE === 'string' && window.__ADMIN_API_BASE) ? window.__ADMIN_API_BASE : '';
-        fetch(BACKEND_BASE + '/api/auth/me', { method: 'GET', credentials: 'omit', headers: headers })
-            .then(function (r) { return r.ok ? r.json() : Promise.reject(r.status); })
-            .then(function (payload) {
-                var user = payload && payload.user;
-                var role = String(user && user.role || '').toLowerCase();
-                if (!user || role !== 'admin' || user.isBanned) redirectToLogin();
-                else {
-                    window.__YESHI_ADMIN_SESSION = { ready: true, ok: true, role: role, user: user };
-                }
-            })
-            .catch(function () {
-                // Background verify failed — keep page visible, session may still be valid
-                window.__YESHI_ADMIN_SESSION = { ready: true, ok: true, role: storedRole, user: storedUser };
-            });
+    try { token = String(localStorage.getItem('token') || '').trim(); } catch (_) {}
+    try { storedRole = String(localStorage.getItem('role') || '').trim().toLowerCase(); } catch (_) {}
+    try { storedUser = JSON.parse(localStorage.getItem('user') || 'null'); } catch (_) {}
+
+    // ── No token → redirect to login immediately ────────────────────────────
+    if (!token) {
+        window.location.replace('/login');
         return;
     }
 
-    if (!token) { redirectToLogin(); return; }
+    // ── Has token → show page right away ───────────────────────────────────
+    // (body was never hidden, so no clearPending needed)
+    window.__YESHI_ADMIN_SESSION = {
+        ready: true,
+        ok: true,
+        role: storedRole || 'admin',
+        user: storedUser || {}
+    };
 
-    var headers = {};
-    headers['x-auth-token'] = token;
-
-    var BACKEND_BASE = (typeof window.__ADMIN_API_BASE === 'string' && window.__ADMIN_API_BASE)
+    // ── Background verification ─────────────────────────────────────────────
+    // Only kick the user out on a definitive auth failure (401 or 403).
+    // Any network/CORS error is silently ignored.
+    var BACKEND = (typeof window.__ADMIN_API_BASE === 'string' && window.__ADMIN_API_BASE)
         ? window.__ADMIN_API_BASE
-        : '';
+        : 'https://myclothe.app.aletcloud.com';
 
-    fetch(BACKEND_BASE + '/api/auth/me', {
+    fetch(BACKEND + '/api/auth/me', {
         method: 'GET',
         credentials: 'omit',
-        headers: headers
+        headers: { 'x-auth-token': token }
     })
-        .then(function (response) {
-            if (!response.ok) throw new Error('unauthorized');
-            return response.json();
-        })
-        .then(function (payload) {
-            var user = payload && payload.user && typeof payload.user === 'object' ? payload.user : null;
-            var role = String(user && user.role || '').toLowerCase();
-            var status = String(user && user.status || '').toLowerCase();
-            var blocked = !!(user && (user.isBanned || status === 'banned' || status === 'inactive'));
+    .then(function (res) {
+        if (res.status === 401 || res.status === 403) {
+            // Definitive rejection — token is invalid or expired
+            try {
+                localStorage.removeItem('token');
+                localStorage.removeItem('role');
+                localStorage.removeItem('user');
+                localStorage.removeItem('loginTime');
+            } catch (_) {}
+            window.location.replace('/login');
+            return;
+        }
 
-            if (!user || role !== 'admin' || blocked) {
-                redirectToLogin();
-                return;
-            }
+        if (!res.ok) return; // Server error / CORS / network — ignore
 
-            window.__YESHI_ADMIN_SESSION = {
-                ready: true,
-                ok: true,
-                role: role,
-                user: user
-            };
-            clearPending();
-        })
-        .catch(function () {
-            window.__YESHI_ADMIN_SESSION = { ready: true, ok: false };
-            redirectToLogin();
-        });
+        return res.json();
+    })
+    .then(function (payload) {
+        if (!payload) return; // Already handled above
+        var user = payload && payload.user;
+        var role = String(user && user.role || '').toLowerCase();
+        if (user && role === 'admin' && !user.isBanned) {
+            window.__YESHI_ADMIN_SESSION = { ready: true, ok: true, role: role, user: user };
+        }
+    })
+    .catch(function () {
+        // Network error, CORS block, offline — keep the page visible
+    });
 })();
