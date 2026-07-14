@@ -47,7 +47,7 @@
 
     var BACKEND_BASE = (typeof window.__ADMIN_API_BASE === 'string' && window.__ADMIN_API_BASE)
         ? window.__ADMIN_API_BASE
-        : 'https://myclothefullstackhaile.onrender.com';
+        : '';
 
     fetch(BACKEND_BASE + '/api/auth/me', {
         method: 'GET',
