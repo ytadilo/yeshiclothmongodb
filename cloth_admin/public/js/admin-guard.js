@@ -32,7 +32,7 @@
 
     function redirectToLogin() {
         clearStoredSession();
-        window.location.replace('/');
+        window.location.replace('/login');
     }
 
     var token = '';
