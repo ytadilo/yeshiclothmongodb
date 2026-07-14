@@ -13,7 +13,7 @@
     if (window.__ADMIN_CONFIG_PATCHED__) return;
     window.__ADMIN_CONFIG_PATCHED__ = true;
 
-    var BACKEND = '';
+    var BACKEND = 'https://myclothe.app.aletcloud.com';
     window.__ADMIN_API_BASE = BACKEND;
 
     var _prev = window.fetch.bind(window);

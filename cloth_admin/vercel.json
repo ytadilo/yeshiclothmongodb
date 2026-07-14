@@ -1,25 +1,16 @@
 {
-  "headers": [
-    {
-      "source": "/js/:file*.js",
-      "headers": [
-        { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
-      ]
-    }
-  ],
   "rewrites": [
-    { "source": "/api/:path*",      "destination": "https://myclothe.app.aletcloud.com/api/:path*" },
-    { "source": "/login",           "destination": "/login.html" },
-    { "source": "/admin/dashboard", "destination": "/admin/dashboard.html" },
-    { "source": "/admin/orders",    "destination": "/admin/orders.html" },
-    { "source": "/admin/posts",     "destination": "/admin/posts.html" },
-    { "source": "/admin/users",     "destination": "/admin/users.html" },
-    { "source": "/admin/chat",      "destination": "/admin/chat.html" },
-    { "source": "/admin/order-stats","destination": "/admin/order-stats.html" },
-    { "source": "/admin/links",     "destination": "/admin/links.html" },
-    { "source": "/admin/login",     "destination": "/login.html" },
+    { "source": "/login",                "destination": "/login.html" },
+    { "source": "/admin/dashboard",      "destination": "/admin/dashboard.html" },
+    { "source": "/admin/orders",         "destination": "/admin/orders.html" },
+    { "source": "/admin/posts",          "destination": "/admin/posts.html" },
+    { "source": "/admin/users",          "destination": "/admin/users.html" },
+    { "source": "/admin/chat",           "destination": "/admin/chat.html" },
+    { "source": "/admin/order-stats",    "destination": "/admin/order-stats.html" },
+    { "source": "/admin/links",          "destination": "/admin/links.html" },
+    { "source": "/admin/login",          "destination": "/admin/login.html" },
     { "source": "/admin/forgot-password","destination": "/admin/forgot-password.html" },
     { "source": "/admin/reset-password", "destination": "/admin/reset-password.html" },
-    { "source": "/admin/verify-otp","destination": "/admin/verify-otp.html" }
+    { "source": "/admin/verify-otp",     "destination": "/admin/verify-otp.html" }
   ]
 }
