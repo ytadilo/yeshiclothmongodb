@@ -21,7 +21,7 @@ The fix has two sides:
    `cloth_frontend/frontend/vercel.json`.
 
 No backend changes are required. Both apps will continue to call
-`https://myclothefullstackhaile.onrender.com` as the single backend.
+`https://myclothe.app.aletcloud.com` as the single backend.
 
 ---
 
@@ -83,7 +83,7 @@ white-screen React error boundary failure.
 - A redirect: `{ "source": "/admin", "destination": "/admin/orders" }`
 - A redirect: `{ "source": "/admin/", "destination": "/admin/orders" }`
 - A rewrite: `{ "source": "/admin/:path*", "destination":
-  "https://myclothefullstackhaile.onrender.com/admin/:path*" }`
+  "https://myclothe.app.aletcloud.com/admin/:path*" }`
 
 These entries mean that visiting `/admin/*` on the customer site proxies admin
 traffic through the customer deployment — a security and maintenance hazard.
@@ -313,7 +313,7 @@ VITE_FIREBASE_MESSAGING_SENDER_ID=
 VITE_FIREBASE_APP_ID=
 
 # Backend API base URL
-VITE_API_URL=https://myclothefullstackhaile.onrender.com
+VITE_API_URL=https://myclothe.app.aletcloud.com
 ```
 
 #### 3. Remove Admin Code from `cloth_frontend`
@@ -342,7 +342,7 @@ From the `"redirects"` array — remove both objects whose `"source"` is
 From the `"rewrites"` array — remove the object whose `"source"` is
 `"/admin/:path*"`:
 ```json
-{ "source": "/admin/:path*", "destination": "https://myclothefullstackhaile.onrender.com/admin/:path*" }
+{ "source": "/admin/:path*", "destination": "https://myclothe.app.aletcloud.com/admin/:path*" }
 ```
 
 All other redirects and rewrites in `vercel.json` are preserved unchanged.

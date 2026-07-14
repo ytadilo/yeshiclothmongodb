@@ -16,7 +16,7 @@ A standalone `cloth_admin` React application already exists with a modern archit
 
 1.2 WHEN the `cloth_frontend` is deployed to Vercel THEN the system includes admin HTML files (`dashboard.html`, `orders.html`, `users.html`, `chat.html`, `posts.html`, `order-stats.html`, etc.) and admin JS files (`admin-common.js`, `admin-guard.js`) in the customer frontend bundle.
 
-1.3 WHEN `cloth_frontend/frontend/vercel.json` is processed THEN the system contains rewrites that proxy `/admin/:path*` to the backend (`myclothefullstackhaile.onrender.com/admin/:path*`), incorrectly routing admin traffic through the customer frontend deployment.
+1.3 WHEN `cloth_frontend/frontend/vercel.json` is processed THEN the system contains rewrites that proxy `/admin/:path*` to the backend (`myclothe.app.aletcloud.com/admin/:path*`), incorrectly routing admin traffic through the customer frontend deployment.
 
 1.4 WHEN the `cloth_frontend/frontend/css/admin-dashboard.css` stylesheet exists THEN the system ships admin-specific CSS as part of the customer frontend assets.
 
@@ -46,7 +46,7 @@ A standalone `cloth_admin` React application already exists with a modern archit
 
 2.7 WHEN `cloth_admin` is built for production THEN the system SHALL have a `vercel.json` that serves the React SPA correctly (rewrites all paths to `index.html`) and an `.env.example` documenting required environment variables (`VITE_FIREBASE_*`, `VITE_API_URL`).
 
-2.8 WHEN both `cloth_frontend` and `cloth_admin` make API calls THEN the system SHALL direct all requests to the same `cloth_backend` at `https://myclothefullstackhaile.onrender.com`, with no duplication of backend logic.
+2.8 WHEN both `cloth_frontend` and `cloth_admin` make API calls THEN the system SHALL direct all requests to the same `cloth_backend` at `https://myclothe.app.aletcloud.com`, with no duplication of backend logic.
 
 ---
 

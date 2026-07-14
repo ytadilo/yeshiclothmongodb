@@ -128,7 +128,7 @@ This plan follows the bugfix exploratory workflow (bug condition methodology):
   - [x] 3.6 Create `cloth_admin/.env.example`
     - Create file at `cloth_admin/.env.example` documenting all required environment variables
     - Must contain keys: `VITE_FIREBASE_API_KEY`, `VITE_FIREBASE_AUTH_DOMAIN`, `VITE_FIREBASE_PROJECT_ID`, `VITE_FIREBASE_STORAGE_BUCKET`, `VITE_FIREBASE_MESSAGING_SENDER_ID`, `VITE_FIREBASE_APP_ID`, `VITE_API_URL`
-    - Set `VITE_API_URL` default value to `https://myclothefullstackhaile.onrender.com`
+    - Set `VITE_API_URL` default value to `https://myclothe.app.aletcloud.com`
     - _Bug_Condition: isBugCondition({ type: "file_exists", path: "cloth_admin/.env.example" }) — file absent, CI/onboarding blocked_
     - _Expected_Behavior: File exists and lists all required keys_
     - _Requirements: 1.8, 2.7_
@@ -148,7 +148,7 @@ This plan follows the bugfix exploratory workflow (bug condition methodology):
   - [x] 3.8 Remove admin routing entries from `cloth_frontend/frontend/vercel.json`
     - Remove from `"redirects"` array: entry with `"source": "/admin"` (destination `/admin/orders`)
     - Remove from `"redirects"` array: entry with `"source": "/admin/"` (destination `/admin/orders`)
-    - Remove from `"rewrites"` array: entry with `"source": "/admin/:path*"` (destination `https://myclothefullstackhaile.onrender.com/admin/:path*`)
+    - Remove from `"rewrites"` array: entry with `"source": "/admin/:path*"` (destination `https://myclothe.app.aletcloud.com/admin/:path*`)
     - All other redirects (37 customer URL redirects) and all other rewrites (`/api/:path*`, `/favicon.ico`, `/payment-result`, `/auth/login`, `/my-orders`, etc.) MUST be preserved unchanged
     - Validate the resulting JSON is syntactically valid
     - _Bug_Condition: isBugCondition({ type: "config_entry", source: "/admin/:path*", config_file: "cloth_frontend/frontend/vercel.json" }) — admin traffic proxied through customer deployment_

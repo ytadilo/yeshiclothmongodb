@@ -12,7 +12,7 @@ The admin dashboard covers order management, payment approval, customer manageme
 
 - **Admin_Dashboard**: The standalone React application at `cloth_admin/` that provides administrative control over the Yeshi Clothe platform.
 - **Admin**: The single authorised user whose Firebase Authentication email is `hailetadilo@gmail.com`.
-- **Backend_API**: The existing Node.js/Express server hosted at `https://myclothefullstackhaile.onrender.com`.
+- **Backend_API**: The existing Node.js/Express server hosted at `https://myclothe.app.aletcloud.com`.
 - **Firebase_Auth**: Firebase Authentication service used for Google Sign-In and session management in both the customer site and the Admin_Dashboard.
 - **Firestore**: Firebase Cloud Firestore, the shared NoSQL database for all platform data.
 - **Firebase_Storage**: Firebase Storage bucket shared between the customer site and the Admin_Dashboard.

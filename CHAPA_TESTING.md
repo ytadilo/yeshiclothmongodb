@@ -10,7 +10,7 @@
 - [ ] Chapa account at https://chapa.co (free sandbox available)
 - [ ] Test API keys from Chapa Dashboard → Settings → API Keys
 - [ ] `.env` configured in `cloth_backend/`
-- [ ] Backend running (`npm run dev` or deployed on Render)
+- [ ] Backend running (`npm run dev` or deployed on aletcloud)
 
 ---
 
@@ -30,7 +30,7 @@ RETURN_URL=http://localhost:5000/payment-result
 NODE_ENV=development
 ```
 
-> 💡 For production on Render, replace all URLs with the real domains above.
+> 💡 For production on aletcloud, replace all URLs with the real domains above.
 
 ---
 
@@ -206,7 +206,7 @@ Look for:
 
 ## Production Checklist
 
-- [ ] Live Chapa keys set on Render dashboard
+- [ ] Live Chapa keys set on aletcloud dashboard
 - [ ] `CALLBACK_URL` = `https://myclothe.app.aletcloud.com/api/payments/chapa/webhook`
 - [ ] `RETURN_URL` = `https://www.yeshiclothe.com.et/payment-result`
 - [ ] `NODE_ENV=production` (enables strict webhook signature enforcement)

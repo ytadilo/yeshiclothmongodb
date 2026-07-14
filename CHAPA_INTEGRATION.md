@@ -42,7 +42,7 @@ Frontend (HTML + JS)
   payment-checkout.html → POST /api/payments/initialize
         │
         ▼
-Backend (Render → myclothe.app.aletcloud.com)
+Backend (aletcloud → myclothe.app.aletcloud.com)
   paymentController.js → chapaService.js
         │
         ▼
@@ -255,16 +255,16 @@ curl -X POST http://localhost:5000/api/payments/chapa/webhook \
 |---------|-----|
 | `"Payment system not configured"` | Set `CHAPA_SECRET_KEY` in `.env`, restart server |
 | Webhook 404 | Confirm `app.use('/api/payments', ...)` is in `server.js` |
-| Payment stuck on "pending" | Webhook URL not reachable — use ngrok locally, verify `CALLBACK_URL` on Render |
+| Payment stuck on "pending" | Webhook URL not reachable — use ngrok locally, verify `CALLBACK_URL` on aletcloud |
 | `"Duplicate payment"` error | Expected — user has a pending payment in last 30 min |
 | Webhook signature failure | Make sure `CHAPA_SECRET_KEY` matches what Chapa has on file |
 | `Cannot find module 'axios'` | `cd cloth_backend && npm install` |
 
 ---
 
-## Production Deployment (Render)
+## Production Deployment (aletcloud)
 
-### Required Environment Variables on Render
+### Required Environment Variables on `myclothe.app.aletcloud.com`
 
 ```
 CHAPA_SECRET_KEY=sk_live_xxxxxxxxxx
