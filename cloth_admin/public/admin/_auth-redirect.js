@@ -16,6 +16,6 @@
 
     // If logged in as non-admin, do not show admin auth pages
     if (role) {
-        window.location.replace('/login.html');
+        window.location.replace('/index.html');
     }
 })();

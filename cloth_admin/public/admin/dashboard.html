@@ -1002,39 +1002,39 @@
                         'Unknown customer';
 
                     const status = order?.order_status || order?.status || 'Received';
-                    const category = cloth?.category || order?.category || 'GÇö';
-                    const phone = customer.phone || order?.phone || 'GÇö';
+                    const category = cloth?.category || order?.category || 'Gï¿½ï¿½';
+                    const phone = customer.phone || order?.phone || 'Gï¿½ï¿½';
 
-                    const fatherName = customer.father_name || customer.fatherName || 'GÇö';
-                    const region = customer.region || 'GÇö';
-                    const city = customer.city || 'GÇö';
-                    const address = customer.address || 'GÇö';
+                    const fatherName = customer.father_name || customer.fatherName || 'Gï¿½ï¿½';
+                    const region = customer.region || 'Gï¿½ï¿½';
+                    const city = customer.city || 'Gï¿½ï¿½';
+                    const address = customer.address || 'Gï¿½ï¿½';
 
-                    const designType = cloth.design_type || cloth.designType || 'GÇö';
-                    const color = cloth.color || 'GÇö';
-                    const eventType = cloth.event_type || cloth.eventType || 'GÇö';
+                    const designType = cloth.design_type || cloth.designType || 'Gï¿½ï¿½';
+                    const color = cloth.color || 'Gï¿½ï¿½';
+                    const eventType = cloth.event_type || cloth.eventType || 'Gï¿½ï¿½';
                     const deadline = cloth.deadline_date || cloth.deadlineDate || null;
                     const clothPrice = Number(cloth.post_price_etb ?? cloth.postPriceEtb);
                     const clothShippingPrice = Number(cloth.post_shipping_price_etb ?? cloth.postShippingPriceEtb);
                     const clothFreeShipping = Boolean(cloth.post_free_shipping ?? cloth.postFreeShipping);
 
-                    const measurementType = meas.type || 'GÇö';
-                    const size = meas.size || 'GÇö';
-                    const height = meas.height ?? 'GÇö';
-                    const shoulder = meas.shoulder ?? 'GÇö';
-                    const chest = meas.chest ?? 'GÇö';
-                    const waist = meas.waist ?? 'GÇö';
-                    const hip = meas.hip ?? 'GÇö';
-                    const length = meas.length ?? 'GÇö';
-                    const sleeve = meas.sleeve ?? 'GÇö';
+                    const measurementType = meas.type || 'Gï¿½ï¿½';
+                    const size = meas.size || 'Gï¿½ï¿½';
+                    const height = meas.height ?? 'Gï¿½ï¿½';
+                    const shoulder = meas.shoulder ?? 'Gï¿½ï¿½';
+                    const chest = meas.chest ?? 'Gï¿½ï¿½';
+                    const waist = meas.waist ?? 'Gï¿½ï¿½';
+                    const hip = meas.hip ?? 'Gï¿½ï¿½';
+                    const length = meas.length ?? 'Gï¿½ï¿½';
+                    const sleeve = meas.sleeve ?? 'Gï¿½ï¿½';
 
-                    const deliveryMethod = order?.delivery_method || order?.deliveryMethod || 'GÇö';
+                    const deliveryMethod = order?.delivery_method || order?.deliveryMethod || 'Gï¿½ï¿½';
                     const paymentStatus = order?.payment_status || order?.paymentStatus || paymentInfo?.status || 'Pending';
                     const screenshotUrl = getOrderPaymentScreenshot(order);
                     const createdAt = fmtDate(order?.created_at || order?.createdAt);
 
                     const addressParts = [customer.city, customer.address].filter(Boolean);
-                    const addressText = addressParts.length ? addressParts.join(', ') : 'GÇö';
+                    const addressText = addressParts.length ? addressParts.join(', ') : 'Gï¿½ï¿½';
 
                     const div = document.createElement('div');
                     div.className = 'order-card';
@@ -1087,9 +1087,9 @@
                                         <div><span style="color:var(--light-text);">Design type:</span> ${esc(designType)}</div>
                                         <div><span style="color:var(--light-text);">Color:</span> ${esc(color)}</div>
                                         <div><span style="color:var(--light-text);">Event type:</span> ${esc(eventType)}</div>
-                                        <div><span style="color:var(--light-text);">Deadline:</span> ${deadline ? esc(new Date(deadline).toLocaleDateString()) : 'GÇö'}</div>
-                                        <div><span style="color:var(--light-text);">Price:</span> ${Number.isFinite(clothPrice) && clothPrice > 0 ? esc(clothPrice.toLocaleString()) + ' ETB' : 'GÇö'}</div>
-                                        <div><span style="color:var(--light-text);">Shipping:</span> ${clothFreeShipping ? 'Free shipping' : (Number.isFinite(clothShippingPrice) && clothShippingPrice >= 0 ? esc(clothShippingPrice.toLocaleString()) + ' ETB' : 'GÇö')}</div>
+                                        <div><span style="color:var(--light-text);">Deadline:</span> ${deadline ? esc(new Date(deadline).toLocaleDateString()) : 'Gï¿½ï¿½'}</div>
+                                        <div><span style="color:var(--light-text);">Price:</span> ${Number.isFinite(clothPrice) && clothPrice > 0 ? esc(clothPrice.toLocaleString()) + ' ETB' : 'Gï¿½ï¿½'}</div>
+                                        <div><span style="color:var(--light-text);">Shipping:</span> ${clothFreeShipping ? 'Free shipping' : (Number.isFinite(clothShippingPrice) && clothShippingPrice >= 0 ? esc(clothShippingPrice.toLocaleString()) + ' ETB' : 'Gï¿½ï¿½')}</div>
                                     </div>
                                 </div>
 
@@ -1222,7 +1222,7 @@
             return `
                 <div style="display:flex; flex-direction:column; gap: 8px;">
                     ${items.map((it) => {
-                        const label = (it && it._id) ? String(it._id) : 'GÇö';
+                        const label = (it && it._id) ? String(it._id) : 'Gï¿½ï¿½';
                         const count = (it && typeof it.count === 'number') ? it.count : 0;
                         return `
                             <div style="display:flex; justify-content:space-between; gap: 10px; border-bottom: 1px solid rgba(0,0,0,0.06); padding-bottom: 6px;">
@@ -1252,7 +1252,7 @@
                 if (!res.ok) throw new Error(data?.msg || 'Failed to load order statistics');
 
                 if (cardsEl) {
-                    const lastOrderAt = data.lastOrderAt ? new Date(data.lastOrderAt).toLocaleString() : 'GÇö';
+                    const lastOrderAt = data.lastOrderAt ? new Date(data.lastOrderAt).toLocaleString() : 'Gï¿½ï¿½';
                     cardsEl.innerHTML = `
                         <div class="order-card__status" style="background: rgba(0,0,0,0.06); color: #111;">Total Orders: <strong>${data.totalOrders ?? 0}</strong></div>
                         <div class="order-card__status" style="background: rgba(30,75,53,0.10); color: var(--accent-color);">Today: <strong>${data.ordersToday ?? 0}</strong></div>
