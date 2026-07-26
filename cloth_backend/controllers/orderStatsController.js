@@ -1,5 +1,5 @@
 const Order = require('../models/Order');
-const { getDatabaseProvider } = require('../utils/db');
+
 
 function startOfDay(d) {
     const x = new Date(d);
@@ -132,10 +132,7 @@ exports.getOrderStats = async (req, res) => {
         const todayStart = startOfDay(now);
         const todayEnd = endOfDay(now);
         const last7Start = startOfDay(new Date(now.getTime() - 6 * 24 * 60 * 60 * 1000));
-        const provider = getDatabaseProvider();
-        const orders = provider === 'firebase'
-            ? await Order.find({}).lean()
-            : await Order.find({}).sort({ created_at: -1 }).lean();
+        const orders = await Order.find({}).sort({ created_at: -1 }).lean();
 
         res.json(buildStatsPayload(orders, todayStart, todayEnd, last7Start));
     } catch (err) {

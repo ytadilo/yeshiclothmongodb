@@ -6,7 +6,6 @@ const { adminOnly } = require('../middleware/authMiddleware');
 const BlockedDevice = require('../models/BlockedDevice');
 const UserDevice = require('../models/UserDevice');
 const User = require('../models/User');
-const { getDatabaseProvider } = require('../utils/db');
 
 const router = express.Router();
 
@@ -20,21 +19,9 @@ function toDeviceHash(input) {
 async function loadUsersByIds(userIds) {
     const ids = Array.isArray(userIds) ? userIds.map((id) => String(id || '').trim()).filter(Boolean) : [];
     if (!ids.length) return [];
-
-    const provider = getDatabaseProvider();
-    if (provider === 'mongo') {
-        return User.find({ _id: { $in: ids } })
-            .select('_id fullName email phone role status')
-            .lean();
-    }
-
-    const users = [];
-    // Firebase wrapper find({_id:{$in}}) performs full scans; findById is direct doc lookup.
-    for (const id of ids) {
-        const user = await User.findById(id).select('_id fullName email phone role status').lean();
-        if (user) users.push(user);
-    }
-    return users;
+    return User.find({ _id: { $in: ids } })
+        .select('_id fullName email phone role status')
+        .lean();
 }
 
 router.get('/blocked', auth, adminOnly, async (req, res) => {

@@ -3,7 +3,7 @@ const jwt = require('jsonwebtoken');
 
 const User = require('../models/User');
 const BlockedDevice = require('../models/BlockedDevice');
-const { getFirebaseAdmin } = require('../utils/firebase');
+const { verifyGoogleToken } = require('../utils/googleAuth');
 
 function getCookieValue(req, key) {
     const raw = String((req && req.headers && req.headers.cookie) || '').trim();
@@ -32,13 +32,12 @@ function shouldSkipAdminDeviceCheck(req) {
     return baseUrl === '/api/auth' && (path === '/me' || path === '/logout');
 }
 
-function getFirebaseToken(req) {
+function getGoogleToken(req) {
     const authHeader = String(req.header('authorization') || '').trim();
     if (/^bearer\s+/i.test(authHeader)) {
         return authHeader.replace(/^bearer\s+/i, '').trim();
     }
-
-    return String(req.header('x-firebase-token') || '').trim();
+    return String(req.header('x-google-token') || req.header('x-firebase-token') || '').trim();
 }
 
 function getLegacyTokens(req) {
@@ -119,37 +118,32 @@ async function attachResolvedUser(req, dbUser, authSource, extra = {}) {
     return { ok: true };
 }
 
-async function resolveFromFirebaseToken(req, firebaseToken) {
-    if (!firebaseToken) return null;
+async function resolveFromGoogleToken(req, googleToken) {
+    if (!googleToken) return null;
 
     try {
-        const admin = getFirebaseAdmin();
-        const decoded = await admin.auth().verifyIdToken(firebaseToken);
-        const provider = String(decoded?.firebase?.sign_in_provider || '').trim();
-        if (provider !== 'google.com' && decoded?.email_verified === false) {
-            return { ok: false, status: 403, msg: 'Please verify your email first' };
+        const payload = await verifyGoogleToken(googleToken);
+
+        if (payload.email_verified !== 'true' && payload.email_verified !== true) {
+            return { ok: false, status: 403, msg: 'Please verify your Google email first' };
         }
-        const normalizedEmail = String(decoded?.email || '').trim().toLowerCase();
+
+        const normalizedEmail = String(payload.email || '').trim().toLowerCase();
+        const googleSub = String(payload.sub || '').trim();
         let dbUser = null;
 
-        if (decoded?.uid) {
-            dbUser = await User.findOne({ firebaseUid: String(decoded.uid) }).select('role status isBanned email firebaseUid');
+        if (googleSub) {
+            dbUser = await User.findOne({ googleSub }).select('role status isBanned email googleSub');
         }
-
         if (!dbUser && normalizedEmail) {
-            dbUser = await User.findOne({ email: normalizedEmail }).select('role status isBanned email firebaseUid');
+            dbUser = await User.findOne({ email: normalizedEmail }).select('role status isBanned email googleSub');
         }
-
         if (!dbUser) {
-            return { ok: false, status: 401, msg: 'User not found for Firebase session' };
+            return { ok: false, status: 401, msg: 'User not found for Google session' };
         }
 
-        return attachResolvedUser(req, dbUser, 'firebase', {
-            firebaseUid: decoded.uid,
-            firebase: { decodedToken: decoded },
-            options: {
-                skipAdminDeviceCheck: !!req.__skipAdminDeviceCheck
-            }
+        return attachResolvedUser(req, dbUser, 'google', {
+            options: { skipAdminDeviceCheck: !!req.__skipAdminDeviceCheck }
         });
     } catch (_err) {
         return null;
@@ -187,10 +181,10 @@ async function resolveRequestUser(req, options = {}) {
         optional: !!options.optional
     };
 
-    const firebaseToken = getFirebaseToken(req);
+    const firebaseToken = getGoogleToken(req);
     const legacyTokens = getLegacyTokens(req);
 
-    const firebaseResult = await resolveFromFirebaseToken(req, firebaseToken);
+    const firebaseResult = await resolveFromGoogleToken(req, firebaseToken);
     if (firebaseResult) {
         return firebaseResult;
     }

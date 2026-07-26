@@ -1,21 +1,33 @@
-const { getFirestore } = require('./firebase');
+'use strict';
 
-function getDatabaseProvider() {
-    return 'firebase';
-}
+const mongoose = require('mongoose');
 
+/**
+ * Establishes a Mongoose connection to MongoDB Atlas.
+ *
+ * - Reads MONGODB_URI from process.env.
+ * - Throws immediately (before any connect call) if the URI is missing or empty.
+ * - Logs "MongoDB connected" on success.
+ * - Rethrows any connection error so the caller (startServer) can handle it.
+ *
+ * @returns {Promise<void>}
+ */
 const connectDB = async () => {
-    try {
-        const firestore = getFirestore();
-        // Quick readiness check so startup fails fast on invalid credentials.
-        await firestore.collection('_health').limit(1).get();
-        console.log('Firebase Firestore connected');
-        return { provider: 'firebase' };
-    } catch (err) {
-        console.error('Firebase Firestore connection failed:', err.message);
-        throw err;
-    }
+  const uri = process.env.MONGODB_URI;
+
+  if (!uri || uri.trim() === '') {
+    throw new Error(
+      'MongoDB connection string is missing. Set MONGODB_URI in your .env file.'
+    );
+  }
+
+  try {
+    await mongoose.connect(uri);
+    console.log('MongoDB connected');
+  } catch (err) {
+    console.error('MongoDB connection failed:', err.message);
+    throw err;
+  }
 };
 
 module.exports = connectDB;
-module.exports.getDatabaseProvider = getDatabaseProvider;

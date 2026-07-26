@@ -1,18 +1,15 @@
 const express = require('express');
 const router = express.Router();
-const { 
-    register, 
-    login, 
+const {
+    register,
+    login,
     me,
     updateMe,
     logout,
-    firebaseConfig,
-    firebaseSession,
-    googleConfig,
-    googleLogin,
-    forgotPassword, 
-    verifyOTP, 
-    resetPassword, 
+    googleSession,
+    forgotPassword,
+    verifyOTP,
+    resetPassword,
     forgotPasswordLink,
     resetPasswordLink,
     changePassword
@@ -21,40 +18,38 @@ const auth = require('../middleware/authMiddleware');
 const { adminOnly } = require('../middleware/authMiddleware');
 const upload = require('../middleware/upload');
 
+// ── Registration & login ────────────────────────────────────────────────────
 router.post(
     '/register',
     upload.fields([
-        { name: 'legalDocument', maxCount: 1 },
+        { name: 'legalDocument',  maxCount: 1 },
         { name: 'nationalIdPhoto', maxCount: 1 },
-        { name: 'profileImage', maxCount: 1 }
+        { name: 'profileImage',   maxCount: 1 }
     ]),
     register
 );
 router.post('/login', login);
-router.get('/me', auth, me);
-router.put('/me', auth, upload.single('profileImage'), updateMe);
+router.get('/me',  auth, me);
+router.put('/me',  auth, upload.single('profileImage'), updateMe);
 router.post('/logout', logout);
-router.get('/firebase/config', firebaseConfig);
-router.post('/firebase/session', firebaseSession);
 
-// Google Sign-In
-router.get('/google/config', googleConfig);
-router.post('/google', googleLogin);
+// ── Google Sign-In (NextAuth / Google Console ID token → JWT) ───────────────
+// Frontend sends:  POST /api/auth/google/session  { idToken: '<google-id-token>' }
+// Backend verifies with Google OAuth2 tokeninfo, upserts MongoDB user, returns JWT.
+router.post('/google/session', googleSession);
 
-// Admin Routes (mapped to same controllers for now, logic inside handles roles/context if needed)
-router.post('/admin/login', login);
+// ── Admin routes ────────────────────────────────────────────────────────────
+router.post('/admin/login',           login);
 router.post('/admin/forgot-password', forgotPassword);
-router.post('/admin/verify-otp', verifyOTP);
-router.post('/admin/reset-password', resetPassword);
-router.put('/admin/change-password', auth, adminOnly, changePassword);
+router.post('/admin/verify-otp',      verifyOTP);
+router.post('/admin/reset-password',  resetPassword);
+router.put( '/admin/change-password', auth, adminOnly, changePassword);
 
-// User Recovery Routes
-router.post('/forgot-password', forgotPassword);
-router.post('/verify-otp', verifyOTP);
-router.post('/reset-password', resetPassword);
-
-// User Recovery (email link)
+// ── User password recovery ──────────────────────────────────────────────────
+router.post('/forgot-password',      forgotPassword);
+router.post('/verify-otp',           verifyOTP);
+router.post('/reset-password',       resetPassword);
 router.post('/forgot-password-link', forgotPasswordLink);
-router.post('/reset-password-link', resetPasswordLink);
+router.post('/reset-password-link',  resetPasswordLink);
 
 module.exports = router;

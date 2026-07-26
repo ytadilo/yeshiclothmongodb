@@ -6,8 +6,6 @@ const Post = require('../models/Post');
 const User = require('../models/User');
 const Notification = require('../models/Notification');
 const SiteSettings = require('../models/SiteSettings');
-const { getDatabaseProvider } = require('../utils/db');
-const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 

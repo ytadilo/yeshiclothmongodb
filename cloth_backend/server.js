@@ -6,7 +6,6 @@ const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const hpp = require('hpp');
 const connectDB = require('./utils/db');
-const { getDatabaseProvider } = require('./utils/db');
 const ensureAdminUser = require('./utils/ensureAdminUser');
 const { resolveRequestUser } = require('./middleware/authCore');
 require('dotenv').config();
@@ -24,12 +23,12 @@ const globalLimiter = rateLimit({
     legacyHeaders: false
 });
 
-const firebaseSessionLimiter = rateLimit({
+const googleSessionLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
     max: Number(process.env.FIREBASE_SESSION_RATE_LIMIT_MAX || 12),
     standardHeaders: true,
     legacyHeaders: false,
-    message: { msg: 'Too many Firebase session attempts. Please try again later.' }
+    message: { msg: 'Too many Google sign-in attempts. Please try again later.' }
 });
 
 const authLimiter = rateLimit({
@@ -91,7 +90,7 @@ app.use((req, res, next) => {
     }
 });
 app.use('/api', globalLimiter);
-app.use('/api/auth/firebase/session', firebaseSessionLimiter);
+app.use('/api/auth/google/session', googleSessionLimiter);
 app.use('/api/auth', authLimiter);
 app.use(
     cors({
@@ -430,22 +429,16 @@ if (hasFrontend) {
 const PORT = process.env.PORT || 5000;
 
 async function startServer() {
-    const provider = getDatabaseProvider();
-
     try {
         await connectDB();
-        if (provider === 'mongo') {
+        try {
             await ensureAdminUser();
-        } else {
-            console.log('Skipping ensureAdminUser in Firebase mode');
+        } catch (seedErr) {
+            console.error('ensureAdminUser failed (non-fatal):', seedErr && seedErr.message ? seedErr.message : seedErr);
         }
     } catch (error) {
-        const message = error && error.message ? error.message : String(error);
-        if (message.includes('MongoDB connection string is missing') || message.includes('Firebase credentials are missing')) {
-            throw error;
-        }
-
-        console.error(`Starting without ${provider} connection:`, message);
+        console.error('MongoDB connection failed:', error && error.message ? error.message : error);
+        process.exit(1);
     }
 
     app.listen(PORT, () => console.log(`Server started on port ${PORT}`));

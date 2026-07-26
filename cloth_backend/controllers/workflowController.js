@@ -10,7 +10,6 @@ const Order = require('../models/Order');
 const Upload = require('../models/Upload');
 const Post = require('../models/Post');
 const { subscribe, unsubscribe, pushEvent } = require('../utils/realtime');
-const { getDatabaseProvider } = require('../utils/db');
 
 function isAdmin(req) {
     return req.user && req.user.role === 'admin';
@@ -84,9 +83,6 @@ function staffingFeatureRemoved(res) {
     return res.status(410).json({ msg: STAFFING_FEATURE_REMOVAL_MSG });
 }
 
-function isFirebaseProvider() {
-    return getDatabaseProvider() === 'firebase';
-}
 
 function isValidAppId(value) {
     const id = String(value || '').trim();

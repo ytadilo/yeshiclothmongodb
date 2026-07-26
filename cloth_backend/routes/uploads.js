@@ -2,8 +2,6 @@ const express = require('express');
 const fs = require('fs');
 const path = require('path');
 
-const { getDatabaseProvider } = require('../utils/db');
-
 const Upload = require('../models/Upload');
 const auth = require('../middleware/authMiddleware');
 const { adminOnly } = require('../middleware/authMiddleware');
@@ -37,28 +35,25 @@ function escapeRegex(value) {
     return String(value || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-async function resolveUploadByReference(rawId, provider) {
+async function resolveUploadByReference(rawId) {
     const id = String(rawId || '').trim();
     if (!id) return null;
 
     const selectFields = 'data storage_path mimeType originalName visibility owner_user_id purpose';
 
+    // Try direct ObjectId lookup first
     const direct = await Upload.findById(id).select(selectFields);
     if (direct) return direct;
 
+    // Fallback: match by storage_path or originalName for legacy references
     const maybeDecoded = (() => {
-        try {
-            return decodeURIComponent(id);
-        } catch (_) {
-            return id;
-        }
+        try { return decodeURIComponent(id); } catch (_) { return id; }
     })();
 
-    // Firebase fallback: resolve legacy references by storage path basename.
+    const lowerId = maybeDecoded.toLowerCase();
     const all = await Upload.find({}).select(selectFields).lean();
     if (!Array.isArray(all) || !all.length) return null;
 
-    const lowerId = maybeDecoded.toLowerCase();
     const hit = all.find((doc) => {
         const storagePath = String(doc && doc.storage_path ? doc.storage_path : '');
         const originalName = String(doc && doc.originalName ? doc.originalName : '');
@@ -80,9 +75,7 @@ async function resolveUploadByReference(rawId, provider) {
 router.get('/:id', skipAdminDeviceCheck, optionalAuth, async (req, res) => {
     try {
         const { id } = req.params;
-        const provider = getDatabaseProvider();
-
-        const upload = await resolveUploadByReference(id, provider);
+        const upload = await resolveUploadByReference(id);
 
         if (!upload) {
             if (String(req.query?.fallback || '').trim() === '1') {

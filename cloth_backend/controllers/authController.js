@@ -4,11 +4,10 @@ const UserDevice = require('../models/UserDevice');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const sendEmail = require('../utils/sendEmail');
-const crypto = require('crypto'); // to generate OTP random number
+const crypto = require('crypto');
 const BlockedDevice = require('../models/BlockedDevice');
-const { OAuth2Client } = require('google-auth-library');
 const Upload = require('../models/Upload');
-const { getFirebaseAdmin } = require('../utils/firebase');
+const { verifyGoogleToken } = require('../utils/googleAuth');
 
 const ALLOWED_SEXES = new Set(['male', 'female', 'other', 'prefer_not_to_say']);
 const DEFAULT_PUBLIC_BASE_URL = 'https://www.yeshiclothe.com.et';
@@ -160,48 +159,26 @@ function parseMaybeDate(value) {
     return Number.isNaN(parsed.getTime()) ? null : parsed;
 }
 
-function buildFirebasePublicConfig() {
-    const projectId = String(process.env.FIREBASE_WEB_PROJECT_ID || process.env.FIREBASE_PROJECT_ID || 'clotheyeshi').trim();
-    const authDomain = String(process.env.FIREBASE_AUTH_DOMAIN || (projectId ? `${projectId}.firebaseapp.com` : '')).trim();
-    const storageBucket = String(
-        process.env.FIREBASE_WEB_STORAGE_BUCKET ||
-        process.env.FIREBASE_STORAGE_BUCKET ||
-        (projectId ? `${projectId}.firebasestorage.app` : '')
-    ).trim();
-
-    return {
-        apiKey: String(process.env.FIREBASE_WEB_API_KEY || process.env.FIREBASE_API_KEY || '').trim(),
-        authDomain,
-        projectId,
-        storageBucket,
-        messagingSenderId: String(process.env.FIREBASE_WEB_MESSAGING_SENDER_ID || process.env.FIREBASE_MESSAGING_SENDER_ID || '').trim(),
-        appId: String(process.env.FIREBASE_WEB_APP_ID || process.env.FIREBASE_APP_ID || '').trim(),
-        measurementId: String(process.env.FIREBASE_WEB_MEASUREMENT_ID || process.env.FIREBASE_MEASUREMENT_ID || '').trim()
-    };
-}
-
-async function findUserForFirebaseSession(firebaseUid, email) {
+async function findUserForGoogleSession(googleUid, email) {
     const normalizedEmail = normalizeEmail(email);
-    if (firebaseUid) {
-        const byUid = await User.findOne({ firebaseUid });
+    if (googleUid) {
+        const byUid = await User.findOne({ firebaseUid: googleUid });
         if (byUid) return byUid;
     }
-
     if (normalizedEmail) {
         const byEmail = await User.findOne({ email: normalizedEmail });
         if (byEmail) return byEmail;
     }
-
     return null;
 }
 
-function applyFirebaseProfileToUser(user, userRecord, providerIds) {
+function applyGoogleProfileToUser(user, userRecord, providerIds) {
     const normalizedEmail = normalizeEmail(userRecord?.email);
     const displayName = String(userRecord?.displayName || '').trim();
     const profileImage = String(userRecord?.photoURL || '').trim();
     const phoneNumber = String(userRecord?.phoneNumber || '').trim();
     const primaryProvider = getPrimaryAuthProvider(providerIds);
-    const googleProvider = (userRecord?.providerData || []).find((provider) => provider && provider.providerId === 'google.com');
+    const googleProvider = (userRecord?.providerData || []).find((p) => p && p.providerId === 'google.com');
     const nameParts = splitFullNameParts(displayName);
 
     if (normalizedEmail) user.email = normalizedEmail;
@@ -216,40 +193,19 @@ function applyFirebaseProfileToUser(user, userRecord, providerIds) {
     if (!user.fullName || user.authProvider === 'google') {
         user.fullName = displayName || user.fullName || getFirstNameFromProfile(normalizedEmail) || 'User';
     }
-
     if (!user.fatherName || user.authProvider === 'google') {
         user.fatherName = nameParts.fatherName || user.fatherName || '';
     }
-
-    if (!user.phone && phoneNumber) {
-        user.phone = phoneNumber;
-    }
-
-    if (!user.profileImage && profileImage) {
-        user.profileImage = profileImage;
-    }
+    if (!user.phone && phoneNumber) user.phone = phoneNumber;
+    if (!user.profileImage && profileImage) user.profileImage = profileImage;
 
     if (primaryProvider === 'google') {
         user.googleSub = String((googleProvider && googleProvider.uid) || userRecord?.uid || user.googleSub || '');
     }
 
-    if (!user.role) {
-        user.role = 'customer';
-    }
-    if (!user.status) {
-        user.status = 'active';
-    }
-    if (!user.createdAt) {
-        user.createdAt = parseMaybeDate(userRecord?.metadata?.creationTime) || new Date();
-    }
-}
-
-function getGoogleClient() {
-    const clientId = process.env.GOOGLE_CLIENT_ID;
-    if (!clientId) {
-        throw new Error('Missing GOOGLE_CLIENT_ID');
-    }
-    return new OAuth2Client(clientId);
+    if (!user.role)      user.role = 'customer';
+    if (!user.status)    user.status = 'active';
+    if (!user.createdAt) user.createdAt = parseMaybeDate(userRecord?.metadata?.creationTime) || new Date();
 }
 
 function parseAge(value) {
@@ -576,107 +532,90 @@ exports.login = async (req, res) => {
     }
 };
 
-exports.firebaseConfig = async (_req, res) => {
-    const config = buildFirebasePublicConfig();
-    const missing = ['apiKey', 'authDomain', 'projectId', 'appId'].filter((key) => !String(config[key] || '').trim());
-
-    if (missing.length) {
-        return res.status(503).json({
-            msg: `Firebase web config is incomplete. Missing: ${missing.join(', ')}`,
-            missing
-        });
-    }
-
-    res.set('Cache-Control', 'public, max-age=3600');
-    return res.json(config);
-};
-
-exports.firebaseSession = async (req, res) => {
+/**
+ * POST /api/auth/google/session
+ * Frontend sends a Google ID token (from NextAuth / Google Console).
+ * Backend verifies it directly with Google's OAuth2 tokeninfo endpoint,
+ * upserts the MongoDB user, and returns a JWT — no third-party auth SDK needed.
+ */
+exports.googleSession = async (req, res) => {
     const idToken = String(req.body?.idToken || '').trim();
     if (!idToken) {
-        return res.status(400).json({ msg: 'Missing Firebase ID token' });
+        return res.status(400).json({ msg: 'Missing Google ID token' });
     }
 
     try {
-        const admin = getFirebaseAdmin();
-        const decoded = await admin.auth().verifyIdToken(idToken);
-        const userRecord = await admin.auth().getUser(decoded.uid);
-        const normalizedEmail = normalizeEmail(userRecord?.email || decoded?.email);
-        const providerIds = normalizeProviderIds([
-            ...(Array.isArray(userRecord?.providerData) ? userRecord.providerData.map((provider) => provider?.providerId) : []),
-            decoded?.firebase?.sign_in_provider
-        ]);
-        const primaryProvider = getPrimaryAuthProvider(providerIds);
+        // Verify with Google's public tokeninfo endpoint
+        const payload = await verifyGoogleToken(idToken);
 
+        const normalizedEmail = normalizeEmail(payload.email);
         if (!normalizedEmail) {
-            return res.status(400).json({ msg: 'Firebase account has no email address' });
+            return res.status(400).json({ msg: 'Google account has no email address' });
         }
 
-        if (!providerIds.includes('google.com') && !userRecord.emailVerified) {
-            return res.status(403).json({ msg: 'Please verify your email first' });
+        if (payload.email_verified !== 'true' && payload.email_verified !== true) {
+            return res.status(403).json({ msg: 'Please verify your Google email first' });
         }
 
-        if (userRecord.disabled) {
-            return res.status(403).json({ msg: 'User is inactive' });
-        }
+        const googleSub  = String(payload.sub  || '').trim();   // stable Google user ID
+        const displayName = String(payload.name || '').trim();
+        const nameParts  = splitFullNameParts(displayName);
+        const profileImage = String(payload.picture || '').trim();
+        const providerIds  = ['google.com'];
 
         let isNewUser = false;
-        let user = await findUserForFirebaseSession(decoded.uid, normalizedEmail);
+        // Look up by Google sub (stored in googleSub field) first, then email
+        let user = await User.findOne({ googleSub }) || await User.findOne({ email: normalizedEmail });
 
         if (!user) {
             isNewUser = true;
-            const displayName = String(userRecord.displayName || '').trim();
-            const nameParts = splitFullNameParts(displayName);
-            const createdAt = parseMaybeDate(userRecord?.metadata?.creationTime) || new Date();
-
             user = new User({
-                fullName: displayName || getFirstNameFromProfile(normalizedEmail) || 'User',
-                fatherName: nameParts.fatherName,
-                email: normalizedEmail,
-                phone: String(userRecord.phoneNumber || '').trim(),
-                profileImage: String(userRecord.photoURL || '').trim(),
-                authProvider: primaryProvider,
-                googleSub: providerIds.includes('google.com')
-                    ? String((userRecord.providerData || []).find((provider) => provider?.providerId === 'google.com')?.uid || decoded.uid || '')
-                    : '',
-                firebaseUid: decoded.uid,
-                emailVerified: !!userRecord.emailVerified,
-                pendingEmail: '',
+                fullName:     displayName || getFirstNameFromProfile(normalizedEmail) || 'User',
+                fatherName:   nameParts.fatherName,
+                email:        normalizedEmail,
+                profileImage,
+                authProvider: 'google',
+                googleSub,
+                emailVerified: true,
+                pendingEmail:  '',
                 providerIds,
-                role: isReservedAdminEmail(normalizedEmail) ? 'admin' : 'customer',
-                status: 'active',
+                role:    isReservedAdminEmail(normalizedEmail) ? 'admin' : 'customer',
+                status:  'active',
                 isBanned: false,
-                createdAt,
-                lastLoginAt: parseMaybeDate(userRecord?.metadata?.lastSignInTime) || new Date()
+                createdAt:   new Date(),
+                lastLoginAt: new Date(),
             });
+        } else {
+            // Update profile fields from Google on every login
+            if (!user.googleSub && googleSub)     user.googleSub   = googleSub;
+            if (!user.profileImage && profileImage) user.profileImage = profileImage;
+            if (!user.fullName && displayName)     user.fullName    = displayName;
+            user.emailVerified = true;
+            user.providerIds   = normalizeProviderIds([...normalizeProviderIds(user.providerIds), 'google.com']);
+            user.authProvider  = user.authProvider || 'google';
+            user.lastLoginAt   = new Date();
+            applyReservedRoleRules(user, normalizedEmail);
         }
 
-        applyFirebaseProfileToUser(user, userRecord, providerIds);
-        applyReservedRoleRules(user, normalizedEmail);
         await user.save();
 
+        // Notify admins about new customer
         if (isNewUser && user.role === 'customer') {
             try {
                 const Notification = require('../models/Notification');
                 const admins = await User.find({ role: 'admin', status: { $ne: 'banned' }, isBanned: { $ne: true } })
-                    .select('_id')
-                    .lean();
-                if (Array.isArray(admins) && admins.length > 0) {
-                    await Notification.insertMany(
-                        admins.map((admin) => ({
-                            user_id: admin._id,
-                            type: 'system',
-                            reference_id: String(user._id || ''),
-                            title: 'New customer registration',
-                            body: `${user.fullName || 'A new user'} signed up via Google. Email: ${user.email}`,
-                            destination: {
-                                path: '/admin/customers',
-                                query: { highlight: String(user._id || '') }
-                            },
-                            is_read: false,
-                            timestamp: new Date()
-                        }))
-                    );
+                    .select('_id').lean();
+                if (admins.length > 0) {
+                    await Notification.insertMany(admins.map((admin) => ({
+                        user_id: admin._id,
+                        type: 'system',
+                        reference_id: String(user._id || ''),
+                        title: 'New customer registration',
+                        body: `${user.fullName || 'A new user'} signed up via Google. Email: ${user.email}`,
+                        destination: { path: '/admin/customers', query: { highlight: String(user._id || '') } },
+                        is_read: false,
+                        timestamp: new Date(),
+                    })));
                 }
             } catch (notifyErr) {
                 console.error('New customer notification failed:', notifyErr.message || notifyErr);
@@ -685,109 +624,15 @@ exports.firebaseSession = async (req, res) => {
 
         return issueJwt(res, user);
     } catch (err) {
-        console.error('firebaseSession error:', err?.message || err);
-        if (String(err?.code || '').includes('auth/')) {
-            return res.status(401).json({ msg: 'Invalid Firebase session', code: String(err.code || '') });
+        console.error('googleSession error:', err?.message || err);
+        const msg = String(err?.message || '');
+        if (msg.includes('expired') || msg.includes('audience') || msg.includes('Invalid Google')) {
+            return res.status(401).json({ msg: msg || 'Invalid Google token' });
         }
-        return res.status(500).json({ msg: 'Failed to sync Firebase session' });
+        return res.status(500).json({ msg: 'Failed to sign in with Google' });
     }
 };
 
-// Google Sign-In config (client id)
-exports.googleConfig = async (req, res) => {
-    const clientId = process.env.GOOGLE_CLIENT_ID || '';
-    res.json({ clientId });
-};
-
-// Google Sign-In (verify token, create user if missing, then issue JWT)
-exports.googleLogin = async (req, res) => {
-    const { idToken } = req.body;
-
-    if (!idToken) {
-        return res.status(400).json({ msg: 'Missing Google token' });
-    }
-
-    try {
-        const client = getGoogleClient();
-        const ticket = await client.verifyIdToken({
-            idToken,
-            audience: process.env.GOOGLE_CLIENT_ID
-        });
-        const payload = ticket.getPayload();
-
-        const normalizedEmail = normalizeEmail(payload && payload.email);
-        if (!normalizedEmail) {
-            return res.status(400).json({ msg: 'Google token has no email' });
-        }
-
-        let user = await User.findOne({ email: normalizedEmail });
-
-        if (!user) {
-            // Do not allow creating the reserved admin email via Google
-            const googleName = (payload && (payload.given_name || payload.name)) || '';
-            const first = getFirstNameFromProfile(googleName) || 'User';
-
-            user = new User({
-                fullName: first,
-                email: normalizedEmail,
-                role: isReservedAdminEmail(normalizedEmail) ? 'admin' : 'customer',
-                authProvider: 'google',
-                googleSub: payload && payload.sub,
-                age: null,
-                sex: '',
-                profileImage: '',
-                status: 'active',
-                isBanned: false
-            });
-
-            await user.save();
-        } else {
-            // If the user exists, keep their role but record Google linkage if missing
-            let changed = false;
-            if (!user.googleSub && payload && payload.sub) {
-                user.googleSub = payload.sub;
-                changed = true;
-            }
-            if (!user.authProvider) {
-                user.authProvider = 'local';
-                changed = true;
-            }
-            if (applyReservedRoleRules(user, normalizedEmail)) {
-                changed = true;
-            }
-            if (changed) {
-                await user.save();
-            }
-        }
-
-        const status = user.status || (user.isBanned ? 'banned' : 'active');
-        if (status === 'banned' || user.isBanned) {
-            return res.status(403).json({ msg: 'User is banned' });
-        }
-        if (status === 'inactive') {
-            return res.status(403).json({ msg: 'User is inactive' });
-        }
-
-        const deviceHash = getDeviceHashFromReq(req);
-        if (user.role === 'admin' && !deviceHash) {
-            return res.status(400).json({ msg: 'Missing device fingerprint' });
-        }
-        if (deviceHash) {
-            const blocked = await BlockedDevice.findOne({ deviceHash, blocked: true })
-                .select('_id')
-                .lean();
-            if (blocked) {
-                return res.status(403).json({ msg: 'Device is blocked' });
-            }
-            await recordLoginDevice(req, user._id, deviceHash);
-        }
-
-        issueJwt(res, user);
-    } catch (err) {
-        console.error(err);
-        return res.status(401).json({ msg: 'Invalid Google token' });
-    }
-};
 
 // Get current authenticated user (session validation helper)
 exports.me = async (req, res) => {
