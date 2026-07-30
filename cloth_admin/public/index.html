@@ -204,34 +204,35 @@
             }
         });
 
-        // Google Sign-In
+        // Google Sign-In using Google Identity Services (GIS)
+        // Loads Google's GSI script on demand, gets an ID token, posts to backend
         googleBtn.addEventListener('click', async function () {
             setStatus('', '');
             setAllDisabled(true);
             googleBtn.querySelector('span:last-child').textContent = 'Signing in...';
 
             try {
-                var bridge = await loadFirebaseBridge();
-                var session = await bridge.loginWithGoogle();
+                var idToken = await getGoogleIdToken();
+                var fp = getFingerprint();
 
-                var firebaseEmail = String(
-                    (session && session.user && session.user.email) ||
-                    localStorage.getItem('yeshi_firebase_email') || ''
-                ).trim().toLowerCase();
+                var resp = await fetch(BASE + '/api/auth/google/session', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-device-fingerprint': fp
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify({ idToken: idToken })
+                });
 
-                if (firebaseEmail && firebaseEmail !== ALLOWED_EMAIL) {
-                    await bridge.signOutUser().catch(function () {});
-                    throw new Error('Access Denied: Only ' + ALLOWED_EMAIL + ' is authorised to access this admin dashboard.');
+                var data = await resp.json();
+                if (!resp.ok) throw new Error(data.msg || 'Google sign-in failed');
+                if (!data.token || !data.user) throw new Error('Session could not be established. Please try again.');
+                if (String(data.user.role || '').toLowerCase() !== 'admin') {
+                    throw new Error('Access denied — admin account required.');
                 }
 
-                var token = localStorage.getItem('token');
-                var user;
-                try { user = JSON.parse(localStorage.getItem('user') || 'null'); } catch (_) { user = null; }
-
-                if (!token || !user) throw new Error('Session could not be established. Please try again.');
-                if (String(user.role || '').toLowerCase() !== 'admin')
-                    throw new Error('Access denied — admin account required.');
-
+                persistSession(data.token, data.user);
                 setStatus('success', 'Login successful. Redirecting...');
                 window.location.replace('/admin/dashboard.html');
             } catch (err) {
@@ -242,29 +243,50 @@
             }
         });
 
-        function loadFirebaseBridge() {
+        function getGoogleIdToken() {
             return new Promise(function (resolve, reject) {
-                if (window.YeshiFirebaseAuth) {
-                    window.YeshiFirebaseAuth.whenReady().then(function () {
-                        resolve(window.YeshiFirebaseAuth);
-                    }).catch(reject);
-                    return;
-                }
-                var script = document.createElement('script');
-                script.src = '/js/firebase-auth.js';
-                script.onload = function () {
-                    if (!window.YeshiFirebaseAuth) {
-                        reject(new Error('Firebase auth bridge failed to load'));
+                // Load Google Identity Services script if not already loaded
+                function initGsi() {
+                    if (!window.google || !window.google.accounts) {
+                        reject(new Error('Google Sign-In failed to load. Please try again.'));
                         return;
                     }
-                    window.YeshiFirebaseAuth.whenReady().then(function () {
-                        resolve(window.YeshiFirebaseAuth);
-                    }).catch(reject);
-                };
-                script.onerror = function () {
-                    reject(new Error('Failed to load Firebase auth script'));
-                };
-                document.head.appendChild(script);
+                    window.google.accounts.id.initialize({
+                        // Client ID is served from backend config; fall back to window var if set
+                        client_id: window.__GOOGLE_CLIENT_ID || '',
+                        callback: function (response) {
+                            if (response && response.credential) {
+                                resolve(response.credential);
+                            } else {
+                                reject(new Error('No credential returned from Google'));
+                            }
+                        },
+                        auto_select: false,
+                        cancel_on_tap_outside: true
+                    });
+                    window.google.accounts.id.prompt(function (notification) {
+                        if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+                            // Fallback: render a button popup
+                            var parent = document.createElement('div');
+                            parent.style.display = 'none';
+                            document.body.appendChild(parent);
+                            window.google.accounts.id.renderButton(parent, { type: 'standard' });
+                            parent.querySelector('div[role=button]') && parent.querySelector('div[role=button]').click();
+                        }
+                    });
+                }
+
+                if (window.google && window.google.accounts) {
+                    initGsi();
+                } else {
+                    var script = document.createElement('script');
+                    script.src = 'https://accounts.google.com/gsi/client';
+                    script.async = true;
+                    script.defer = true;
+                    script.onload = initGsi;
+                    script.onerror = function () { reject(new Error('Failed to load Google Sign-In')); };
+                    document.head.appendChild(script);
+                }
             });
         }
     })();
