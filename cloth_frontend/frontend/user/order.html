@@ -9,21 +9,17 @@
     <script>
         (function () {
             var token = localStorage.getItem('token');
-            var firebaseUid = localStorage.getItem('yeshi_firebase_uid');
             var user = {};
             try { user = JSON.parse(localStorage.getItem('user') || '{}') || {}; } catch (_) { user = {}; }
             var status = String(user.status || '').toLowerCase();
             var blocked = !!user.isBanned || status === 'banned' || status === 'inactive';
-            if ((token || firebaseUid) && !blocked) return;
+            if (token && !blocked) return;
             var next = encodeURIComponent(window.location.pathname + window.location.search + window.location.hash);
             if (blocked) {
                 localStorage.removeItem('token');
                 localStorage.removeItem('role');
                 localStorage.removeItem('user');
                 localStorage.removeItem('loginTime');
-                localStorage.removeItem('yeshi_firebase_uid');
-                localStorage.removeItem('yeshi_firebase_email');
-                localStorage.removeItem('yeshi_firebase_provider');
             }
             window.location.replace('/auth/login?next=' + next);
             return;

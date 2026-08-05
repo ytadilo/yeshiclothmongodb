@@ -17,7 +17,6 @@
                 ua: navigator.userAgent || '',
                 lang: navigator.language || '',
                 langs: Array.isArray(navigator.languages) ? navigator.languages : [],
-                plat: navigator.platform || '',
                 hc: navigator.hardwareConcurrency || 0,
                 dm: navigator.deviceMemory || 0,
                 scr: {
@@ -29,9 +28,8 @@
                 tzOff: new Date().getTimezoneOffset()
             };
 
-            const raw = JSON.stringify(payload);
-            // btoa requires latin1; encode to UTF-8 first
-            return btoa(unescape(encodeURIComponent(raw)));
+            const bytes = new TextEncoder().encode(JSON.stringify(payload));
+            return btoa(String.fromCharCode(...bytes));
         } catch (_) {
             return '';
         }

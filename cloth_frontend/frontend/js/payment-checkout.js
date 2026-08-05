@@ -54,17 +54,21 @@ document.addEventListener('DOMContentLoaded', async () => {
      * Populate form fields with order and user data
      */
     function populateFormData(data) {
-        // Try to get user info from Firebase
-        if (window.currentUser) {
-            document.getElementById('customerName').value = 
-                window.currentUser.displayName || window.currentUser.email || '';
-            document.getElementById('customerEmail').value = 
-                window.currentUser.email || '';
-            document.getElementById('customerPhone').value = 
-                data.customer_phone || '';
-        }
+        // Try to get user info from stored session
+        try {
+            const user = JSON.parse(localStorage.getItem('user') || '{}') || {};
+            if (user.fullName) {
+                document.getElementById('customerName').value = user.fullName;
+            }
+            if (user.email) {
+                document.getElementById('customerEmail').value = user.email;
+            }
+            if (user.phone) {
+                document.getElementById('customerPhone').value = user.phone;
+            }
+        } catch (_) {}
 
-        // Use data from order if provided
+        // Use data from order if provided (overrides profile values)
         if (data.customer_name) {
             document.getElementById('customerName').value = data.customer_name;
         }
@@ -151,7 +155,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${await getAuthToken()}`
+                    'x-auth-token': await getAuthToken()
                 },
                 body: JSON.stringify(formData)
             });
@@ -271,16 +275,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     /**
-     * Get authentication token
+     * Get authentication token from localStorage (JWT)
      */
     async function getAuthToken() {
-        if (window.currentUser) {
-            return await window.currentUser.getIdToken();
-        }
-        
-        // Try to get from localStorage
-        const token = localStorage.getItem('auth_token');
-        return token || '';
+        return String(localStorage.getItem('token') || '').trim();
     }
 });
 

@@ -394,15 +394,14 @@ async function handleChapaPayment(e) {
             return;
         }
         
-        // Get user email from localStorage or profile
-        let customerEmail = localStorage.getItem('yeshi_firebase_email') || localStorage.getItem('email') || '';
-        if (!customerEmail) {
-            try {
-                const userStr = localStorage.getItem('user');
-                const user = userStr ? JSON.parse(userStr) : {};
-                customerEmail = user.email || '';
-            } catch (_) {}
-        }
+        // Get user email from stored MongoDB session
+        let customerEmail = '';
+        try {
+            const userStr = localStorage.getItem('user');
+            const user = userStr ? JSON.parse(userStr) : {};
+            customerEmail = user.email || '';
+        } catch (_) {}
+        if (!customerEmail) customerEmail = String(localStorage.getItem('email') || '').trim();
         
         if (!customerEmail) {
             alert('Email not found. Please check your profile.');

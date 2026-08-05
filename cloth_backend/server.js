@@ -25,7 +25,7 @@ const globalLimiter = rateLimit({
 
 const googleSessionLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
-    max: Number(process.env.FIREBASE_SESSION_RATE_LIMIT_MAX || 12),
+    max: Number(process.env.GOOGLE_SESSION_RATE_LIMIT_MAX || 12),
     standardHeaders: true,
     legacyHeaders: false,
     message: { msg: 'Too many Google sign-in attempts. Please try again later.' }

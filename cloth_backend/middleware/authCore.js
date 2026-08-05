@@ -37,7 +37,7 @@ function getGoogleToken(req) {
     if (/^bearer\s+/i.test(authHeader)) {
         return authHeader.replace(/^bearer\s+/i, '').trim();
     }
-    return String(req.header('x-google-token') || req.header('x-firebase-token') || '').trim();
+    return String(req.header('x-google-token') || '').trim();
 }
 
 function getLegacyTokens(req) {

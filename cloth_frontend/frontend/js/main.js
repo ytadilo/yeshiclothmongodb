@@ -131,48 +131,7 @@ const YESHI_AUTH_STATE = {
     lastResolvedAt: 0
 };
 
-let yeshiMainFirebaseBridgePromise = null;
-
-function ensureFirebaseAuthBridge() {
-    if (window.YeshiFirebaseAuth) {
-        return Promise.resolve(window.YeshiFirebaseAuth.whenReady()).then(() => window.YeshiFirebaseAuth);
-    }
-
-    if (yeshiMainFirebaseBridgePromise) {
-        return yeshiMainFirebaseBridgePromise;
-    }
-
-    yeshiMainFirebaseBridgePromise = new Promise((resolve, reject) => {
-        const existingScript = document.querySelector('script[data-yeshi-firebase-auth="1"]');
-        if (existingScript) {
-            const waitForBridge = () => {
-                if (window.YeshiFirebaseAuth) {
-                    window.YeshiFirebaseAuth.whenReady().then(() => resolve(window.YeshiFirebaseAuth)).catch(reject);
-                    return;
-                }
-                window.setTimeout(waitForBridge, 50);
-            };
-            waitForBridge();
-            return;
-        }
-
-        const script = document.createElement('script');
-        script.src = '/js/firebase-auth.js?v=20260507a';
-        script.async = true;
-        script.setAttribute('data-yeshi-firebase-auth', '1');
-        script.onload = () => {
-            if (!window.YeshiFirebaseAuth) {
-                reject(new Error('Firebase auth bridge failed to initialize'));
-                return;
-            }
-            window.YeshiFirebaseAuth.whenReady().then(() => resolve(window.YeshiFirebaseAuth)).catch(reject);
-        };
-        script.onerror = () => reject(new Error('Failed to load Firebase auth bridge'));
-        document.head.appendChild(script);
-    });
-
-    return yeshiMainFirebaseBridgePromise;
-}
+let yeshiMainFirebaseBridgePromise = null; // kept for backward compat, never used
 
 function getProtectedUserPaths() {
     return new Set([
@@ -211,8 +170,6 @@ function getCurrentAuthSnapshot() {
     const role = String((user && user.role) || localStorage.getItem('role') || '').trim();
     const status = String((user && user.status) || '').toLowerCase();
     const blocked = !!(user && (user.isBanned || status === 'banned' || status === 'inactive'));
-    const hasFirebaseHint = !!String(localStorage.getItem('yeshi_firebase_uid') || '').trim();
-    const hasRestorableFirebaseSession = hasFirebaseHint && !blocked;
 
     return {
         ready: !!YESHI_AUTH_STATE.ready,
@@ -220,7 +177,7 @@ function getCurrentAuthSnapshot() {
         user,
         role,
         blocked,
-        isLoggedIn: (!!token && !!user && !blocked) || (!token && hasRestorableFirebaseSession && !YESHI_AUTH_STATE.ready)
+        isLoggedIn: !!token && !!user && !blocked
     };
 }
 
@@ -239,9 +196,6 @@ const USER_SCOPED_LOCAL_STORAGE_KEYS = [
     'role',
     'user',
     'loginTime',
-    'yeshi_firebase_uid',
-    'yeshi_firebase_email',
-    'yeshi_firebase_provider',
     'yeshi_profile_avatar',
     'yeshi_profile_shipping',
     'yeshi_saved_shipping_addresses',
@@ -332,7 +286,6 @@ async function resolveAuthSession(options = {}) {
         const storedToken = String(localStorage.getItem('token') || '').trim();
         const cachedUser = getStoredAuthUser();
         const recentlyResolved = (Date.now() - Number(YESHI_AUTH_STATE.lastResolvedAt || 0)) < 30000;
-        let firebaseBridge = null;
 
         if (!options.force && YESHI_AUTH_STATE.ready && recentlyResolved) {
             if (!storedToken) {
@@ -345,20 +298,6 @@ async function resolveAuthSession(options = {}) {
         }
 
         try {
-            firebaseBridge = await ensureFirebaseAuthBridge().catch(() => null);
-        } catch (_) {
-            firebaseBridge = null;
-        }
-
-        try {
-            if (!storedToken && firebaseBridge && typeof firebaseBridge.ensureAppSession === 'function') {
-                const restored = await firebaseBridge.ensureAppSession({ force: !!options.force }).catch(() => null);
-                if (restored && restored.ok) {
-                    YESHI_AUTH_STATE.ready = true;
-                    return getCurrentAuthSnapshot();
-                }
-            }
-
             if (!storedToken) {
                 YESHI_AUTH_STATE.ready = true;
                 YESHI_AUTH_STATE.token = '';
@@ -385,15 +324,6 @@ async function resolveAuthSession(options = {}) {
                 }
 
                 clearStoredAuthSession({ preserveReady: true });
-
-                if (firebaseBridge && typeof firebaseBridge.ensureAppSession === 'function') {
-                    const restored = await firebaseBridge.ensureAppSession({ force: true }).catch(() => null);
-                    if (restored && restored.ok) {
-                        YESHI_AUTH_STATE.ready = true;
-                        return getCurrentAuthSnapshot();
-                    }
-                }
-
                 return getCurrentAuthSnapshot();
             }
 
@@ -434,17 +364,7 @@ async function performLogout(redirectTo) {
         // Local logout should still work if the API call fails.
     }
 
-    try {
-        const firebaseBridge = await ensureFirebaseAuthBridge().catch(() => null);
-        if (firebaseBridge && typeof firebaseBridge.signOutUser === 'function') {
-            await firebaseBridge.signOutUser();
-        } else {
-            clearStoredAuthSession({ preserveReady: true });
-        }
-    } catch (_) {
-        clearStoredAuthSession({ preserveReady: true });
-    }
-
+    clearStoredAuthSession({ preserveReady: true });
     const destination = redirectTo || '/auth/login';
     window.location.replace(destination);
 }
@@ -478,7 +398,7 @@ function bindGlobalLogoutDelegation() {
 }
 
 window.addEventListener('storage', (event) => {
-    if (!event || !['token', 'role', 'user', 'loginTime', 'yeshi_firebase_uid', 'yeshi_firebase_email', 'yeshi_firebase_provider'].includes(String(event.key || ''))) return;
+    if (!event || !['token', 'role', 'user', 'loginTime'].includes(String(event.key || ''))) return;
 
     const snapshot = getCurrentAuthSnapshot();
     YESHI_AUTH_STATE.ready = true;
@@ -529,11 +449,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     applyActiveNavAndFooterColors();
     applySocialLinks();
     applySiteContent();
-    try {
-        await ensureFirebaseAuthBridge().catch(() => null);
-    } catch (_) {
-        // Continue gracefully when Firebase is not configured yet.
-    }
     await resolveAuthSession();
 
     if (enforceUserGuestAccessPolicy()) return;

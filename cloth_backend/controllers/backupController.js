@@ -43,47 +43,16 @@ function pruneBackupHistory() {
 
 async function readModelDocuments(model) {
   if (model && typeof model.find === 'function') {
-    const query = model.find({});
-    if (query && typeof query.lean === 'function') {
-      return await query.lean();
-    }
-    return await query;
+    return await model.find({}).lean();
   }
-
-  if (model && typeof model.collection === 'function') {
-    const snap = await model.collection().get();
-    return snap.docs.map((doc) => ({ _id: doc.id, id: doc.id, ...doc.data() }));
-  }
-
   return [];
 }
 
 async function replaceModelDocuments(model, items) {
   const list = Array.isArray(items) ? items : [];
-
   if (model && typeof model.deleteMany === 'function' && typeof model.insertMany === 'function') {
     await model.deleteMany({});
     if (list.length) await model.insertMany(list);
-    return;
-  }
-
-  if (model && typeof model.collection === 'function') {
-    const collection = model.collection();
-    const existing = await collection.get();
-    await Promise.all(existing.docs.map((doc) => collection.doc(String(doc.id)).delete()));
-
-    for (const item of list) {
-      const doc = item && typeof item === 'object' ? { ...item } : {};
-      const id = String(doc._id || doc.id || doc.key || '').trim();
-      delete doc._id;
-      delete doc.id;
-
-      if (id) {
-        await collection.doc(id).set(doc, { merge: false });
-      } else {
-        await collection.add(doc);
-      }
-    }
   }
 }
 

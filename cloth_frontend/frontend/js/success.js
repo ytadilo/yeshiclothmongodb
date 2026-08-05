@@ -186,7 +186,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${await getAuthToken()}`
+                    'x-auth-token': await getAuthToken()
                 }
             });
 
@@ -210,15 +210,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     /**
-     * Get authentication token
+     * Get authentication token from localStorage (JWT)
      */
     async function getAuthToken() {
-        if (window.currentUser) {
-            return await window.currentUser.getIdToken();
-        }
-        
-        const token = localStorage.getItem('auth_token');
-        return token || '';
+        return String(localStorage.getItem('token') || '').trim();
     }
 });
 
